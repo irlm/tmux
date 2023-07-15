@@ -19,13 +19,13 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ##### Linux/Mac OS (Unix)
 
 ```shell
-git clone https://github.com/irlm/tmux ~/.config/tmux
+git clone git@github.com:irlm/tmux.git ~/.config/tmux
 ```
 
 ##### Windows (Powershell)
 
 ```shell
-git clone https://github.com/irlm/tmux $env:LOCALAPPDATA\tmux
+git clone git@github.com:irlm/tmux.git $env:LOCALAPPDATA\tmux
 ```
 
 ### Installing plugins
