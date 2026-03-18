@@ -1,0 +1,86 @@
+# Changelog
+
+All notable changes to this tmux configuration will be documented in this file.
+
+## [2.0.0] - 2026-03-17
+
+Major overhaul of the tmux configuration with new keybindings, plugins, and workflow improvements.
+
+### Added
+- **Prefix key**: Changed from `C-b` to `C-a` (easier to reach)
+- **True color & undercurl**: Full 24-bit color and undercurl support for modern terminals
+- **Vi copy mode enhancements**: `v` to select, `y` to yank, `C-v` block select, `H`/`L` start/end of line, `/`/`?` search
+- **Pane resizing**: `Shift+H/J/K/L` to resize panes (repeatable)
+- **Intuitive splits**: `|` horizontal, `-` vertical (both open in current path)
+- **New windows**: `c` opens new window in current path
+- **Quick reload**: `C-a r` to reload config
+- **Popup terminals**: `C-a g` lazygit, `C-a G` gh dash, `C-a f` floating shell, `C-a t` htop
+- **Session management**: `C-a N` new session, `C-a .` rename session, `C-a ,` rename window, `C-a Backspace` toggle last session
+- **Window swapping**: `<` / `>` to reorder windows
+- **Pane swapping**: `{` / `}` to swap panes, `b` break pane to window, `@` join pane
+- **Smart window naming**: Auto-rename windows to current directory name
+- **Window tabs styling**: Clean format with bold active indicator
+- **Pane borders**: Heavy lines, dim inactive (colour238), blue active (colour4)
+- **Activity monitoring**: Highlighted in status bar without message spam
+- **System clipboard**: OSC 52 clipboard integration
+- **detach-on-destroy off**: Killing a session switches to next instead of detaching
+- **escape-time 0**: No delay after pressing Escape (critical for vim/neovim)
+- **Status bar colors**: Cyan CPU, green network speed, cleaner date format (`Tue 17 Mar 14:30`)
+
+### Added Plugins
+- `tmux-plugins/tmux-fzf` — fuzzy finder for sessions, windows, panes
+- `fcsonline/tmux-thumbs` — vimium-like text hints for quick copy (`C-a Space`)
+
+### Removed Plugins
+- `tmux-plugins/tmux-open`
+- `tmux-plugins/tmux-copycat`
+- `tmux-plugins/tmux-prefix-highlight`
+- `tmux-plugins/tmux-sessionist`
+- `tmux-plugins/tmux-sidebar`
+- `tmux-plugins/tmux-online-status`
+- `tmux-plugins/tmux-logging`
+- `tmux-plugins/tmux-pain-control`
+
+### Changed
+- **Plugin config**: Enabled `continuum-restore`, `resurrect-capture-pane-contents`, `resurrect-strategy-nvim`
+- **Status interval**: Reduced from 10s to 5s for faster updates
+- **Status right length**: Increased from 120 to 140
+
+## [1.0.0] - 2023-07-15
+
+Initial tmux configuration.
+
+### Added
+- Mouse support
+- Vi mode keys with `h/j/k/l` pane navigation
+- Focus events, 100k history limit
+- 1-based window and pane indexing
+- Auto-renumber windows
+- Bottom status bar with session name, CPU, network speed, battery, datetime
+- Nord theme with custom status content
+
+### Plugins
+- `tmux-plugins/tpm`
+- `tmux-plugins/tmux-sensible`
+- `christoomey/vim-tmux-navigator`
+- `tmux-plugins/tmux-yank`
+- `tmux-plugins/tmux-resurrect`
+- `tmux-plugins/tmux-continuum`
+- `tmux-plugins/tmux-open`
+- `tmux-plugins/tmux-copycat`
+- `tmux-plugins/tmux-prefix-highlight`
+- `tmux-plugins/tmux-sessionist`
+- `tmux-plugins/tmux-sidebar`
+- `tmux-plugins/tmux-cpu`
+- `tmux-plugins/tmux-battery`
+- `tmux-plugins/tmux-net-speed`
+- `tmux-plugins/tmux-online-status`
+- `tmux-plugins/tmux-logging`
+- `tmux-plugins/tmux-pain-control`
+- `arcticicestudio/nord-tmux`
+
+### Git History
+- `f5d783c` Update README.md
+- `1a9b4b7` Add config
+- `0904961` Update README.md
+- `1f3e793` Initial commit
