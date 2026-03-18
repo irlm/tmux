@@ -2,7 +2,26 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
-## [2.2.0] - 2026-03-18
+## [3.0.0] - 2026-03-18
+
+### Added
+- **Cross-platform support**: `setup.sh` now works on macOS, Ubuntu/Debian, Fedora/RHEL, Arch/Manjaro, openSUSE, and Windows WSL
+- **OS auto-detection**: Detects distro family via `/etc/os-release` with `ID_LIKE` fallback
+- **Native package managers**: Uses apt/dnf/pacman/zypper on Linux (no Linuxbrew)
+- **GitHub release fallback**: Installs lazygit, tlrc, eza from GitHub releases when not in distro repos
+- **Debian binary symlinks**: Auto-creates `fd` -> `fdfind` and `bat` -> `batcat` links
+- **Linux Nerd Font installer**: Downloads JetBrains Mono Nerd Font to `~/.local/share/fonts`
+- **Oh My Posh on Linux**: Installs via official script to `~/.local/bin`
+- **WSL clipboard**: Installs `win32yank.exe` for clipboard integration
+- **WSL browser**: Sets `wslview` as default browser inside WSL
+- **Auto zsh setup**: Installs zsh and sets it as default shell on Linux
+- **GitHub CLI repos**: Adds official gh repos for Debian and Fedora
+- **xclip fallback**: Installs xclip for clipboard on Linux (non-WSL)
+- **Multi-path fzf sourcing**: `.zshrc` checks all common fzf install locations
+
+### Changed
+- **setup.sh**: Refactored from macOS-only to cross-platform architecture with helper functions
+- **.zshrc**: Now portable across macOS, Linux, and WSL
 
 ### Fixed
 - **CPU overhead**: Override nord-tmux forcing `status-interval` from 1s to 5s (reduced script spawns from 6/sec to 6/5sec)
