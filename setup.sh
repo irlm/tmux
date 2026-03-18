@@ -481,6 +481,12 @@ else
   ok "Config files already in place"
 fi
 
+# Symlink ~/.tmux.conf for older tmux versions (< 3.1) that don't read ~/.config/tmux/
+if [ ! -e "$HOME/.tmux.conf" ]; then
+  ln -sf "$TMUX_DIR/tmux.conf" "$HOME/.tmux.conf"
+  ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
+fi
+
 # ─── Zsh plugins (standalone, no framework) ───────────
 ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
 mkdir -p "$ZSH_PLUGIN_DIR"
