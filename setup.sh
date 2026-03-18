@@ -364,9 +364,30 @@ install_core_packages() {
     esac
   fi
 
-  # tlrc (Rust tldr client — install from GitHub release)
-  if ! command -v tlrc &>/dev/null; then
-    install_from_github "tldr-pages/tlrc" "tlrc" "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz"
+  # tlrc (Rust tldr client — binary is named "tldr" in the archive)
+  if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
+    info "Installing tlrc from GitHub..."
+    local tlrc_url
+    tlrc_url=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
+      | grep "browser_download_url" \
+      | grep -i "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" \
+      | head -1 | cut -d '"' -f 4) || true
+    if [ -n "$tlrc_url" ]; then
+      local tlrc_tmp
+      tlrc_tmp=$(mktemp -d)
+      curl -fsSL "$tlrc_url" | tar xz -C "$tlrc_tmp"
+      if [ -f "$tlrc_tmp/tldr" ]; then
+        chmod +x "$tlrc_tmp/tldr"
+        mkdir -p "$HOME/.local/bin"
+        mv "$tlrc_tmp/tldr" "$HOME/.local/bin/tlrc"
+        ok "tlrc installed to ~/.local/bin"
+      fi
+      rm -rf "$tlrc_tmp"
+    else
+      warn "Could not find tlrc release — skipping"
+    fi
+  else
+    ok "tlrc already installed"
   fi
 
   # xclip for clipboard support (Linux, non-WSL)
