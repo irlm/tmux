@@ -1,4 +1,4 @@
-CHEATSHEET v3.2.0 (C-a ?)
+CHEATSHEET v3.3.0 (C-a ?)
 ──────────────────────────────────────────────────────────────────────────────
 POPUPS                  PANES                    WINDOWS/SESSIONS
  g    lazygit            |    split horiz          c     new window
@@ -30,3 +30,5 @@ BTOP (C-a t)            LAZYGIT (C-a g)          GIT ALIASES
  Tab  cycle              b    branches             lg    lazygit
  f    filter             s    stash                ll    ls + git
  t/k  TERM/KILL          q    quit
+──────────────────────────────────────────────────────────────────────────────
+UPDATE: ~/.config/tmux/update.sh        (fetch, pull, install plugins, reload)
