@@ -2,6 +2,20 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [3.1.0] - 2026-03-18
+
+### Added
+- **Windows native setup** (`setup-windows.ps1`): Full setup for Windows Terminal + PowerShell
+- **Windows Terminal keybindings**: Alt-based shortcuts mirroring tmux C-a bindings
+  - `Alt+h/j/k/l` pane navigation, `Alt+Shift+H/J/K/L` resize
+  - `Alt+Shift+\` / `Alt+-` splits, `Alt+x` close, `Alt+z` zoom
+  - `Alt+g` lazygit, `Alt+t` btop, `Alt+i` fastfetch (as new tabs)
+  - `Alt+1-9` tab switching, `Alt+c` new tab
+- **Nord color scheme** for Windows Terminal
+- **PowerShell profile**: Oh My Posh, PSReadLine vi mode, fzf (PSFzf), zoxide, eza/bat aliases
+- **Windows cheatsheet**: `cheatsheet-windows.txt` with keybinding mapping table
+- **Nerd Font installer**: Downloads and registers JetBrains Mono for current user on Windows
+
 ## [3.0.0] - 2026-03-18
 
 ### Added
