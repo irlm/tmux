@@ -487,8 +487,8 @@ if $IS_WSL; then
 fi
 
 # ─── TPM (Tmux Plugin Manager) ────────────────────────
-TPM_DIR="$HOME/.tmux/plugins/tpm"
-mkdir -p "$HOME/.tmux/plugins"
+TPM_DIR="$HOME/.config/tmux/plugins/tpm"
+mkdir -p "$HOME/.config/tmux/plugins"
 
 if [ -f "$TPM_DIR/tpm" ]; then
   ok "TPM already installed"
