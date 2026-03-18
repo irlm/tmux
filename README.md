@@ -22,7 +22,7 @@ Works on **macOS**, **Linux** (Ubuntu, Debian, Fedora, RHEL, Arch, Manjaro, open
 xcode-select --install
 
 # Clone and run
-git clone git@github.com:irlm/tmux.git ~/.config/tmux
+git clone https://github.com/irlm/tmux.git ~/.config/tmux
 bash ~/.config/tmux/setup.sh
 ```
 
@@ -35,7 +35,7 @@ sudo dnf install git    # Fedora/RHEL
 sudo pacman -S git      # Arch
 
 # Clone and run
-git clone git@github.com:irlm/tmux.git ~/.config/tmux
+git clone https://github.com/irlm/tmux.git ~/.config/tmux
 bash ~/.config/tmux/setup.sh
 ```
 
@@ -45,7 +45,7 @@ The script auto-detects your distro and uses the native package manager (apt/dnf
 
 ```bash
 # Same as Linux — the script detects WSL automatically
-git clone git@github.com:irlm/tmux.git ~/.config/tmux
+git clone https://github.com/irlm/tmux.git ~/.config/tmux
 bash ~/.config/tmux/setup.sh
 ```
 
@@ -62,7 +62,7 @@ Fonts must be installed on the **Windows side** (the script will show instructio
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 # Clone and run
-git clone git@github.com:irlm/tmux.git "$env:USERPROFILE\.config\tmux"
+git clone https://github.com/irlm/tmux.git "$env:USERPROFILE\.config\tmux"
 & "$env:USERPROFILE\.config\tmux\setup-windows.ps1"
 ```
 
