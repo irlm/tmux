@@ -1,0 +1,35 @@
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CHEATSHEET  v2.1.0  (prefix: C-a)                                                          C-a ?
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  POPUPS                          PANES                           WINDOWS & SESSIONS
+    C-a g     lazygit               C-a |     split horizontal      C-a c       new window
+    C-a G     gh dash               C-a -     split vertical        C-a ,       rename window
+    C-a t     btop                  C-a h/j/k/l  navigate           C-a X       kill window
+    C-a i     fastfetch             C-a H/J/K/L  resize             C-a < / >   reorder windows
+    C-a f     floating shell        C-a z     toggle zoom           C-a W       pick window
+    C-a ?    this cheatsheet       C-a x     kill pane             C-a N       new session
+                                    C-a b     break to window       C-a .       rename session
+  COPY MODE                         C-a @     join from last        C-a S       pick session
+    C-a [     enter                  C-a { }   swap pane            C-a BkSp    last session
+    v         select
+    y         yank                PLUGINS                         SHELL
+    C-v       block select          C-a I     install plugins       z <name>    smart cd
+    H / L     start/end line        C-a Space thumbs (hints)        C-r         fzf history
+    / ?       search fwd/back       C-a u     fzf URLs              C-t         fzf files
+    Esc       exit                  C-a r     reload config         Alt-c       fzf cd
+                                                                    ll          ls + git
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  BTOP (C-a t)                    LAZYGIT (C-a g)                 GIT ALIASES
+    h         toggle help           Space     stage/unstage         g           git
+    m         memory view           c         commit                gs          git status
+    n         network view          p         push                  gl          git log graph
+    e         tree view             P         pull                  gp          git push
+    Tab       cycle sections        b         branches              gpl         git pull
+    f         filter procs          s         stash                 lg          lazygit
+    t         SIGTERM               ?         help
+    k         SIGKILL               q         quit
+    s / r     sort / reverse
+    /         search

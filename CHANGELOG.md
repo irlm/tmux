@@ -2,6 +2,28 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [2.1.0] - 2026-03-17
+
+### Added
+- **Bootstrap script** (`setup.sh`): One-command setup for fresh macOS machines
+- **Oh My Posh**: Nord theme prompt with git status, language versions, single-line minimal style
+- **Catppuccin theme**: Alternative OMP theme available at `catppuccin.omp.json`
+- **Cheatsheet**: `C-a ?` opens full shortcut reference with 3-column layout
+- **Popup: fastfetch** (`C-a i`): System info popup, closes with `q`
+- **Popup: btop** (`C-a t`): Replaces htop with better task/process manager
+- **Shell tools**: fzf, lazygit, btop, fastfetch, eza, bat, zoxide, tlrc, jq
+- **Zsh plugins**: autosuggestions, syntax-highlighting, completions (no framework)
+- **fzf Nord colors**: Matching color scheme for fuzzy finder
+- **Shell aliases**: Modern CLI replacements (eza, bat, zoxide), git shortcuts
+- **Fastfetch greeting**: Compact system info on new terminal (skipped inside tmux)
+- **Oh My Zsh migration**: Script detects and backs up existing OMZ installs
+- **Nerd Font**: JetBrains Mono Nerd Font auto-installed
+
+### Changed
+- `C-a t` now opens btop instead of htop
+- Oh My Posh prompt: minimal plain style (no powerline arrows/boxes)
+- Path separator uses `›` instead of `/`
+
 ## [2.0.0] - 2026-03-17
 
 Major overhaul of the tmux configuration with new keybindings, plugins, and workflow improvements.
