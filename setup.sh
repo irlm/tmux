@@ -467,6 +467,16 @@ else
   ok "TPM already installed"
 fi
 
+# Ensure TPM scripts are executable
+if [ -d "$TPM_DIR" ]; then
+  chmod +x "$TPM_DIR/tpm" 2>/dev/null
+  chmod +x "$TPM_DIR/bin/"* 2>/dev/null
+  chmod +x "$TPM_DIR/scripts/"* 2>/dev/null
+  ok "TPM scripts marked executable"
+else
+  err "TPM directory not found at $TPM_DIR — plugin install will fail"
+fi
+
 # ─── Tmux config ──────────────────────────────────────
 TMUX_DIR="$HOME/.config/tmux"
 mkdir -p "$TMUX_DIR"
