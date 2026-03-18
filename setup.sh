@@ -208,15 +208,6 @@ install_prerequisites() {
       zypper) sudo zypper install -y -t pattern devel_basis ;;
     esac
 
-    # Install zsh if missing
-    if ! command -v zsh &>/dev/null; then
-      info "Installing zsh..."
-      pkg_install zsh
-      ok "zsh installed"
-    else
-      ok "zsh already installed"
-    fi
-
     # WSL extras
     if $IS_WSL; then
       case "$PKG_MGR" in
@@ -545,10 +536,7 @@ if [ ! -e "$HOME/.tmux.conf" ]; then
   ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
 fi
 
-# ─── Zsh plugins (standalone, no framework) ───────────
-ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
-mkdir -p "$ZSH_PLUGIN_DIR"
-
+# ─── Shell plugins ────────────────────────────────────
 clone_if_missing() {
   local repo=$1 dir=$2
   if [ ! -d "$dir" ]; then
@@ -559,9 +547,18 @@ clone_if_missing() {
   fi
 }
 
-clone_if_missing "zsh-users/zsh-autosuggestions" "$ZSH_PLUGIN_DIR/zsh-autosuggestions"
-clone_if_missing "zsh-users/zsh-syntax-highlighting" "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting"
-clone_if_missing "zsh-users/zsh-completions" "$ZSH_PLUGIN_DIR/zsh-completions"
+if [[ "$OS" == "macos" ]]; then
+  # macOS uses zsh (default shell)
+  SHELL_TYPE="zsh"
+  ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
+  mkdir -p "$ZSH_PLUGIN_DIR"
+  clone_if_missing "zsh-users/zsh-autosuggestions" "$ZSH_PLUGIN_DIR/zsh-autosuggestions"
+  clone_if_missing "zsh-users/zsh-syntax-highlighting" "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting"
+  clone_if_missing "zsh-users/zsh-completions" "$ZSH_PLUGIN_DIR/zsh-completions"
+else
+  # Linux uses bash (already default)
+  SHELL_TYPE="bash"
+fi
 
 # ─── fzf keybindings ──────────────────────────────────
 if [[ "$OS" == "macos" ]]; then
@@ -570,40 +567,46 @@ if [[ "$OS" == "macos" ]]; then
     ok "fzf keybindings configured"
   fi
 elif [ -f "$HOME/.fzf/install" ]; then
-  "$HOME/.fzf/install" --key-bindings --completion --no-update-rc --no-bash --no-fish
+  "$HOME/.fzf/install" --key-bindings --completion --no-update-rc --no-zsh --no-fish
   ok "fzf keybindings configured"
-elif [ -f /usr/share/fzf/key-bindings.zsh ] || [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
-  ok "fzf keybindings available (sourced via .zshrc)"
+elif [ -f /usr/share/fzf/key-bindings.bash ] || [ -f /usr/share/doc/fzf/examples/key-bindings.bash ]; then
+  ok "fzf keybindings available (sourced via shell rc)"
 fi
 
-# ─── Migrate from Oh My Zsh (if present) ──────────────
+# ─── Backup existing shell config ─────────────────────
 BACKUP_DIR="$HOME/.config/shell-backup/$(date +%Y%m%d-%H%M%S)"
-if [ -d "$HOME/.oh-my-zsh" ]; then
-  warn "Oh My Zsh detected — migrating..."
-  mkdir -p "$BACKUP_DIR"
-  [ -f "$HOME/.zshrc" ] && cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc" && ok "Backed up .zshrc"
-  [ -f "$HOME/.zprofile" ] && cp "$HOME/.zprofile" "$BACKUP_DIR/.zprofile" && ok "Backed up .zprofile"
-  [ -f "$HOME/.zshenv" ] && cp "$HOME/.zshenv" "$BACKUP_DIR/.zshenv" && ok "Backed up .zshenv"
-  [ -f "$HOME/.p10k.zsh" ] && cp "$HOME/.p10k.zsh" "$BACKUP_DIR/.p10k.zsh" && ok "Backed up .p10k.zsh"
-  mv "$HOME/.oh-my-zsh" "$BACKUP_DIR/.oh-my-zsh"
-  ok "Oh My Zsh moved to $BACKUP_DIR/.oh-my-zsh"
-  warn "To restore: cp -r $BACKUP_DIR/.oh-my-zsh ~/  && cp $BACKUP_DIR/.zshrc ~/"
-else
-  # Backup any existing zsh config even without OMZ
-  if [ -f "$HOME/.zshrc" ]; then
+
+if [[ "$OS" == "macos" ]]; then
+  # macOS: backup zsh configs + Oh My Zsh migration
+  if [ -d "$HOME/.oh-my-zsh" ]; then
+    warn "Oh My Zsh detected — migrating..."
+    mkdir -p "$BACKUP_DIR"
+    [ -f "$HOME/.zshrc" ] && cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc" && ok "Backed up .zshrc"
+    [ -f "$HOME/.zprofile" ] && cp "$HOME/.zprofile" "$BACKUP_DIR/.zprofile" && ok "Backed up .zprofile"
+    [ -f "$HOME/.p10k.zsh" ] && cp "$HOME/.p10k.zsh" "$BACKUP_DIR/.p10k.zsh" && ok "Backed up .p10k.zsh"
+    mv "$HOME/.oh-my-zsh" "$BACKUP_DIR/.oh-my-zsh"
+    ok "Oh My Zsh moved to $BACKUP_DIR/.oh-my-zsh"
+  elif [ -f "$HOME/.zshrc" ]; then
     mkdir -p "$BACKUP_DIR"
     cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc"
-    [ -f "$HOME/.zprofile" ] && cp "$HOME/.zprofile" "$BACKUP_DIR/.zprofile"
-    [ -f "$HOME/.zshenv" ] && cp "$HOME/.zshenv" "$BACKUP_DIR/.zshenv"
-    warn "Backed up existing shell configs to $BACKUP_DIR"
+    warn "Backed up existing .zshrc to $BACKUP_DIR"
+  fi
+else
+  # Linux: backup .bashrc
+  if [ -f "$HOME/.bashrc" ]; then
+    mkdir -p "$BACKUP_DIR"
+    cp "$HOME/.bashrc" "$BACKUP_DIR/.bashrc"
+    warn "Backed up existing .bashrc to $BACKUP_DIR"
   fi
 fi
 
-# ─── Write .zshrc ─────────────────────────────────────
-ZSHRC="$HOME/.zshrc"
-info "Configuring .zshrc..."
+# ─── Write shell config ──────────────────────────────
+if [[ "$SHELL_TYPE" == "zsh" ]]; then
+  # ── macOS: .zshrc ──
+  RCFILE="$HOME/.zshrc"
+  info "Configuring .zshrc..."
 
-cat > "$ZSHRC" << 'ZSHRC_EOF'
+  cat > "$RCFILE" << 'ZSHRC_EOF'
 # ─── Path ────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -620,11 +623,7 @@ if command -v oh-my-posh &>/dev/null; then
 fi
 
 # ─── Zsh options ─────────────────────────────────────────
-setopt AUTO_CD                # cd by typing directory name
-setopt HIST_IGNORE_ALL_DUPS   # no duplicate history entries
-setopt HIST_SAVE_NO_DUPS
-setopt SHARE_HISTORY          # share history across sessions
-setopt CORRECT                # spelling correction
+setopt AUTO_CD HIST_IGNORE_ALL_DUPS HIST_SAVE_NO_DUPS SHARE_HISTORY CORRECT
 HISTSIZE=50000
 SAVEHIST=50000
 HISTFILE=~/.zsh_history
@@ -632,30 +631,85 @@ HISTFILE=~/.zsh_history
 # ─── Completion ──────────────────────────────────────────
 autoload -Uz compinit
 compinit -C
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'    # case-insensitive
-zstyle ':completion:*' menu select                       # arrow-key menu
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"  # colored completions
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 
 # ─── Plugins ─────────────────────────────────────────────
 ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
 [ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
 [ -f "$ZSH_PLUGIN_DIR/zsh-completions/zsh-completions.plugin.zsh" ] && source "$ZSH_PLUGIN_DIR/zsh-completions/zsh-completions.plugin.zsh"
-# syntax-highlighting must be sourced last
 [ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
 # ─── fzf ─────────────────────────────────────────────────
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-# Linux: fzf from package manager
-[ -f /usr/share/fzf/key-bindings.zsh ] && source /usr/share/fzf/key-bindings.zsh
-[ -f /usr/share/fzf/completion.zsh ] && source /usr/share/fzf/completion.zsh
-[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] && source /usr/share/doc/fzf/examples/key-bindings.zsh
-[ -f /usr/share/doc/fzf/examples/completion.zsh ] && source /usr/share/doc/fzf/examples/completion.zsh
 export FZF_DEFAULT_OPTS="--color=fg:#d8dee9,bg:#2e3440,hl:#88c0d0 --color=fg+:#eceff4,bg+:#434c5e,hl+:#5e81ac --color=info:#ebcb8b,prompt:#81a1c1,pointer:#bf616a --color=marker:#a3be8c,spinner:#b48ead,header:#88c0d0"
 
 # ─── Modern CLI aliases ─────────────────────────────────
-command -v eza   &>/dev/null && alias ls='eza --icons'   && alias ll='eza -la --icons --git' && alias tree='eza --tree --icons'
-command -v bat   &>/dev/null && alias cat='bat --style=plain'
-command -v zoxide &>/dev/null && eval "$(zoxide init zsh)" # use 'z' instead of 'cd'
+command -v eza    &>/dev/null && alias ls='eza --icons' && alias ll='eza -la --icons --git' && alias tree='eza --tree --icons'
+command -v bat    &>/dev/null && alias cat='bat --style=plain'
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
+
+# ─── Useful aliases ──────────────────────────────────────
+alias ..='cd ..'
+alias ...='cd ../..'
+alias g='git'
+alias gs='git status'
+alias gl='git log --oneline --graph --decorate -20'
+alias gp='git push'
+alias gpl='git pull'
+alias lg='lazygit'
+alias t='tmux'
+alias ta='tmux attach || tmux new'
+command -v tlrc &>/dev/null && alias help='tlrc'
+
+# ─── Fastfetch on new shell (only interactive, non-tmux) ─
+if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
+  fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
+fi
+
+# ─── Source extras ───────────────────────────────────────
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+ZSHRC_EOF
+
+else
+  # ── Linux: .bashrc ──
+  RCFILE="$HOME/.bashrc"
+  info "Configuring .bashrc..."
+
+  cat > "$RCFILE" << 'BASHRC_EOF'
+# ─── Path ────────────────────────────────────────────────
+export PATH="$HOME/.local/bin:$PATH"
+
+# ─── Oh My Posh prompt ──────────────────────────────────
+if command -v oh-my-posh &>/dev/null; then
+  eval "$(oh-my-posh init bash --config ~/.config/tmux/nord.omp.json)"
+fi
+
+# ─── History ─────────────────────────────────────────────
+HISTSIZE=50000
+HISTFILESIZE=50000
+HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+
+# ─── Shell options ───────────────────────────────────────
+shopt -s autocd 2>/dev/null         # cd by typing directory name
+shopt -s cdspell                    # fix minor cd typos
+shopt -s checkwinsize               # update LINES/COLUMNS after resize
+shopt -s globstar 2>/dev/null       # ** recursive glob
+
+# ─── fzf ─────────────────────────────────────────────────
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+[ -f /usr/share/fzf/key-bindings.bash ] && source /usr/share/fzf/key-bindings.bash
+[ -f /usr/share/fzf/completion.bash ] && source /usr/share/fzf/completion.bash
+[ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && source /usr/share/doc/fzf/examples/key-bindings.bash
+[ -f /usr/share/doc/fzf/examples/completion.bash ] && source /usr/share/doc/fzf/examples/completion.bash
+export FZF_DEFAULT_OPTS="--color=fg:#d8dee9,bg:#2e3440,hl:#88c0d0 --color=fg+:#eceff4,bg+:#434c5e,hl+:#5e81ac --color=info:#ebcb8b,prompt:#81a1c1,pointer:#bf616a --color=marker:#a3be8c,spinner:#b48ead,header:#88c0d0"
+
+# ─── Modern CLI aliases ─────────────────────────────────
+command -v eza    &>/dev/null && alias ls='eza --icons' && alias ll='eza -la --icons --git' && alias tree='eza --tree --icons'
+command -v bat    &>/dev/null && alias cat='bat --style=plain'
+command -v zoxide &>/dev/null && eval "$(zoxide init bash)"
 
 # ─── Useful aliases ──────────────────────────────────────
 alias ..='cd ..'
@@ -680,26 +734,13 @@ if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
   fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
 fi
 
-# ─── Source extras (cargo, coursier, etc.) ───────────────
+# ─── Source extras ───────────────────────────────────────
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-ZSHRC_EOF
+BASHRC_EOF
 
-ok ".zshrc configured"
-
-# ─── Set default shell to zsh (Linux only) ────────────
-if [[ "$OS" == "linux" ]]; then
-  ZSH_PATH="$(command -v zsh)"
-  if [ "$SHELL" != "$ZSH_PATH" ]; then
-    # Try sudo chsh (no password prompt) first, fallback to instruction
-    if sudo chsh -s "$ZSH_PATH" "$USER" 2>/dev/null; then
-      ok "Default shell changed to zsh (takes effect on next login)"
-    else
-      warn "Run manually to set zsh as default: chsh -s $ZSH_PATH"
-    fi
-  else
-    ok "zsh is already the default shell"
-  fi
 fi
+
+ok "$RCFILE configured"
 
 # ─── Install tmux plugins ─────────────────────────────
 info "Installing tmux plugins via TPM..."
@@ -731,15 +772,9 @@ echo "  1. Set your terminal font to 'JetBrains Mono Nerd Font'"
 if $IS_WSL; then
   echo "     (Install the font on Windows, not inside WSL)"
 fi
-if [[ "$OS" == "linux" ]] && [ "$SHELL" != "$(command -v zsh)" ]; then
-  echo "  2. Log out and back in (to activate zsh as default shell)"
-  echo "  3. Start tmux: tmux"
-  echo "  4. Install tmux plugins: C-a I"
-else
-  echo "  2. Open a new terminal or run: source ~/.zshrc"
-  echo "  3. Start tmux: tmux"
-  echo "  4. Install tmux plugins: C-a I"
-fi
+echo "  2. Open a new terminal or run: source $RCFILE"
+echo "  3. Start tmux: tmux"
+echo "  4. Install tmux plugins: C-a I"
 echo ""
 echo "  What you got:"
 echo "    - Oh My Posh prompt with Nord theme + git status"
@@ -749,7 +784,9 @@ echo "    - lazygit, btop, gh popups inside tmux"
 echo "    - fastfetch greeting on new terminal"
 echo "    - eza/bat/zoxide replacing ls/cat/cd"
 echo "    - tlrc (quick man pages), jq (JSON)"
-echo "    - zsh autosuggestions + syntax highlighting"
+if [[ "$SHELL_TYPE" == "zsh" ]]; then
+  echo "    - zsh autosuggestions + syntax highlighting"
+fi
 if $IS_WSL; then
   echo "    - win32yank for WSL clipboard integration"
 fi
