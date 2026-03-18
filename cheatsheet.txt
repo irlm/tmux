@@ -1,31 +1,32 @@
-CHEATSHEET v3.1.0 (C-a ?)
-─────────────────────────────────────────────────────────────────
-POPUPS                 PANES                 WINDOWS/SESSIONS
- g   lazygit            |   split horiz        c     new window
- G   gh dash            -   split vert         ,     rename window
- t   btop               hjkl navigate          X     kill window
- i   fastfetch          HJKL resize            < >   reorder
- f   float shell        z    zoom              W     pick window
- ?   cheatsheet         x    kill pane         N     new session
-                        b    break to win      .     rename session
-COPY MODE              @    join pane          S     pick session
- [   enter              { }  swap pane         BkSp  last session
- v   select             Q    kill ALL (confirm)
- y   yank             PLUGINS                SESSION SAVE/RESTORE
- C-v block select       I     install           C-s   save session
- H/L start/end          Space thumbs            C-r   restore session
- / ? search             u     fzf URLs
- Esc exit               r     reload          SHELL
-                                                z     smart cd
-                                                C-r   fzf history
-                                                C-t   fzf files
-                                                Alt-c fzf cd
-─────────────────────────────────────────────────────────────────
-BTOP (C-a t)          LAZYGIT (C-a g)        GIT ALIASES
- h   help              Space stage/unstage     gs  status
- m   memory            c     commit            gl  log graph
- n   network           p     push              gp  push
- e   tree view         P     pull              gpl pull
- Tab cycle             b     branches          lg  lazygit
- f   filter            s     stash             ll  ls + git
- t/k TERM/KILL         q     quit
+CHEATSHEET v3.2.0 (C-a ?)
+──────────────────────────────────────────────────────────────────────────────
+POPUPS                  PANES                    WINDOWS/SESSIONS
+ g    lazygit            |    split horiz          c     new window
+ G    gh dash            -    split vert           ,     rename window
+ t    btop               hjkl navigate             X     kill window
+ i    fastfetch          HJKL resize               < >   reorder
+ f    float shell        z    zoom                 W     pick window
+ ?    cheatsheet         x    kill pane            N     new session
+                         b    break to win         .     rename session
+                         @    join pane            S     pick session
+                         { }  swap pane            BkSp  last session
+                                                   Q     kill ALL (confirm)
+
+COPY MODE              PLUGINS                  SESSION SAVE/RESTORE
+ [    enter              I    install              C-s   save session
+ v    select             Spc  thumbs               C-r   restore session
+ y    yank               u    fzf URLs
+ C-v  block select       r    reload             SHELL
+ H/L  start/end                                    z     smart cd
+ / ?  search                                       C-r   fzf history
+ Esc  exit                                         C-t   fzf files
+                                                   Alt-c fzf cd
+──────────────────────────────────────────────────────────────────────────────
+BTOP (C-a t)            LAZYGIT (C-a g)          GIT ALIASES
+ h    help               Spc  stage/unstage        gs    status
+ m    memory             c    commit               gl    log graph
+ n    network            p    push                 gp    push
+ e    tree view          P    pull                 gpl   pull
+ Tab  cycle              b    branches             lg    lazygit
+ f    filter             s    stash                ll    ls + git
+ t/k  TERM/KILL          q    quit
