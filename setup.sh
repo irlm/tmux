@@ -645,7 +645,20 @@ fi
 
 # ─── Install tmux plugins ─────────────────────────────
 info "Installing tmux plugins via TPM..."
-"$TPM_DIR/bin/install_plugins" 2>/dev/null || warn "Start tmux and press C-a I to install plugins"
+if [ -f "$TPM_DIR/bin/install_plugins" ]; then
+  # TPM install_plugins needs a running tmux server
+  # Start a detached server if none exists, install plugins, then kill it
+  if ! tmux list-sessions &>/dev/null; then
+    info "Starting temporary tmux server for plugin install..."
+    tmux new-session -d -s _tpm_install 2>/dev/null
+    "$TPM_DIR/bin/install_plugins" 2>/dev/null && ok "Plugins installed" || warn "Plugin install failed — press C-a I inside tmux"
+    tmux kill-session -t _tpm_install 2>/dev/null
+  else
+    "$TPM_DIR/bin/install_plugins" 2>/dev/null && ok "Plugins installed" || warn "Plugin install failed — press C-a I inside tmux"
+  fi
+else
+  warn "TPM not found — start tmux and press C-a I to install plugins"
+fi
 
 # ─── Done ──────────────────────────────────────────────
 echo ""
