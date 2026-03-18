@@ -10,12 +10,16 @@ POPUPS                 PANES                 WINDOWS/SESSIONS
                         b    break to win      .     rename session
 COPY MODE              @    join pane          S     pick session
  [   enter              { }  swap pane         BkSp  last session
- v   select
- y   yank             PLUGINS                SHELL
- C-v block select       I     install           z     smart cd
- H/L start/end          Space thumbs            C-r   fzf history
- / ? search             u     fzf URLs          C-t   fzf files
- Esc exit               r     reload            Alt-c fzf cd
+ v   select             Q    kill ALL (confirm)
+ y   yank             PLUGINS                SESSION SAVE/RESTORE
+ C-v block select       I     install           C-s   save session
+ H/L start/end          Space thumbs            C-r   restore session
+ / ? search             u     fzf URLs
+ Esc exit               r     reload          SHELL
+                                                z     smart cd
+                                                C-r   fzf history
+                                                C-t   fzf files
+                                                Alt-c fzf cd
 ─────────────────────────────────────────────────────────────────
 BTOP (C-a t)          LAZYGIT (C-a g)        GIT ALIASES
  h   help              Space stage/unstage     gs  status
