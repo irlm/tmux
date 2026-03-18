@@ -321,21 +321,38 @@ install_core_packages() {
 
   # fastfetch (not in older distro repos)
   if ! command -v fastfetch &>/dev/null; then
-    case "$PKG_MGR" in
-      apt)
-        # Try repo first, fallback to GitHub
-        pkg_install fastfetch 2>/dev/null || \
-          install_from_github "fastfetch-cli/fastfetch" "fastfetch" "linux-$(gh_arch amd64 aarch64).*\\.deb"
-        ;;
-      dnf)
-        pkg_install fastfetch 2>/dev/null || \
-          install_from_github "fastfetch-cli/fastfetch" "fastfetch" "linux-$(gh_arch amd64 aarch64).*\\.rpm"
-        ;;
-      zypper)
-        pkg_install fastfetch 2>/dev/null || \
-          install_from_github "fastfetch-cli/fastfetch" "fastfetch" "linux-$(gh_arch amd64 aarch64).*\\.rpm"
-        ;;
-    esac
+    # Try repo first
+    pkg_install fastfetch 2>/dev/null || {
+      # Fallback: download .deb/.rpm from GitHub and install with system tools
+      info "Installing fastfetch from GitHub release..."
+      local ff_url ff_tmp
+      ff_tmp=$(mktemp -d)
+      case "$PKG_MGR" in
+        apt)
+          ff_url=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" \
+            | grep "browser_download_url" \
+            | grep -i "linux-$(gh_arch amd64 aarch64).*\\.deb" \
+            | grep -v "source" | head -1 | cut -d '"' -f 4) || true
+          if [ -n "$ff_url" ]; then
+            curl -fsSL "$ff_url" -o "$ff_tmp/fastfetch.deb"
+            sudo dpkg -i "$ff_tmp/fastfetch.deb" 2>/dev/null && sudo apt-get install -f -y -qq 2>/dev/null
+            ok "fastfetch installed"
+          fi
+          ;;
+        dnf|zypper)
+          ff_url=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" \
+            | grep "browser_download_url" \
+            | grep -i "linux-$(gh_arch amd64 aarch64).*\\.rpm" \
+            | grep -v "source" | head -1 | cut -d '"' -f 4) || true
+          if [ -n "$ff_url" ]; then
+            curl -fsSL "$ff_url" -o "$ff_tmp/fastfetch.rpm"
+            sudo rpm -i "$ff_tmp/fastfetch.rpm" 2>/dev/null
+            ok "fastfetch installed"
+          fi
+          ;;
+      esac
+      rm -rf "$ff_tmp"
+    }
   else
     ok "fastfetch already installed"
   fi
