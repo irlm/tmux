@@ -2,6 +2,12 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [2.2.0] - 2026-03-18
+
+### Fixed
+- **CPU overhead**: Override nord-tmux forcing `status-interval` from 1s to 5s (reduced script spawns from 6/sec to 6/5sec)
+- **Fastfetch popup**: Fixed premature close and restored color output using `less -R`
+
 ## [2.1.0] - 2026-03-17
 
 ### Added
