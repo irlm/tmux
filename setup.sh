@@ -459,22 +459,32 @@ fi
 
 # ─── TPM (Tmux Plugin Manager) ────────────────────────
 TPM_DIR="$HOME/.tmux/plugins/tpm"
-if [ ! -d "$TPM_DIR" ]; then
-  info "Installing TPM..."
-  git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
-  ok "TPM installed"
-else
+mkdir -p "$HOME/.tmux/plugins"
+
+if [ -f "$TPM_DIR/tpm" ]; then
   ok "TPM already installed"
+else
+  # Clean up partial clone if exists
+  [ -d "$TPM_DIR" ] && rm -rf "$TPM_DIR"
+
+  info "Installing TPM..."
+  if git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
+    ok "TPM installed"
+  else
+    err "Failed to clone TPM — check your internet connection"
+    err "Run manually: git clone https://github.com/tmux-plugins/tpm $TPM_DIR"
+  fi
 fi
 
 # Ensure TPM scripts are executable
-if [ -d "$TPM_DIR" ]; then
-  chmod +x "$TPM_DIR/tpm" 2>/dev/null
+if [ -f "$TPM_DIR/tpm" ]; then
+  chmod +x "$TPM_DIR/tpm"
   chmod +x "$TPM_DIR/bin/"* 2>/dev/null
   chmod +x "$TPM_DIR/scripts/"* 2>/dev/null
-  ok "TPM scripts marked executable"
+  ok "TPM scripts are executable"
 else
-  err "TPM directory not found at $TPM_DIR — plugin install will fail"
+  err "TPM not found at $TPM_DIR — plugins will not work"
+  err "Run: git clone https://github.com/tmux-plugins/tpm $TPM_DIR"
 fi
 
 # ─── Tmux config ──────────────────────────────────────
