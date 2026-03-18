@@ -17,25 +17,49 @@ Works on **macOS**, **Linux** (Ubuntu, Debian, Fedora, RHEL, Arch, Manjaro, open
 
 ### macOS
 
-```bash
-# Install Xcode CLI tools (if needed)
-xcode-select --install
+Install Xcode CLI tools (if needed):
 
-# Clone and run
+```bash
+xcode-select --install
+```
+
+Clone the repo:
+
+```bash
 git clone https://github.com/irlm/tmux.git ~/.config/tmux
+```
+
+Run the setup:
+
+```bash
 bash ~/.config/tmux/setup.sh
 ```
 
 ### Linux (Ubuntu / Debian / Fedora / Arch / openSUSE)
 
-```bash
-# Ensure git is installed
-sudo apt install git    # Debian/Ubuntu
-sudo dnf install git    # Fedora/RHEL
-sudo pacman -S git      # Arch
+Install git if needed:
 
-# Clone and run
+```bash
+sudo apt install git
+```
+
+```bash
+sudo dnf install git
+```
+
+```bash
+sudo pacman -S git
+```
+
+Clone the repo:
+
+```bash
 git clone https://github.com/irlm/tmux.git ~/.config/tmux
+```
+
+Run the setup:
+
+```bash
 bash ~/.config/tmux/setup.sh
 ```
 
@@ -43,9 +67,13 @@ The script auto-detects your distro and uses the native package manager (apt/dnf
 
 ### WSL (Windows Subsystem for Linux)
 
+Same as Linux — the script detects WSL automatically.
+
 ```bash
-# Same as Linux — the script detects WSL automatically
 git clone https://github.com/irlm/tmux.git ~/.config/tmux
+```
+
+```bash
 bash ~/.config/tmux/setup.sh
 ```
 
@@ -57,16 +85,25 @@ Fonts must be installed on the **Windows side** (the script will show instructio
 > tmux doesn't run natively on Windows. This setup configures **Windows Terminal**
 > with tmux-like keybindings and a matching PowerShell environment.
 
-```powershell
-# Allow scripts (run once, as admin)
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+**Requirements:** Windows 10/11, [Windows Terminal](https://aka.ms/terminal), [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) (included in Windows 11, install [App Installer](https://apps.microsoft.com/detail/9NBLGGH4NNS1) on Windows 10).
 
-# Clone and run
-git clone https://github.com/irlm/tmux.git "$env:USERPROFILE\.config\tmux"
-& "$env:USERPROFILE\.config\tmux\setup-windows.ps1"
+Allow scripts (run once, as admin):
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-**Requirements:** Windows 10/11, [Windows Terminal](https://aka.ms/terminal), [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) (included in Windows 11, install [App Installer](https://apps.microsoft.com/detail/9NBLGGH4NNS1) on Windows 10).
+Clone the repo:
+
+```powershell
+git clone https://github.com/irlm/tmux.git "$env:USERPROFILE\.config\tmux"
+```
+
+Run the setup:
+
+```powershell
+& "$env:USERPROFILE\.config\tmux\setup-windows.ps1"
+```
 
 ## Post-install steps
 
