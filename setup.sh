@@ -355,11 +355,11 @@ install_core_packages() {
         ;;
       dnf)
         pkg_install eza 2>/dev/null || \
-          install_from_github "eza-community/eza" "eza" "linux-$(gh_arch x86_64 aarch64)-musl.*\\.tar\\.gz"
+          install_from_github "eza-community/eza" "eza" "eza_$(gh_arch x86_64 aarch64).*linux.*gnu\\.tar\\.gz"
         ;;
       zypper)
         pkg_install eza 2>/dev/null || \
-          install_from_github "eza-community/eza" "eza" "linux-$(gh_arch x86_64 aarch64)-musl.*\\.tar\\.gz"
+          install_from_github "eza-community/eza" "eza" "eza_$(gh_arch x86_64 aarch64).*linux.*gnu\\.tar\\.gz"
         ;;
     esac
   fi
@@ -673,11 +673,11 @@ ok ".zshrc configured"
 if [[ "$OS" == "linux" ]]; then
   ZSH_PATH="$(command -v zsh)"
   if [ "$SHELL" != "$ZSH_PATH" ]; then
-    info "Setting zsh as default shell..."
-    if chsh -s "$ZSH_PATH" 2>/dev/null; then
+    # Try sudo chsh (no password prompt) first, fallback to instruction
+    if sudo chsh -s "$ZSH_PATH" "$USER" 2>/dev/null; then
       ok "Default shell changed to zsh (takes effect on next login)"
     else
-      warn "Could not change shell — run manually: chsh -s $ZSH_PATH"
+      warn "Run manually to set zsh as default: chsh -s $ZSH_PATH"
     fi
   else
     ok "zsh is already the default shell"
