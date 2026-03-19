@@ -8,6 +8,48 @@ echo ""
 OS="$(uname -s)"
 echo "OS: $OS"
 
+# ─── Backup existing configs ─────────────────────────────
+BACKUP_DIR="$HOME/.config/dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
+
+backup_if_exists() {
+    local path="$1"
+    local name="$2"
+    if [ -d "$path" ] && [ ! -d "$path/.git" ]; then
+        echo "Found existing $name config (not a git repo)"
+        read -rp "  Back up $path before replacing? [Y/n] " answer
+        answer="${answer:-Y}"
+        if [[ "$answer" =~ ^[Yy] ]]; then
+            mkdir -p "$BACKUP_DIR"
+            cp -r "$path" "$BACKUP_DIR/$name"
+            echo "  Backed up to $BACKUP_DIR/$name"
+        fi
+    elif [ -d "$path/.git" ]; then
+        # Check if it's our repo or someone else's
+        local remote
+        remote=$(cd "$path" && git remote get-url origin 2>/dev/null || echo "")
+        if [ -n "$remote" ] && ! echo "$remote" | grep -q "irlm"; then
+            echo "Found existing $name config (git repo: $remote)"
+            read -rp "  Back up $path before replacing? [Y/n] " answer
+            answer="${answer:-Y}"
+            if [[ "$answer" =~ ^[Yy] ]]; then
+                mkdir -p "$BACKUP_DIR"
+                cp -r "$path" "$BACKUP_DIR/$name"
+                echo "  Backed up to $BACKUP_DIR/$name"
+            fi
+        fi
+    fi
+}
+
+backup_if_exists "$HOME/.config/tmux" "tmux"
+backup_if_exists "$HOME/.config/nvim" "nvim"
+
+# Backup .zshrc if it exists
+if [ -f "$HOME/.zshrc" ]; then
+    mkdir -p "$BACKUP_DIR"
+    cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc"
+    echo "Backed up .zshrc to $BACKUP_DIR/.zshrc"
+fi
+
 # ─── Install dependencies ────────────────────────────────
 echo ""
 echo "Installing dependencies..."
@@ -58,25 +100,28 @@ echo "Setting up configs..."
 
 REPO_BASE="https://github.com/irlm"
 
-# tmux
-if [ ! -d "$HOME/.config/tmux/.git" ]; then
-    echo "Cloning tmux config..."
-    rm -rf "$HOME/.config/tmux"
-    git clone "$REPO_BASE/tmux.git" "$HOME/.config/tmux"
-else
-    echo "tmux config already exists, pulling..."
-    cd "$HOME/.config/tmux" && git pull --ff-only
-fi
+clone_or_pull() {
+    local repo="$1"
+    local dest="$2"
+    local name="$3"
+    local remote
 
-# neovim
-if [ ! -d "$HOME/.config/nvim/.git" ]; then
-    echo "Cloning nvim config..."
-    rm -rf "$HOME/.config/nvim"
-    git clone "$REPO_BASE/nvim.git" "$HOME/.config/nvim"
-else
-    echo "nvim config already exists, pulling..."
-    cd "$HOME/.config/nvim" && git pull --ff-only
-fi
+    if [ -d "$dest/.git" ]; then
+        remote=$(cd "$dest" && git remote get-url origin 2>/dev/null || echo "")
+        if echo "$remote" | grep -q "irlm"; then
+            echo "$name config exists, pulling..."
+            cd "$dest" && git pull --ff-only
+            return
+        fi
+    fi
+
+    echo "Cloning $name config..."
+    rm -rf "$dest"
+    git clone "$REPO_BASE/$repo" "$dest"
+}
+
+clone_or_pull "tmux.git" "$HOME/.config/tmux" "tmux"
+clone_or_pull "nvim.git" "$HOME/.config/nvim" "nvim"
 
 # ─── TPM plugins ──────────────────────────────────────────
 echo ""
