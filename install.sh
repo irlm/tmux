@@ -21,8 +21,22 @@ if [ "$OS" = "Darwin" ]; then
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
     sudo apt-get install -y tmux fzf bat snapd
-    # neovim via snap (apt version is too old for LazyVim)
-    if ! command -v nvim &>/dev/null || [ "$(nvim --version | head -1 | grep -oP '\d+\.\d+' | head -1 | tr -d '.')" -lt 10 ]; then
+    # neovim via snap (apt version is too old for LazyVim, needs 0.10+)
+    install_nvim_snap=false
+    if ! command -v nvim &>/dev/null; then
+        install_nvim_snap=true
+    else
+        nvim_ver=$(nvim --version | head -1 | grep -oP '\d+\.\d+' | head -1)
+        nvim_major=$(echo "$nvim_ver" | cut -d. -f1)
+        nvim_minor=$(echo "$nvim_ver" | cut -d. -f2)
+        if [ "$nvim_major" -eq 0 ] && [ "$nvim_minor" -lt 10 ]; then
+            echo "Found neovim $nvim_ver (too old, need 0.10+). Upgrading..."
+            # Remove old apt version if present
+            sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
+            install_nvim_snap=true
+        fi
+    fi
+    if $install_nvim_snap; then
         echo "Installing neovim via snap (latest stable)..."
         sudo snap install nvim --classic
     fi
