@@ -2,17 +2,25 @@
 set -euo pipefail
 
 TMUX_DIR="$HOME/.config/tmux"
-REPO="https://github.com/irlm/tmux.git"
+REPO_HTTPS="https://github.com/irlm/tmux.git"
 
 cd "$TMUX_DIR"
 
 echo "Checking for updates..."
 
-# Fetch latest from remote
-git fetch origin main --quiet
+# Use HTTPS for fetch (works without SSH keys)
+if ! git fetch "$REPO_HTTPS" main --quiet 2>/dev/null; then
+    # Fallback to configured remote
+    if ! git fetch origin main --quiet 2>/dev/null; then
+        echo "Error: cannot reach GitHub. Check your internet connection."
+        exit 1
+    fi
+    REMOTE=$(git rev-parse origin/main)
+else
+    REMOTE=$(git rev-parse FETCH_HEAD)
+fi
 
 LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/main)
 
 if [ "$LOCAL" = "$REMOTE" ]; then
     echo "Already up to date."
@@ -22,12 +30,12 @@ fi
 # Show what's new
 echo ""
 echo "New commits available:"
-git log --oneline HEAD..origin/main
+git log --oneline HEAD.."$REMOTE"
 echo ""
 
-# Pull the new version
+# Pull the new version via HTTPS
 echo "Updating..."
-git pull --ff-only origin main
+git pull --ff-only "$REPO_HTTPS" main
 
 # Install/update TPM plugins
 if [ -x "$TMUX_DIR/plugins/tpm/bin/install_plugins" ]; then
