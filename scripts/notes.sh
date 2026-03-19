@@ -19,7 +19,7 @@ selected=$(
         --header="Enter: edit  |  Ctrl-d: delete  |  Esc: cancel" \
         --preview='f="$HOME/.local/share/tmux/notes/$(echo {} | sed "s/^  //" | cut -d" " -f1).md"; [ -f "$f" ] && cat "$f" || echo "New note"' \
         --preview-window=right:50%:wrap \
-        --bind='ctrl-d:execute(f="$HOME/.local/share/tmux/notes/$(echo {} | sed "s/^  //" | cut -d" " -f1).md"; [ -f "$f" ] && rm "$f" && echo "Deleted")+reload(echo "  + New note"; for f in $(ls -t "$HOME/.local/share/tmux/notes/"*.md 2>/dev/null); do name=$(basename "$f" .md); preview=$(head -1 "$f" | sed "s/^#* *//"); echo "  $name  │  $preview"; done)'
+        --bind='ctrl-d:execute(f="$HOME/.local/share/tmux/notes/$(echo {} | sed "s/^  //" | cut -d" " -f1).md"; [ -f "$f" ] && { printf "Delete $(basename "$f")? [y/N] "; read -rsn1 ans; [ "$ans" = "y" ] && rm "$f" && echo " Deleted" || echo " Cancelled"; })+reload(echo "  + New note"; for f in $(ls -t "$HOME/.local/share/tmux/notes/"*.md 2>/dev/null); do name=$(basename "$f" .md); preview=$(head -1 "$f" | sed "s/^#* *//"); echo "  $name  │  $preview"; done)'
 )
 
 [ -z "$selected" ] && exit 0
