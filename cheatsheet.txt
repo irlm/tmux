@@ -35,4 +35,4 @@ Tab  cycle              b   branches            lg   lazygit
  f   filter             s   stash               ll   ls + git
 t/k  TERM/KILL          q   quit
 ────────────────────────────────────────────────────────────────────────────────
-ta: new session (dir name)  taa: attach  ~/.config/tmux/update.sh
+ta: new session (dir name)  taa: attach  update.sh | install.sh
