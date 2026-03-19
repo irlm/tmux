@@ -1,34 +1,38 @@
-CHEATSHEET v3.3.0 (C-a ?)
-──────────────────────────────────────────────────────────────────────────────
-POPUPS                  PANES                    WINDOWS/SESSIONS
- g    lazygit            |    split horiz          c     new window
- G    gh dash            -    split vert           ,     rename window
- t    btop               hjkl navigate             X     kill window
- i    fastfetch          HJKL resize               < >   reorder
- f    float shell        z    zoom                 W     pick window
- ?    cheatsheet         x    kill pane            N     new session
-                         b    break to win         .     rename session
-                         @    join pane            S     pick session
-                         { }  swap pane            BkSp  last session
-                                                   Q     kill ALL (confirm)
+CHEATSHEET v4.0.0 (C-a ?)
+────────────────────────────────────────────────────────────────────────────────
+POPUPS                 PANES                   WINDOWS/SESSIONS
+ g   lazygit            |   split horiz          c    new window
+ G   gh dash            -   split vert           ,    rename window
+ t   btop              hjkl navigate             X    kill window
+ i   fastfetch         HJKL resize              < >   reorder
+ f   float shell        z   zoom                 W    pick window
+ n   quick notes        x   kill pane            N    new session
+ ?   cheatsheet         b   break to win         .    rename session
+ /   search history     @   join pane            S    pick session
+                       { }  swap pane           BkSp  last session
+                        m   mark pane            Q    kill ALL (confirm)
+                        q   pane numbers         D    pick client detach
+                                                 Y    sync panes on/off
+                                                C-n   auto-rename ON
 
-COPY MODE              PLUGINS                  SESSION SAVE/RESTORE
- [    enter              I    install              C-s   save session
- v    select             Spc  thumbs               C-r   restore session
- y    yank               u    fzf URLs
- C-v  block select       r    reload             SHELL
- H/L  start/end                                    z     smart cd
- / ?  search                                       C-r   fzf history
- Esc  exit                                         C-t   fzf files
-                                                   Alt-c fzf cd
-──────────────────────────────────────────────────────────────────────────────
-BTOP (C-a t)            LAZYGIT (C-a g)          GIT ALIASES
- h    help               Spc  stage/unstage        gs    status
- m    memory             c    commit               gl    log graph
- n    network            p    push                 gp    push
- e    tree view          P    pull                 gpl   pull
- Tab  cycle              b    branches             lg    lazygit
- f    filter             s    stash                ll    ls + git
- t/k  TERM/KILL          q    quit
-──────────────────────────────────────────────────────────────────────────────
-UPDATE: ~/.config/tmux/update.sh        (fetch, pull, install plugins, reload)
+COPY MODE             PLUGINS                 UTILITIES
+ [   enter              I   install             T    clock mode
+ v   select            Spc  thumbs             C-l   clear history
+ y   yank               u   fzf URLs            r    reload config
+C-v  block select
+H/L  start/end                                SHELL (ssh auto-titles)
+/ ?  search                                     z    smart cd
+Esc  exit                                      C-r   fzf history
+                                               C-t   fzf files
+                                              Alt-c   fzf cd
+────────────────────────────────────────────────────────────────────────────────
+BTOP (C-a t)           LAZYGIT (C-a g)         GIT ALIASES
+ h   help              Spc  stage/unstage       gs   status
+ m   memory             c   commit              gl   log graph
+ n   network            p   push                gp   push
+ e   tree view          P   pull               gpl   pull
+Tab  cycle              b   branches            lg   lazygit
+ f   filter             s   stash               ll   ls + git
+t/k  TERM/KILL          q   quit
+────────────────────────────────────────────────────────────────────────────────
+ta: new session (dir name)  taa: attach  ~/.config/tmux/update.sh

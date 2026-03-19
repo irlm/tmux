@@ -8,10 +8,17 @@ BAT_DIR="$PLUGIN_DIR/tmux-battery/scripts"
 out=""
 sep=" | "
 
+# Network speed (first — variable width won't shift the rest)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$SCRIPT_DIR/net_speed.sh" ]; then
+    net=$("$SCRIPT_DIR/net_speed.sh")
+    [ -n "$net" ] && out="#[fg=magenta]${net}#[default]"
+fi
+
 # CPU
 if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
     cpu=$("$CPU_DIR/cpu_percentage.sh")
-    [ -n "$cpu" ] && out="#[fg=cyan]${cpu}#[default]"
+    [ -n "$cpu" ] && out="${out}${sep}#[fg=cyan]${cpu}#[default]"
 fi
 
 # RAM
@@ -48,7 +55,6 @@ elif command -v upower &>/dev/null; then
 fi
 
 if $has_battery && [ -n "$batt_pct" ]; then
-    # Pick icon based on level and charging state
     if $charging; then
         icon="⚡"
     elif [ "$batt_pct" -ge 90 ]; then
@@ -72,7 +78,6 @@ if $has_battery && [ -n "$batt_pct" ]; then
     else
         icon="󰁺"
     fi
-    # Color: green >=50, yellow 20-49, red <20
     if [ "$batt_pct" -ge 50 ]; then
         color="green"
     elif [ "$batt_pct" -ge 20 ]; then
