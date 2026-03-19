@@ -1,4 +1,4 @@
-CHEATSHEET v4.0.0 (C-a ?)
+CHEATSHEET v4.1.0 (C-a ?)
 ────────────────────────────────────────────────────────────────────────────────
 POPUPS                 PANES                   WINDOWS/SESSIONS
  g   lazygit            |   split horiz          c    new window
@@ -7,9 +7,9 @@ POPUPS                 PANES                   WINDOWS/SESSIONS
  i   fastfetch         HJKL resize              < >   reorder
  f   float shell        z   zoom                 W    pick window
  n   quick notes        x   kill pane            N    new session
- ?   cheatsheet         b   break to win         .    rename session
- /   search history     @   join pane            S    pick session
-                       { }  swap pane           BkSp  last session
+ o   sessionizer        b   break to win         .    rename session
+ ?   cheatsheet         @   join pane            S    pick session
+ /   search history    { }  swap pane           BkSp  last session
                         m   mark pane            Q    kill ALL (confirm)
                         q   pane numbers         D    pick client detach
                                                  Y    sync panes on/off
