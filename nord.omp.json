@@ -24,7 +24,8 @@
           "style": "plain",
           "foreground": "#88c0d0",
           "properties": {
-            "style": "full",
+            "style": "agnoster_short",
+            "max_depth": 2,
             "folder_separator_icon": " \u203a "
           },
           "template": "{{ .Path }}"
