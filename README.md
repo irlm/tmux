@@ -10,13 +10,15 @@ Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, a
 curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ```
 
-### Windows (PowerShell)
+### Windows (PowerShell — no prerequisites needed)
 
 ```powershell
-irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+powershell -c "winget install Git.Git --accept-package-agreements --accept-source-agreements; $env:PATH += ';C:\Program Files\Git\cmd'; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
 ```
 
-> tmux doesn't run natively on Windows. The script sets up neovim, lazygit, fzf, zoxide, and oh-my-posh in PowerShell. For tmux, use WSL.
+This single command installs git via winget, then everything else via Scoop (neovim, lazygit, lazydocker, fzf, zoxide, oh-my-posh, bat, btop, gh, fastfetch, Nerd Font).
+
+> tmux doesn't run natively on Windows. For tmux, install WSL: `wsl --install` in an admin PowerShell.
 
 ## What You Get
 

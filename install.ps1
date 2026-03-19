@@ -1,11 +1,25 @@
 # dotfiles installer for Windows (PowerShell)
-# Run: irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+# Run as ONE command (installs git via winget if needed, then everything else via scoop):
+#   powershell -c "winget install Git.Git --accept-package-agreements --accept-source-agreements; $env:PATH += ';C:\Program Files\Git\cmd'; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 Write-Host "=== dotfiles installer (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
+
+# ─── Ensure git is available ─────────────────────────────
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host "Git not found. Installing via winget..."
+    winget install Git.Git --accept-package-agreements --accept-source-agreements
+    # Add git to PATH for this session
+    $env:PATH += ";C:\Program Files\Git\cmd"
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Host "Error: git still not found. Please restart your terminal and run this script again." -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "Git: $(git --version)"
 
 # ─── Install Scoop if missing ─────────────────────────────
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
@@ -26,14 +40,14 @@ Write-Host "Installing dependencies..."
 $packages = @(
     "neovim",
     "lazygit",
+    "lazydocker",
     "fzf",
     "zoxide",
     "bat",
     "gh",
     "fastfetch",
     "btop",
-    "oh-my-posh",
-    "git"
+    "oh-my-posh"
 )
 
 foreach ($pkg in $packages) {
@@ -49,37 +63,74 @@ foreach ($pkg in $packages) {
 Write-Host "  Installing Nerd Font (MesloLGM)..."
 scoop install nerd-fonts/MesloLGM-NF 2>$null
 
+# ─── Backup existing configs ─────────────────────────────
+Write-Host ""
+$backupDir = "$env:USERPROFILE\.config\dotfiles-backup\$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+
+$nvimPath = "$env:LOCALAPPDATA\nvim"
+$tmuxPath = "$env:USERPROFILE\.config\tmux"
+
+function Backup-IfExists {
+    param($Path, $Name)
+    if (Test-Path $Path) {
+        $isOurRepo = $false
+        if (Test-Path "$Path\.git") {
+            Push-Location $Path
+            $remote = git remote get-url origin 2>$null
+            Pop-Location
+            if ($remote -match "irlm") { $isOurRepo = $true }
+        }
+        if (-not $isOurRepo) {
+            Write-Host "Found existing $Name config at $Path"
+            $answer = Read-Host "  Back up before replacing? [Y/n]"
+            if ($answer -eq "" -or $answer -match "^[Yy]") {
+                New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+                Copy-Item -Path $Path -Destination "$backupDir\$Name" -Recurse
+                Write-Host "  Backed up to $backupDir\$Name" -ForegroundColor Green
+            }
+        }
+    }
+}
+
+Backup-IfExists -Path $nvimPath -Name "nvim"
+Backup-IfExists -Path $tmuxPath -Name "tmux"
+
+# Backup PowerShell profile
+if (Test-Path $PROFILE) {
+    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    Copy-Item $PROFILE "$backupDir\profile.ps1"
+    Write-Host "Backed up PowerShell profile to $backupDir\profile.ps1"
+}
+
 # ─── Clone configs ────────────────────────────────────────
 Write-Host ""
 Write-Host "Setting up configs..."
 
 $repoBase = "https://github.com/irlm"
-$nvimPath = "$env:LOCALAPPDATA\nvim"
 
-# neovim
-if (-not (Test-Path "$nvimPath\.git")) {
-    Write-Host "Cloning nvim config..."
-    if (Test-Path $nvimPath) { Remove-Item $nvimPath -Recurse -Force }
-    git clone "$repoBase/nvim.git" $nvimPath
-} else {
-    Write-Host "nvim config already exists, pulling..."
-    Push-Location $nvimPath
-    git pull --ff-only
-    Pop-Location
+function Clone-OrPull {
+    param($Repo, $Dest, $Name)
+    if (Test-Path "$Dest\.git") {
+        Push-Location $Dest
+        $remote = git remote get-url origin 2>$null
+        Pop-Location
+        if ($remote -match "irlm") {
+            Write-Host "  $Name config exists, pulling..."
+            Push-Location $Dest
+            git pull --ff-only
+            Pop-Location
+            return
+        }
+    }
+    Write-Host "  Cloning $Name config..."
+    if (Test-Path $Dest) { Remove-Item $Dest -Recurse -Force }
+    git clone "$repoBase/$Repo" $Dest
 }
 
-# tmux config (for reference/WSL usage)
-$tmuxPath = "$env:USERPROFILE\.config\tmux"
-if (-not (Test-Path "$tmuxPath\.git")) {
-    Write-Host "Cloning tmux config (for WSL)..."
-    New-Item -ItemType Directory -Path "$env:USERPROFILE\.config" -Force | Out-Null
-    git clone "$repoBase/tmux.git" $tmuxPath
-} else {
-    Write-Host "tmux config already exists, pulling..."
-    Push-Location $tmuxPath
-    git pull --ff-only
-    Pop-Location
-}
+Clone-OrPull -Repo "nvim.git" -Dest $nvimPath -Name "nvim"
+
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.config" -Force | Out-Null
+Clone-OrPull -Repo "tmux.git" -Dest $tmuxPath -Name "tmux"
 
 # ─── PowerShell profile ──────────────────────────────────
 Write-Host ""
@@ -89,30 +140,30 @@ $profileDir = Split-Path $PROFILE
 if (-not (Test-Path $profileDir)) {
     New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
 }
-
 if (-not (Test-Path $PROFILE)) {
     New-Item -ItemType File -Path $PROFILE -Force | Out-Null
 }
 
 $profileContent = Get-Content $PROFILE -Raw -ErrorAction SilentlyContinue
+if ($null -eq $profileContent) { $profileContent = "" }
 
 # oh-my-posh
 if ($profileContent -notmatch "oh-my-posh") {
-    Write-Host "  Adding oh-my-posh to profile..."
+    Write-Host "  Adding oh-my-posh..."
     Add-Content $PROFILE "`n# ─── oh-my-posh prompt ─────────────────────────────────"
     Add-Content $PROFILE "oh-my-posh init pwsh --config `"$tmuxPath\nord.omp.json`" | Invoke-Expression"
 }
 
 # zoxide
 if ($profileContent -notmatch "zoxide") {
-    Write-Host "  Adding zoxide to profile..."
+    Write-Host "  Adding zoxide..."
     Add-Content $PROFILE "`n# ─── zoxide (smart cd) ─────────────────────────────────"
     Add-Content $PROFILE "Invoke-Expression (& { (zoxide init powershell | Out-String) })"
 }
 
-# fzf keybindings
-if ($profileContent -notmatch "PSFzf") {
-    Write-Host "  Adding fzf integration..."
+# fzf
+if ($profileContent -notmatch "FzfHistory") {
+    Write-Host "  Adding fzf..."
     Add-Content $PROFILE "`n# ─── fzf integration ──────────────────────────────────"
     Add-Content $PROFILE "Set-PSReadLineKeyHandler -Key Ctrl+r -ScriptBlock { Invoke-FzfHistory }"
 }
@@ -122,6 +173,7 @@ if ($profileContent -notmatch "lazygit") {
     Write-Host "  Adding aliases..."
     Add-Content $PROFILE "`n# ─── aliases ──────────────────────────────────────────"
     Add-Content $PROFILE "Set-Alias -Name lg -Value lazygit"
+    Add-Content $PROFILE "Set-Alias -Name ld -Value lazydocker"
     Add-Content $PROFILE "Set-Alias -Name g -Value git"
     Add-Content $PROFILE "Set-Alias -Name vim -Value nvim"
 }
@@ -132,7 +184,8 @@ Write-Host "=== Install complete! ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal"
-Write-Host "  2. Run: nvim (plugins auto-install on first launch)"
-Write-Host "  3. Set your terminal font to 'MesloLGM Nerd Font'"
-Write-Host "  4. For tmux: use WSL or install Windows Terminal + WSL"
+Write-Host "  2. Set terminal font to 'MesloLGM Nerd Font'"
+Write-Host "  3. Run: nvim (plugins auto-install on first launch)"
+Write-Host "  4. Run: lazygit, lazydocker, btop, fastfetch"
+Write-Host "  5. For tmux: install WSL ('wsl --install' in admin PowerShell)"
 Write-Host ""

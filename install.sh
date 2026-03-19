@@ -59,7 +59,7 @@ if [ "$OS" = "Darwin" ]; then
         echo "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
-    brew install tmux neovim lazygit fzf zoxide bat gh fastfetch btop oh-my-posh
+    brew install tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
     sudo apt-get install -y tmux fzf bat snapd
@@ -87,6 +87,12 @@ elif [ "$OS" = "Linux" ]; then
         LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
         curl -Lo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
         sudo tar xf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit
+    fi
+    # lazydocker
+    if ! command -v lazydocker &>/dev/null; then
+        LAZYDOCKER_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazydocker/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+        curl -Lo /tmp/lazydocker.tar.gz "https://github.com/jesseduffield/lazydocker/releases/latest/download/lazydocker_${LAZYDOCKER_VERSION}_Linux_x86_64.tar.gz"
+        sudo tar xf /tmp/lazydocker.tar.gz -C /usr/local/bin lazydocker
     fi
     # zoxide
     command -v zoxide &>/dev/null || curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
