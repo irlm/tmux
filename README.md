@@ -1,251 +1,152 @@
-# Tmux + Shell Bootstrap
+# Tmux + Neovim Dev Environment
 
-Cross-platform terminal setup with tmux, Oh My Posh, Nord theme, and modern CLI tools.
+Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, and modern CLI tools.
 
-Works on **macOS**, **Linux** (Ubuntu, Debian, Fedora, RHEL, Arch, Manjaro, openSUSE), **WSL**, and **Windows** (native).
+## Quick Install
 
-## What you get
-
-- **tmux** with `C-a` prefix, vim-style panes, popups (lazygit, btop, gh dash, fastfetch)
-- **Oh My Posh** prompt with Nord theme + git status
-- **fzf** for history (`C-r`), files (`C-t`), and directories (`Alt-c`)
-- **Modern CLI**: eza (ls), bat (cat), zoxide (cd), ripgrep, fd, jq, tlrc
-- **Zsh** with autosuggestions + syntax highlighting (Unix) / **PowerShell** with PSReadLine vi mode (Windows)
-- **Nord color scheme** everywhere
-
-## Quick install
-
-### macOS
-
-Install Xcode CLI tools (if needed):
+### macOS / Linux
 
 ```bash
-xcode-select --install
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ```
 
-Clone the repo:
-
-```bash
-git clone https://github.com/irlm/tmux.git ~/.config/tmux
-```
-
-Run the setup:
-
-```bash
-bash ~/.config/tmux/setup.sh
-```
-
-### Linux (Ubuntu / Debian / Fedora / Arch / openSUSE)
-
-Install git if needed:
-
-```bash
-sudo apt install git
-```
-
-```bash
-sudo dnf install git
-```
-
-```bash
-sudo pacman -S git
-```
-
-Clone the repo:
-
-```bash
-git clone https://github.com/irlm/tmux.git ~/.config/tmux
-```
-
-Run the setup:
-
-```bash
-bash ~/.config/tmux/setup.sh
-```
-
-The script auto-detects your distro and uses the native package manager (apt/dnf/pacman/zypper).
-
-### WSL (Windows Subsystem for Linux)
-
-Same as Linux — the script detects WSL automatically.
-
-```bash
-git clone https://github.com/irlm/tmux.git ~/.config/tmux
-```
-
-```bash
-bash ~/.config/tmux/setup.sh
-```
-
-WSL extras: installs `win32yank` for clipboard and sets `wslview` as browser.
-Fonts must be installed on the **Windows side** (the script will show instructions).
-
-### Windows (native — PowerShell + Windows Terminal)
-
-> tmux doesn't run natively on Windows. This setup configures **Windows Terminal**
-> with tmux-like keybindings and a matching PowerShell environment.
-
-**Requirements:** Windows 10/11, [Windows Terminal](https://aka.ms/terminal), [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) (included in Windows 11, install [App Installer](https://apps.microsoft.com/detail/9NBLGGH4NNS1) on Windows 10).
-
-Allow scripts (run once, as admin):
+### Windows (PowerShell)
 
 ```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 ```
 
-Clone the repo:
+> tmux doesn't run natively on Windows. The script sets up neovim, lazygit, fzf, zoxide, and oh-my-posh in PowerShell. For tmux, use WSL.
 
-```powershell
-git clone https://github.com/irlm/tmux.git "$env:USERPROFILE\.config\tmux"
+## What You Get
+
+- **tmux** — `C-a` prefix, vim-style panes, popups (lazygit, btop, gh dash), sessionizer
+- **neovim** — LazyVim with Nord theme, LSP, telescope, treesitter, tmux navigation
+- **Oh My Posh** — Nord-themed prompt with git status, smart path truncation
+- **CLI tools** — fzf, zoxide, bat, lazygit, btop, fastfetch, gh
+- **Status bar** — CPU, RAM, network speed, battery (auto-hidden on desktops), git branch
+
+## Post-Install
+
+1. Set your terminal font to a **Nerd Font** (e.g. MesloLGM, JetBrains Mono)
+2. Start tmux: `tmux`
+3. Install tmux plugins: `C-a I`
+4. Open neovim: `nvim` (plugins auto-install on first launch)
+
+## Updating
+
+```bash
+~/.config/tmux/update.sh
 ```
 
-Run the setup:
+Fetches latest changes, updates plugins, and reloads config.
 
-```powershell
-& "$env:USERPROFILE\.config\tmux\setup-windows.ps1"
-```
+## Keybindings (C-a prefix)
 
-## Post-install steps
-
-### All platforms
-
-1. Set your terminal font to **JetBrains Mono Nerd Font**
-2. Restart your terminal
-
-### macOS / Linux / WSL
-
-3. Start tmux: `tmux`
-4. Install tmux plugins: `C-a I` (capital I)
-5. Open a new shell or `source ~/.zshrc`
-
-### Windows
-
-3. Restart Windows Terminal (keybindings + Nord theme apply automatically)
-
-## Keybindings
-
-### tmux (macOS / Linux / WSL)
-
-Prefix is `C-a` (Ctrl+a). Press prefix, then the key.
+### Popups
 
 | Key | Action | Key | Action |
 |-----|--------|-----|--------|
-| `\|` | Split horizontal | `c` | New window |
-| `-` | Split vertical | `,` | Rename window |
-| `h j k l` | Navigate panes | `X` | Kill window |
-| `H J K L` | Resize panes | `< >` | Reorder windows |
-| `x` | Close pane | `N` | New session |
-| `z` | Zoom pane | `.` | Rename session |
-| `b` | Break pane to window | `S` | Pick session |
-| `@` | Join pane | `BkSp` | Last session |
+| `g` | lazygit | `n` | quick notes |
+| `G` | gh dash | `o` | sessionizer (project switcher) |
+| `t` | btop | `?` | cheatsheet |
+| `i` | fastfetch | `/` | search pane history |
+| `f` | floating shell | | |
 
-**Popups:**
+### Panes
 
 | Key | Action | Key | Action |
 |-----|--------|-----|--------|
-| `g` | lazygit | `f` | Floating shell |
-| `G` | gh dash | `i` | fastfetch |
-| `t` | btop | `?` | Cheatsheet |
+| `\|` | split horizontal | `z` | zoom toggle |
+| `-` | split vertical | `x` | kill pane |
+| `h j k l` | navigate | `b` | break to window |
+| `H J K L` | resize | `@` | join pane |
+| `{ }` | swap panes | `m` | mark pane |
+| `q` | show pane numbers | | |
 
-**Copy mode** (prefix + `[`):
+### Windows / Sessions
 
 | Key | Action | Key | Action |
 |-----|--------|-----|--------|
-| `v` | Begin selection | `H / L` | Start / end of line |
-| `y` | Yank | `/ ?` | Search down / up |
-| `C-v` | Block select | `Esc` | Exit |
+| `c` | new window | `N` | new session |
+| `,` | rename window | `.` | rename session |
+| `X` | kill window | `S` | pick session |
+| `< >` | reorder windows | `BkSp` | last session |
+| `W` | pick window | `Q` | kill all (confirm) |
+| `C-n` | auto-rename on | `D` | pick client to detach |
+| | | `Y` | sync panes on/off |
 
-**Plugins:**
+### Copy Mode (C-a [)
+
+| Key | Action | Key | Action |
+|-----|--------|-----|--------|
+| `v` | begin selection | `H / L` | start / end of line |
+| `y` | yank | `/ ?` | search down / up |
+| `C-v` | block select | `Esc` | exit |
+
+### Plugins
 
 | Key | Action |
 |-----|--------|
-| `I` | Install plugins |
-| `U` | Update plugins |
-| `Space` | Thumbs (text hints) |
+| `I` | install plugins |
+| `Space` | thumbs (copy text hints) |
 | `u` | fzf URLs |
-| `r` | Reload config |
+| `r` | reload config |
 
-### Windows Terminal
+### Utilities
 
-Uses `Alt` as modifier instead of tmux's `C-a` prefix.
+| Key | Action |
+|-----|--------|
+| `T` | clock mode |
+| `C-l` | clear pane history |
 
-| Windows Terminal | tmux equivalent | Action |
-|-----------------|-----------------|--------|
-| `Alt+Shift+\` | `C-a \|` | Split horizontal |
-| `Alt+-` | `C-a -` | Split vertical |
-| `Alt+h/j/k/l` | `C-a h/j/k/l` | Navigate panes |
-| `Alt+Shift+H/J/K/L` | `C-a H/J/K/L` | Resize panes |
-| `Alt+x` | `C-a x` | Close pane |
-| `Alt+z` | `C-a z` | Zoom pane |
-| `Alt+c` | `C-a c` | New tab |
-| `Alt+Shift+X` | `C-a X` | Close tab |
-| `Alt+1-9` | `C-a 1-9` | Switch tabs |
-| `Alt+,` | `C-a ,` | Rename tab |
-| `Alt+Shift+< >` | `C-a < >` | Reorder tabs |
-| `Alt+g` | `C-a g` | lazygit (new tab) |
-| `Alt+Shift+G` | `C-a G` | gh dash (new tab) |
-| `Alt+t` | `C-a t` | btop (new tab) |
-| `Alt+i` | `C-a i` | fastfetch (new tab) |
-| `Alt+/` | — | Find/search |
-| `Alt+[ / ]` | — | Scroll up/down |
-
-### Shell aliases (all platforms)
+## Shell Aliases
 
 | Alias | Command | Alias | Command |
 |-------|---------|-------|---------|
-| `gs` | `git status` | `ls` | `eza --icons` |
-| `gl` | `git log --graph` | `ll` | `eza -la --icons --git` |
-| `gp` | `git push` | `cat` | `bat` |
-| `gpl` | `git pull` | `z` | `zoxide (smart cd)` |
-| `lg` | `lazygit` | `tree` | `eza --tree` |
+| `gs` | git status | `gp` | git push |
+| `gl` | git log --graph | `gpl` | git pull |
+| `lg` | lazygit | `ta` | new tmux session (dir name) |
+| `taa` | attach existing session | `z` | zoxide (smart cd) |
 
-## Platform support matrix
+## Status Bar
 
-| Feature | macOS | Linux | WSL | Windows |
-|---------|-------|-------|-----|---------|
-| tmux | Homebrew | native pkg | native pkg | N/A |
-| Window splits | tmux panes | tmux panes | tmux panes | WT panes |
-| Oh My Posh | brew | official script | official script | winget |
-| Nerd Font | brew cask | auto-download | manual (Windows) | auto-download |
-| Clipboard | pbcopy (OSC52) | xclip | win32yank | native |
-| Shell | zsh | zsh (auto-set) | zsh (auto-set) | PowerShell |
-| Package manager | brew | apt/dnf/pacman/zypper | apt/dnf/pacman | winget |
-| fzf integration | brew + shell | pkg + shell | pkg + shell | PSFzf module |
+```
+↓2K/s ↑1K/s | 8.0% | 77% | 󰁹 95% | main | Wed 19 Mar 15:30
+  net speed    cpu    ram   battery  branch     date/time
+```
+
+- Battery section auto-hides on desktops (Mac Mini, Linux without battery)
+- Network speed padded to fixed width to prevent shifting
+- Git branch shown in status-left next to session name
+
+## Neovim (LazyVim)
+
+Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
+
+- **Nord** colorscheme
+- **Ctrl+h/j/k/l** seamless tmux ↔ neovim pane navigation
+- **`<Space>gg`** lazygit from within neovim
+- **`<Space>ff`** find files, **`<Space>fg`** live grep
+- Minimal lualine (no duplicate info with tmux status bar)
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `setup.sh` | Bootstrap for macOS, Linux, and WSL |
-| `setup-windows.ps1` | Bootstrap for native Windows |
+| `install.sh` | Bootstrap for macOS / Linux |
+| `install.ps1` | Bootstrap for Windows (PowerShell) |
+| `update.sh` | Pull latest, update plugins, reload |
 | `tmux.conf` | tmux configuration |
-| `nord.omp.json` | Oh My Posh Nord theme |
-| `catppuccin.omp.json` | Oh My Posh Catppuccin theme (alternative) |
-| `cheatsheet.txt` | tmux keybinding reference (`C-a ?`) |
-| `CHANGELOG.md` | Version history |
+| `nord.omp.json` | Oh My Posh Nord prompt theme |
+| `cheatsheet.txt` | keybinding reference (`C-a ?`) |
+| `scripts/status_right.sh` | dynamic status bar (cpu/ram/net/battery) |
+| `scripts/net_speed.sh` | network speed monitor |
+| `scripts/sessionizer.sh` | fzf project switcher |
 
-## Uninstalling
+## Repos
 
-### macOS / Linux / WSL
-
-```bash
-rm -rf ~/.config/tmux ~/.tmux/plugins
-# Restore backed-up shell config from ~/.config/shell-backup/
-```
-
-### Windows
-
-```powershell
-Remove-Item "$env:USERPROFILE\.config\tmux" -Recurse
-# Restore Windows Terminal settings from the .backup file
-# Delete PowerShell profile: Remove-Item $PROFILE
-```
-
-## Managing tmux plugins
-
-1. Add plugin to `tmux.conf`: `set -g @plugin 'author/plugin'`
-2. Install: `C-a I`
-3. Update: `C-a U`
-4. Uninstall: remove the line, then `C-a Alt+u`
-
-Plugins are stored in `~/.tmux/plugins/`.
+| Repo | What |
+|------|------|
+| [irlm/tmux](https://github.com/irlm/tmux) | tmux + shell config (this repo) |
+| [irlm/nvim](https://github.com/irlm/nvim) | neovim / LazyVim config |
