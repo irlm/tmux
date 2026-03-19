@@ -20,7 +20,12 @@ if [ "$OS" = "Darwin" ]; then
     brew install tmux neovim lazygit fzf zoxide bat gh fastfetch btop oh-my-posh
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux neovim fzf bat
+    sudo apt-get install -y tmux fzf bat snapd
+    # neovim via snap (apt version is too old for LazyVim)
+    if ! command -v nvim &>/dev/null || [ "$(nvim --version | head -1 | grep -oP '\d+\.\d+' | head -1 | tr -d '.')" -lt 10 ]; then
+        echo "Installing neovim via snap (latest stable)..."
+        sudo snap install nvim --classic
+    fi
     # lazygit
     if ! command -v lazygit &>/dev/null; then
         LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
