@@ -2,6 +2,24 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [4.3.0] - 2026-03-20
+
+### Added
+- **Full dev toolchain in install scripts**: Node.js, Rust (rust-analyzer), Go, Java, Python, Scala (Coursier + Metals) across all platforms (setup.sh, install.sh, install.ps1)
+- **Docker installation**: Docker + Docker Desktop across macOS, Linux, and Windows, auto-starts on macOS
+- **Neovim in setup.sh**: Installs neovim with version check (requires 0.10+), clones nvim config
+- **Nested tmux (SSH) support**: F12 toggles local prefix off/on for controlling inner remote tmux; status bar shows REMOTE indicator
+- **SSH + remote tmux shortcut**: `C-a s` prompts for host, SSHs in, and auto-attaches remote tmux
+- **tmux-resurrect + continuum re-enabled**: Auto-saves sessions every 15 min, auto-restores on tmux start
+- **Safer pane close**: `C-a x` confirms before killing the last pane in a window
+- **Toolchain check in update.sh**: Reports missing language toolchains (node, go, rust, java, python, metals, docker)
+- **.gitignore**: Excludes `plugins/` directory
+
+### Fixed
+- **LazyVim lua extra removed**: `lazyvim.plugins.extras.lang.lua` was dropped upstream, removed from nvim config
+- **Mason ensure_installed**: Replaced black/isort with pyright (ruff handles formatting now)
+- **Quieter brew installs**: install.sh skips already-installed packages instead of printing warnings
+
 ## [3.1.0] - 2026-03-18
 
 ### Added

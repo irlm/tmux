@@ -1,4 +1,4 @@
-CHEATSHEET v4.2.0 (C-a ?)
+CHEATSHEET v4.3.0 (C-a ?)
 ────────────────────────────────────────────────────────────────────────────────
 POPUPS                 PANES                   WINDOWS/SESSIONS
  g   lazygit            |   split horiz          c    new window
