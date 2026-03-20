@@ -59,7 +59,14 @@ if [ "$OS" = "Darwin" ]; then
         echo "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
-    brew install tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go
+    for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go; do
+        if brew list "$pkg" &>/dev/null; then
+            echo "  $pkg already installed"
+        else
+            echo "  Installing $pkg..."
+            brew install "$pkg"
+        fi
+    done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
     sudo apt-get install -y tmux fzf bat snapd

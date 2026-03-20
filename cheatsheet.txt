@@ -8,9 +8,9 @@ POPUPS                 PANES                   WINDOWS/SESSIONS
  i   fastfetch          z   zoom                 W    pick window
  f   float shell        x   kill pane            N    new session
  n   quick notes        b   break to win         .    rename session
- o   sessionizer
- ?   cheatsheet         @   join pane            S    pick session
- /   search history    { }  swap pane           BkSp  last session
+ o   sessionizer        @   join pane            S    pick session
+ ?   cheatsheet        { }  swap pane           BkSp  last session
+ /   search history     s   SSH + remote tmux
                         m   mark pane            Q    kill ALL (confirm)
                         q   pane numbers         D    pick client detach
                                                  Y    sync panes on/off
@@ -21,9 +21,13 @@ COPY MODE             PLUGINS                 UTILITIES
  v   select            Spc  thumbs             C-l   clear history
  y   yank               u   fzf URLs            r    reload config
 C-v  block select
-H/L  start/end                                SHELL (ssh auto-titles)
-/ ?  search                                     z    smart cd
-Esc  exit                                      C-r   fzf history
+H/L  start/end                                NESTED TMUX (SSH)
+/ ?  search                                    F12   toggle local/remote
+Esc  exit                                            (pass keys to inner tmux)
+
+                                              SHELL
+                                                z    smart cd
+                                               C-r   fzf history
                                                C-t   fzf files
                                               Alt-c   fzf cd
 ────────────────────────────────────────────────────────────────────────────────
