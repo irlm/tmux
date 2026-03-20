@@ -164,7 +164,8 @@ if command -v docker &>/dev/null; then
 else
     if [ "$OS" = "Darwin" ]; then
         brew install --cask docker
-        echo "Docker Desktop installed — launch it from Applications"
+        open -a Docker
+        echo "Docker Desktop installed and starting..."
     elif [ "$OS" = "Linux" ]; then
         echo "Installing Docker..."
         curl -fsSL https://get.docker.com | sh

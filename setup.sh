@@ -588,7 +588,8 @@ install_docker() {
     info "Installing Docker..."
     if [[ "$OS" == "macos" ]]; then
       brew install --cask docker
-      ok "Docker Desktop installed — launch it from Applications"
+      open -a Docker
+      ok "Docker Desktop installed and starting"
     else
       # Linux: official Docker install script
       curl -fsSL https://get.docker.com | sh
