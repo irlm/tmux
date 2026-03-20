@@ -12,7 +12,7 @@
           "powerline_symbol": "\ue0b0",
           "foreground": "#cad3f5",
           "background": "#1e2030",
-          "template": " {{ .UserName }}@{{ .HostName }} "
+          "template": " {{ .UserName }}@{{ .HostName | splitList \".\" | first }} "
         },
         {
           "type": "path",
@@ -114,9 +114,7 @@
         {
           "type": "text",
           "style": "plain",
-          "foreground_templates": [
-            "{{ if gt .Code 0 }}#ed8796{{ end }}"
-          ],
+          "foreground_templates": ["{{ if gt .Code 0 }}#ed8796{{ end }}"],
           "foreground": "#a6da95",
           "template": "\u276f "
         }
