@@ -8,6 +8,16 @@ echo ""
 OS="$(uname -s)"
 echo "OS: $OS"
 
+# Ensure curl and git are available (fresh Ubuntu may not have them)
+if [ "$OS" = "Linux" ] && command -v apt-get &>/dev/null; then
+    for dep in curl git; do
+        if ! command -v "$dep" &>/dev/null; then
+            echo "Installing $dep..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq "$dep"
+        fi
+    done
+fi
+
 # ─── Backup existing configs ─────────────────────────────
 BACKUP_DIR="$HOME/.config/dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 

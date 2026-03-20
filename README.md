@@ -8,6 +8,8 @@ Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, f
 
 ```bash
 curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
+# or if curl is not installed:
+wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ```
 
 ### Full Setup (multi-distro Linux + macOS)
