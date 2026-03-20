@@ -30,6 +30,22 @@ Full setup adds: multi-distro support (Fedora, Arch, openSUSE, WSL), shell confi
 irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 ```
 
+This installs via Scoop + winget:
+
+| Category | Packages |
+|----------|----------|
+| Editor | neovim (LazyVim with LSP for 9 languages) |
+| Dev toolchain | Rust (rust-analyzer), Go, Python, Node.js, Java (OpenJDK), Scala (Coursier + Metals) |
+| Git | git, lazygit, gh (GitHub CLI) |
+| Containers | Docker Desktop, lazydocker |
+| CLI tools | fzf, zoxide, bat, btop, fastfetch, oh-my-posh |
+| Fonts | JetBrains Mono Nerd Font, MesloLGM Nerd Font |
+| Shell | PowerShell profile with oh-my-posh, zoxide, fzf, aliases |
+
+**After install — set terminal font:**
+1. Open **Windows Terminal** > Settings > Profiles > Defaults > Appearance
+2. Set Font face to **JetBrainsMono Nerd Font** (or **JetBrainsMono NF**)
+
 > tmux doesn't run natively on Windows. For tmux, install WSL: `wsl --install` in an admin PowerShell.
 
 ## What You Get

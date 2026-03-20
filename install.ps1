@@ -72,9 +72,19 @@ foreach ($pkg in $packages) {
     }
 }
 
-# Install a Nerd Font
-Write-Host "  Installing Nerd Font (MesloLGM)..."
-try { scoop install nerd-fonts/MesloLGM-NF 2>$null } catch {}
+# Install Nerd Fonts
+Write-Host "  Installing Nerd Fonts..."
+foreach ($font in @("JetBrainsMono-NF", "MesloLGM-NF")) {
+    try { scoop install "nerd-fonts/$font" 2>$null } catch {}
+}
+# Also install via winget (registers system-wide, shows in Windows Terminal)
+try {
+    winget list --name "JetBrainsMono" 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Registering JetBrains Mono Nerd Font system-wide..."
+        winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements 2>$null
+    }
+} catch {}
 
 # ─── Neovim language toolchain ──────────────────────────
 Write-Host ""
@@ -240,11 +250,19 @@ Write-Host "=== Install complete! ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal"
-Write-Host "  2. Set terminal font to 'MesloLGM Nerd Font'"
+Write-Host "  2. Set terminal font:" -ForegroundColor Yellow
+Write-Host "     Windows Terminal: Settings > Profiles > Defaults > Appearance > Font face"
+Write-Host "     Select: 'JetBrainsMono Nerd Font' or 'JetBrainsMono NF'"
 Write-Host "  3. Launch Docker Desktop"
 Write-Host "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
 Write-Host "  5. Run: lazygit, lazydocker, btop, fastfetch"
 Write-Host "  6. For tmux: install WSL ('wsl --install' in admin PowerShell)"
 Write-Host ""
-Write-Host "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
+Write-Host "What was installed:" -ForegroundColor Cyan
+Write-Host "  Editor:      neovim (LazyVim with LSP for 9 languages)"
+Write-Host "  Dev tools:   Rust, Go, Python, Node.js, Java, Scala (Metals)"
+Write-Host "  Git:         lazygit, gh (GitHub CLI)"
+Write-Host "  Containers:  Docker Desktop, lazydocker"
+Write-Host "  CLI:         fzf, zoxide, bat, btop, fastfetch, oh-my-posh"
+Write-Host "  Fonts:       JetBrains Mono Nerd Font, MesloLGM Nerd Font"
 Write-Host ""
