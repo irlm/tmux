@@ -1,7 +1,45 @@
 #!/usr/bin/env bash
+# ─── Dotfiles Installer (macOS / Linux) ──────────────────
+# Quick install:  curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
+# Full setup:     curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --full
+#
+# --full enables: multi-distro support, shell config, nerd font, zsh plugins,
+#                 fzf keybindings, WSL clipboard, Oh My Zsh migration
 set -euo pipefail
 
+FULL_SETUP=false
+for arg in "$@"; do
+    case "$arg" in
+        --full|-f) FULL_SETUP=true ;;
+    esac
+done
+
+if $FULL_SETUP; then
+    echo "=== Full setup mode ==="
+    echo ""
+    # Download and run setup.sh
+    SCRIPT_URL="https://raw.githubusercontent.com/irlm/tmux/main/setup.sh"
+    if command -v curl &>/dev/null; then
+        curl -sL "$SCRIPT_URL" | bash
+    elif command -v wget &>/dev/null; then
+        wget -qO- "$SCRIPT_URL" | bash
+    else
+        # Bootstrap curl first
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq curl
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y -q curl
+        elif command -v pacman &>/dev/null; then
+            sudo pacman -S --noconfirm curl
+        fi
+        curl -sL "$SCRIPT_URL" | bash
+    fi
+    exit 0
+fi
+
+# ─── Quick install mode ──────────────────────────────────
 echo "=== dotfiles installer ==="
+echo "    (use --full for multi-distro setup with shell config, nerd font, etc.)"
 echo ""
 
 # Detect OS
@@ -68,6 +106,7 @@ if [ "$OS" = "Darwin" ]; then
     if ! command -v brew &>/dev/null; then
         echo "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
     fi
     for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go; do
         if brew list "$pkg" &>/dev/null; then
@@ -79,18 +118,17 @@ if [ "$OS" = "Darwin" ]; then
     done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux fzf bat snapd
+    sudo apt-get install -y tmux fzf bat snapd nodejs npm golang-go default-jdk python3
     # neovim via snap (apt version is too old for LazyVim, needs 0.10+)
     install_nvim_snap=false
     if ! command -v nvim &>/dev/null; then
         install_nvim_snap=true
     else
-        nvim_ver=$(nvim --version | head -1 | grep -oP '\d+\.\d+' | head -1)
+        nvim_ver=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
         nvim_major=$(echo "$nvim_ver" | cut -d. -f1)
         nvim_minor=$(echo "$nvim_ver" | cut -d. -f2)
         if [ "$nvim_major" -eq 0 ] && [ "$nvim_minor" -lt 10 ]; then
             echo "Found neovim $nvim_ver (too old, need 0.10+). Upgrading..."
-            # Remove old apt version if present
             sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
             install_nvim_snap=true
         fi
@@ -143,25 +181,13 @@ if ! command -v metals &>/dev/null; then
         cs install metals 2>/dev/null || true
     elif command -v cs &>/dev/null || command -v coursier &>/dev/null; then
         $(command -v cs || command -v coursier) install metals 2>/dev/null || true
-    fi
-fi
-
-# Node.js: needed by Mason for prettier, typescript LSP
-if [ "$OS" = "Linux" ] && ! command -v node &>/dev/null; then
-    sudo apt-get install -y nodejs npm 2>/dev/null || true
-fi
-
-# Go: needed for gopls, gofumpt, goimports
-if [ "$OS" = "Linux" ] && ! command -v go &>/dev/null; then
-    sudo apt-get install -y golang-go 2>/dev/null || true
-fi
-
-# Java: needed for jdtls
-if ! command -v java &>/dev/null; then
-    if [ "$OS" = "Darwin" ]; then
-        brew install openjdk
-    else
-        sudo apt-get install -y default-jdk 2>/dev/null || true
+    elif command -v java &>/dev/null; then
+        echo "Installing Coursier + Metals..."
+        curl -fLo "$HOME/.local/bin/cs" "https://github.com/coursier/coursier/releases/latest/download/coursier" 2>/dev/null || true
+        if [ -f "$HOME/.local/bin/cs" ] && [ -s "$HOME/.local/bin/cs" ]; then
+            chmod +x "$HOME/.local/bin/cs"
+            "$HOME/.local/bin/cs" install metals 2>/dev/null || true
+        fi
     fi
 fi
 
@@ -241,6 +267,7 @@ fi
 
 # ─── Create data dirs ─────────────────────────────────────
 mkdir -p "$HOME/.local/share/tmux"
+mkdir -p "$HOME/.local/bin"
 
 # ─── Done ─────────────────────────────────────────────────
 echo ""
@@ -253,4 +280,7 @@ echo "  3. Press C-a I to install tmux plugins"
 echo "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
 echo ""
 echo "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
+echo ""
+echo "For the full setup (shell config, nerd font, multi-distro):"
+echo "  bash install.sh --full"
 echo ""

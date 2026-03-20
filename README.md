@@ -15,12 +15,12 @@ wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ### Full Setup (multi-distro Linux + macOS)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/setup.sh | bash
-# or if curl is not installed:
-wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/setup.sh | bash
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --full
+# or:
+wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --full
 ```
 
-Supports: macOS, Ubuntu/Debian, Fedora/RHEL, Arch/Manjaro, openSUSE, WSL.
+Full setup adds: multi-distro support (Fedora, Arch, openSUSE, WSL), shell config (.zshrc/.bashrc), Nerd Font, zsh plugins, fzf keybindings, WSL clipboard.
 
 ### Windows (PowerShell)
 
@@ -164,9 +164,9 @@ Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
 
 | File | Description |
 |------|-------------|
-| `install.sh` | Bootstrap for macOS / Linux |
+| `install.sh` | Bootstrap for macOS / Linux (`--full` for multi-distro) |
 | `install.ps1` | Bootstrap for Windows (PowerShell) |
-| `setup.sh` | Full setup (multi-distro Linux + macOS) |
+| `setup.sh` | Full setup engine (called by `install.sh --full`) |
 | `update.sh` | Pull latest, update plugins, check toolchains |
 | `tmux.conf` | tmux configuration |
 | `nord.omp.json` | Oh My Posh Nord prompt theme |
