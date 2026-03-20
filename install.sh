@@ -17,14 +17,12 @@ done
 if $FULL_SETUP; then
     echo "=== Full setup mode ==="
     echo ""
-    # Download and run setup.sh
+    # Download setup.sh to temp file then execute (piping breaks when commands read stdin)
     SCRIPT_URL="https://raw.githubusercontent.com/irlm/tmux/main/setup.sh"
-    if command -v curl &>/dev/null; then
-        curl -sL "$SCRIPT_URL" | bash
-    elif command -v wget &>/dev/null; then
-        wget -qO- "$SCRIPT_URL" | bash
-    else
-        # Bootstrap curl first
+    TMPSCRIPT=$(mktemp)
+    trap 'rm -f "$TMPSCRIPT"' EXIT
+    # Bootstrap curl if needed
+    if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq && sudo apt-get install -y -qq curl
         elif command -v dnf &>/dev/null; then
@@ -32,8 +30,13 @@ if $FULL_SETUP; then
         elif command -v pacman &>/dev/null; then
             sudo pacman -S --noconfirm curl
         fi
-        curl -sL "$SCRIPT_URL" | bash
     fi
+    if command -v curl &>/dev/null; then
+        curl -sL "$SCRIPT_URL" -o "$TMPSCRIPT"
+    else
+        wget -qO "$TMPSCRIPT" "$SCRIPT_URL"
+    fi
+    bash "$TMPSCRIPT"
     exit 0
 fi
 

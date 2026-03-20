@@ -15,9 +15,9 @@ wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ### Full Setup (multi-distro Linux + macOS)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --full
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 # or:
-wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --full
+wget -qO /tmp/install.sh https://raw.githubusercontent.com/irlm/tmux/main/install.sh && bash /tmp/install.sh --full
 ```
 
 Full setup adds: multi-distro support (Fedora, Arch, openSUSE, WSL), shell config (.zshrc/.bashrc), Nerd Font, zsh plugins, fzf keybindings, WSL clipboard.
