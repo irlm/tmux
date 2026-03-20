@@ -63,7 +63,7 @@ if [ "$MODE" = "server" ]; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential
+            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat btop jq build-essential
             # neovim via snap (apt version is too old)
             if ! command -v nvim &>/dev/null; then
                 sudo apt-get install -y -qq snapd 2>/dev/null || true
@@ -72,18 +72,31 @@ if [ "$MODE" = "server" ]; then
             # Symlink renamed binaries on Debian/Ubuntu
             [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && mkdir -p "$HOME/.local/bin" && ln -sf /usr/bin/batcat "$HOME/.local/bin/bat"
         elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl git tmux fzf ripgrep bat htop jq neovim gcc make
+            sudo dnf install -y -q curl git tmux fzf ripgrep bat btop jq neovim gcc make
         elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat htop jq neovim base-devel
+            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat btop jq neovim base-devel
         elif command -v zypper &>/dev/null; then
-            sudo zypper install -y curl git tmux fzf ripgrep bat htop jq neovim gcc make
+            sudo zypper install -y curl git tmux fzf ripgrep bat btop jq neovim gcc make
         fi
     elif [ "$OS" = "Darwin" ]; then
         if ! command -v brew &>/dev/null; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
         fi
-        brew install tmux neovim fzf ripgrep bat btop jq 2>/dev/null
+        brew install tmux neovim fzf ripgrep bat btop fastfetch jq 2>/dev/null
+    fi
+
+    # fastfetch (try repo, skip if unavailable)
+    if ! command -v fastfetch &>/dev/null; then
+        if [ "$OS" = "Linux" ]; then
+            if command -v apt-get &>/dev/null; then
+                sudo apt-get install -y -qq fastfetch 2>/dev/null || true
+            elif command -v dnf &>/dev/null; then
+                sudo dnf install -y -q fastfetch 2>/dev/null || true
+            elif command -v pacman &>/dev/null; then
+                sudo pacman -S --noconfirm --needed fastfetch 2>/dev/null || true
+            fi
+        fi
     fi
 
     # zoxide (light, useful on servers too)
@@ -152,7 +165,7 @@ if [ "$MODE" = "server" ]; then
     echo ""
     echo "=== Server install complete! ==="
     echo ""
-    echo "Installed: tmux, neovim, fzf, ripgrep, bat, htop, jq, zoxide"
+    echo "Installed: tmux, neovim, fzf, ripgrep, bat, btop, fastfetch, jq, zoxide"
     echo ""
     echo "Next steps:"
     echo "  1. Start tmux: tmux"
