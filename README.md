@@ -21,7 +21,7 @@ Supports: macOS, Ubuntu/Debian, Fedora/RHEL, Arch/Manjaro, openSUSE, WSL.
 ### Windows (PowerShell — no prerequisites needed)
 
 ```powershell
-powershell -c "winget install Git.Git --accept-package-agreements --accept-source-agreements; $env:PATH += ';C:\Program Files\Git\cmd'; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
+powershell -c "irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
 ```
 
 > tmux doesn't run natively on Windows. For tmux, install WSL: `wsl --install` in an admin PowerShell.

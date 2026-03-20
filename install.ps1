@@ -1,6 +1,5 @@
 # dotfiles installer for Windows (PowerShell)
-# Run as ONE command (installs git via winget if needed, then everything else via scoop):
-#   powershell -c "winget install Git.Git --accept-package-agreements --accept-source-agreements; $env:PATH += ';C:\Program Files\Git\cmd'; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
+# Run:  powershell -c "irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -12,8 +11,16 @@ Write-Host ""
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git not found. Installing via winget..."
     winget install Git.Git --accept-package-agreements --accept-source-agreements
-    # Add git to PATH for this session
-    $env:PATH += ";C:\Program Files\Git\cmd"
+    # Refresh PATH from registry (picks up git without restarting terminal)
+    $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
+    $userPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
+    $env:PATH = "$machinePath;$userPath"
+    # Fallback: add common git paths manually
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        foreach ($p in @("$env:ProgramFiles\Git\cmd", "${env:ProgramFiles(x86)}\Git\cmd")) {
+            if (Test-Path $p) { $env:PATH += ";$p" }
+        }
+    }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Host "Error: git still not found. Please restart your terminal and run this script again." -ForegroundColor Red
         exit 1
