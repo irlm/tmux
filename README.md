@@ -7,7 +7,9 @@ Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, f
 ### macOS / Linux
 
 ```bash
+# Default (macOS + Debian):
 curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
+
 # or if curl is not installed:
 wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ```
@@ -16,11 +18,25 @@ wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 
 ```bash
 curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
-# or:
-wget -qO /tmp/install.sh https://raw.githubusercontent.com/irlm/tmux/main/install.sh && bash /tmp/install.sh --full
 ```
 
 Full setup adds: multi-distro support (Fedora, Arch, openSUSE, WSL), shell config (.zshrc/.bashrc), Nerd Font, zsh plugins, fzf keybindings, WSL clipboard.
+
+### Server (lightweight)
+
+```bash
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --server
+```
+
+Minimal install for servers — no dev toolchain, no Docker, no fonts, no oh-my-posh.
+
+| Default | Full (`--full`) | Server (`--server`) |
+|---------|-----------------|---------------------|
+| tmux, neovim (full LSP) | Everything in default + | tmux, neovim (no LSPs) |
+| Dev toolchain (Rust, Go, etc.) | Nerd Font, zsh plugins | fzf, ripgrep, bat, htop, jq |
+| Docker, lazygit, lazydocker | Shell config (.zshrc/.bashrc) | zoxide |
+| fzf, bat, zoxide, oh-my-posh | Multi-distro (Fedora, Arch...) | No dev toolchain |
+| btop, fastfetch, gh | WSL clipboard, fzf keybindings | No Docker, no fonts |
 
 ### Windows (PowerShell)
 
@@ -180,7 +196,7 @@ Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
 
 | File | Description |
 |------|-------------|
-| `install.sh` | Bootstrap for macOS / Linux (`--full` for multi-distro) |
+| `install.sh` | Bootstrap for macOS / Linux (`--full`, `--server`) |
 | `install.ps1` | Bootstrap for Windows (PowerShell) |
 | `setup.sh` | Full setup engine (called by `install.sh --full`) |
 | `update.sh` | Pull latest, update plugins, check toolchains |

@@ -1,48 +1,156 @@
 #!/usr/bin/env bash
 # ─── Dotfiles Installer (macOS / Linux) ──────────────────
-# Quick install:  curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
-# Full setup:     curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --full
+# Quick install:  curl -sL .../install.sh | bash
+# Full setup:     bash install.sh --full
+# Server (light): bash install.sh --server
 #
-# --full enables: multi-distro support, shell config, nerd font, zsh plugins,
-#                 fzf keybindings, WSL clipboard, Oh My Zsh migration
+# --full:   multi-distro, shell config, nerd font, zsh plugins, dev toolchain, Docker
+# --server: minimal — tmux, neovim (no LSPs), fzf, bat, btop, ripgrep
 set -euo pipefail
 
-FULL_SETUP=false
+MODE="default"
 for arg in "$@"; do
     case "$arg" in
-        --full|-f) FULL_SETUP=true ;;
+        --full|-f)   MODE="full" ;;
+        --server|-s) MODE="server" ;;
     esac
 done
 
-if $FULL_SETUP; then
+# ─── Helper: bootstrap curl ──────────────────────────────
+ensure_curl() {
+    if command -v curl &>/dev/null; then return; fi
+    if command -v wget &>/dev/null; then return; fi
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq curl
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y -q curl
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm curl
+    elif command -v zypper &>/dev/null; then
+        sudo zypper install -y curl
+    fi
+}
+
+# ─── Helper: download ────────────────────────────────────
+download() {
+    local url="$1" dest="$2"
+    if command -v curl &>/dev/null; then
+        curl -sL "$url" -o "$dest"
+    else
+        wget -qO "$dest" "$url"
+    fi
+}
+
+# ─── Full setup mode ─────────────────────────────────────
+if [ "$MODE" = "full" ]; then
     echo "=== Full setup mode ==="
     echo ""
-    # Download setup.sh to temp file then execute (piping breaks when commands read stdin)
-    SCRIPT_URL="https://raw.githubusercontent.com/irlm/tmux/main/setup.sh"
+    ensure_curl
     TMPSCRIPT=$(mktemp)
     trap 'rm -f "$TMPSCRIPT"' EXIT
-    # Bootstrap curl if needed
-    if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
-        if command -v apt-get &>/dev/null; then
-            sudo apt-get update -qq && sudo apt-get install -y -qq curl
-        elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl
-        elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm curl
-        fi
-    fi
-    if command -v curl &>/dev/null; then
-        curl -sL "$SCRIPT_URL" -o "$TMPSCRIPT"
-    else
-        wget -qO "$TMPSCRIPT" "$SCRIPT_URL"
-    fi
+    download "https://raw.githubusercontent.com/irlm/tmux/main/setup.sh" "$TMPSCRIPT"
     bash "$TMPSCRIPT"
     exit 0
 fi
 
-# ─── Quick install mode ──────────────────────────────────
+# ─── Server (light) mode ─────────────────────────────────
+if [ "$MODE" = "server" ]; then
+    echo "=== Server (light) install ==="
+    echo ""
+    OS="$(uname -s)"
+
+    # Ensure basics
+    if [ "$OS" = "Linux" ]; then
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq
+            # neovim via snap (apt version is too old)
+            if ! command -v nvim &>/dev/null; then
+                sudo apt-get install -y -qq snapd 2>/dev/null || true
+                sudo snap install nvim --classic 2>/dev/null || sudo apt-get install -y -qq neovim
+            fi
+            # Symlink renamed binaries on Debian/Ubuntu
+            [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && mkdir -p "$HOME/.local/bin" && ln -sf /usr/bin/batcat "$HOME/.local/bin/bat"
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y -q curl git tmux fzf ripgrep bat htop jq neovim
+        elif command -v pacman &>/dev/null; then
+            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat htop jq neovim
+        elif command -v zypper &>/dev/null; then
+            sudo zypper install -y curl git tmux fzf ripgrep bat htop jq neovim
+        fi
+    elif [ "$OS" = "Darwin" ]; then
+        if ! command -v brew &>/dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
+        fi
+        brew install tmux neovim fzf ripgrep bat btop jq 2>/dev/null
+    fi
+
+    # zoxide (light, useful on servers too)
+    if ! command -v zoxide &>/dev/null; then
+        curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+    fi
+
+    # Clone configs
+    REPO_BASE="https://github.com/irlm"
+    for pair in "tmux.git:$HOME/.config/tmux" "nvim.git:$HOME/.config/nvim"; do
+        repo="${pair%%:*}"
+        dest="${pair##*:}"
+        if [ -d "$dest/.git" ]; then
+            remote=$(cd "$dest" && git remote get-url origin 2>/dev/null || echo "")
+            if echo "$remote" | grep -q "irlm"; then
+                echo "Updating $repo..."
+                (cd "$dest" && git pull --ff-only) || true
+            fi
+        else
+            echo "Cloning $repo..."
+            mkdir -p "$(dirname "$dest")"
+            rm -rf "$dest"
+            git clone "$REPO_BASE/$repo" "$dest"
+        fi
+    done
+
+    # TPM
+    TPM_DIR="$HOME/.config/tmux/plugins/tpm"
+    if [ ! -d "$TPM_DIR" ]; then
+        git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
+    fi
+
+    # Shell: add zoxide to bashrc if missing
+    RCFILE="$HOME/.bashrc"
+    [ "$OS" = "Darwin" ] && RCFILE="$HOME/.zshrc"
+    if [ -f "$RCFILE" ] && ! grep -q "zoxide" "$RCFILE" 2>/dev/null; then
+        echo '# zoxide' >> "$RCFILE"
+        if [ "$OS" = "Darwin" ]; then
+            echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$RCFILE"
+        else
+            echo 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)"' >> "$RCFILE"
+        fi
+    fi
+
+    # Data dirs
+    mkdir -p "$HOME/.local/share/tmux" "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
+
+    echo ""
+    echo "=== Server install complete! ==="
+    echo ""
+    echo "Installed: tmux, neovim, fzf, ripgrep, bat, htop, jq, zoxide"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Start tmux: tmux"
+    echo "  2. Install tmux plugins: C-a I"
+    echo "  3. Open nvim (plugins auto-install on first launch)"
+    echo "     Note: LSPs won't install without dev toolchains — that's expected on servers."
+    echo "     nvim still works great for editing scripts, configs, and logs."
+    echo ""
+    exit 0
+fi
+
+# ─── Default install mode ────────────────────────────────
 echo "=== dotfiles installer ==="
-echo "    (use --full for multi-distro setup with shell config, nerd font, etc.)"
+echo "    --full    multi-distro setup with shell config, nerd font, dev toolchain"
+echo "    --server  lightweight server install (tmux, nvim, fzf, bat, btop)"
 echo ""
 
 # Detect OS
