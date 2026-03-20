@@ -65,10 +65,13 @@ if [ "$MODE" = "server" ]; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential
             sudo apt-get install -y -qq btop 2>/dev/null || true  # not in Ubuntu < 23.10
-            # neovim via snap (apt version is too old)
-            if ! command -v nvim &>/dev/null; then
-                sudo apt-get install -y -qq snapd 2>/dev/null || true
-                sudo snap install nvim --classic 2>/dev/null || sudo apt-get install -y -qq neovim
+            # neovim (apt version is too old for LazyVim on Ubuntu < 24.04)
+            if ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; then
+                echo "  Installing neovim via appimage..."
+                sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
+                curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$(uname -m).appimage" -o /tmp/nvim.appimage
+                chmod +x /tmp/nvim.appimage
+                sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
             fi
             # Symlink renamed binaries on Debian/Ubuntu
             [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && mkdir -p "$HOME/.local/bin" && ln -sf /usr/bin/batcat "$HOME/.local/bin/bat"
@@ -280,23 +283,25 @@ if [ "$OS" = "Darwin" ]; then
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
     sudo apt-get install -y tmux fzf bat snapd nodejs npm golang-go default-jdk python3 build-essential
-    # neovim via snap (apt version is too old for LazyVim, needs 0.10+)
-    install_nvim_snap=false
+    # neovim via appimage (apt version is too old for LazyVim, needs 0.10+)
+    install_nvim=false
     if ! command -v nvim &>/dev/null; then
-        install_nvim_snap=true
+        install_nvim=true
     else
         nvim_ver=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
         nvim_major=$(echo "$nvim_ver" | cut -d. -f1)
         nvim_minor=$(echo "$nvim_ver" | cut -d. -f2)
         if [ "$nvim_major" -eq 0 ] && [ "$nvim_minor" -lt 10 ]; then
             echo "Found neovim $nvim_ver (too old, need 0.10+). Upgrading..."
-            sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
-            install_nvim_snap=true
+            install_nvim=true
         fi
     fi
-    if $install_nvim_snap; then
-        echo "Installing neovim via snap (latest stable)..."
-        sudo snap install nvim --classic
+    if $install_nvim; then
+        echo "Installing neovim via appimage..."
+        sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
+        curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$(uname -m).appimage" -o /tmp/nvim.appimage
+        chmod +x /tmp/nvim.appimage
+        sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
     fi
     # lazygit
     if ! command -v lazygit &>/dev/null; then

@@ -429,14 +429,12 @@ install_neovim() {
   else
     case "$PKG_MGR" in
       apt)
-        # apt version is usually too old, use snap
+        # apt version is usually too old, use appimage
         sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
-        if command -v snap &>/dev/null; then
-          sudo snap install nvim --classic
-        else
-          pkg_install snapd
-          sudo snap install nvim --classic
-        fi
+        info "Installing neovim via appimage..."
+        curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$(uname -m).appimage" -o /tmp/nvim.appimage
+        chmod +x /tmp/nvim.appimage
+        sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
         ;;
       dnf)    pkg_install neovim ;;
       pacman) pkg_install neovim ;;
