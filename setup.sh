@@ -512,12 +512,27 @@ install_nvim_lang_deps() {
       ok "Coursier + Metals installed"
     else
       info "Installing Coursier + Metals..."
-      curl -fL https://github.com/coursier/coursier/releases/latest/download/cs-$(gh_arch x86_64 aarch64)-pc-linux.gz | gzip -d > /tmp/cs
-      chmod +x /tmp/cs
-      mkdir -p "$HOME/.local/bin"
-      mv /tmp/cs "$HOME/.local/bin/cs"
-      "$HOME/.local/bin/cs" install metals 2>/dev/null
-      ok "Coursier + Metals installed"
+      curl -fLo /tmp/cs "https://github.com/coursier/launchers/raw/master/cs-$(uname -m)-pc-linux.gz" 2>/dev/null \
+        && gzip -d /tmp/cs.gz 2>/dev/null
+      # Fallback: use the official install script
+      if [ ! -f /tmp/cs ]; then
+        curl -fL "https://github.com/VirtusLab/coursier-m1/releases/latest/download/cs-$(uname -m)-pc-linux.gz" 2>/dev/null | gzip -d > /tmp/cs 2>/dev/null || true
+      fi
+      if [ ! -f /tmp/cs ] || [ ! -s /tmp/cs ]; then
+        # Use coursier JAR launcher as ultimate fallback (needs java)
+        if command -v java &>/dev/null; then
+          curl -fLo /tmp/cs "https://github.com/coursier/coursier/releases/latest/download/coursier" 2>/dev/null
+        fi
+      fi
+      if [ -f /tmp/cs ] && [ -s /tmp/cs ]; then
+        chmod +x /tmp/cs
+        mkdir -p "$HOME/.local/bin"
+        mv /tmp/cs "$HOME/.local/bin/cs"
+        "$HOME/.local/bin/cs" install metals 2>/dev/null
+        ok "Coursier + Metals installed"
+      else
+        warn "Could not install Coursier — install manually for Scala support"
+      fi
     fi
   else
     ok "Metals already installed"
