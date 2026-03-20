@@ -63,7 +63,7 @@ if [ "$MODE" = "server" ]; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq
+            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential
             # neovim via snap (apt version is too old)
             if ! command -v nvim &>/dev/null; then
                 sudo apt-get install -y -qq snapd 2>/dev/null || true
@@ -72,11 +72,11 @@ if [ "$MODE" = "server" ]; then
             # Symlink renamed binaries on Debian/Ubuntu
             [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && mkdir -p "$HOME/.local/bin" && ln -sf /usr/bin/batcat "$HOME/.local/bin/bat"
         elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl git tmux fzf ripgrep bat htop jq neovim
+            sudo dnf install -y -q curl git tmux fzf ripgrep bat htop jq neovim gcc make
         elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat htop jq neovim
+            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat htop jq neovim base-devel
         elif command -v zypper &>/dev/null; then
-            sudo zypper install -y curl git tmux fzf ripgrep bat htop jq neovim
+            sudo zypper install -y curl git tmux fzf ripgrep bat htop jq neovim gcc make
         fi
     elif [ "$OS" = "Darwin" ]; then
         if ! command -v brew &>/dev/null; then
@@ -243,7 +243,7 @@ if [ "$OS" = "Darwin" ]; then
     done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux fzf bat snapd nodejs npm golang-go default-jdk python3
+    sudo apt-get install -y tmux fzf bat snapd nodejs npm golang-go default-jdk python3 build-essential
     # neovim via snap (apt version is too old for LazyVim, needs 0.10+)
     install_nvim_snap=false
     if ! command -v nvim &>/dev/null; then
