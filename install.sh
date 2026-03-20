@@ -176,6 +176,14 @@ if [ "$MODE" = "server" ]; then
                 echo 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)"' >> "$RCFILE"
             fi
         fi
+        # sudo nvim: preserve user config + editor default
+        if ! grep -q "sudoedit\|EDITOR" "$RCFILE" 2>/dev/null; then
+            echo '' >> "$RCFILE"
+            echo '# ─── editor ─────────────────────────────────────────────' >> "$RCFILE"
+            echo 'export EDITOR=nvim' >> "$RCFILE"
+            echo 'export VISUAL=nvim' >> "$RCFILE"
+            echo 'alias svim="sudo -E nvim"  # sudo nvim with your config' >> "$RCFILE"
+        fi
     fi
 
     # Mark nvim as server mode (disables LSPs, heavy treesitter, Mason packages)

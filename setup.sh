@@ -899,6 +899,11 @@ if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
   fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
 fi
 
+# ─── Editor ─────────────────────────────────────────────
+export EDITOR=nvim
+export VISUAL=nvim
+alias svim="sudo -E nvim"  # sudo nvim with your config
+
 # ─── Source extras ───────────────────────────────────────
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 ZSHRC_EOF
@@ -964,6 +969,11 @@ fi
 if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
   fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
 fi
+
+# ─── Editor ─────────────────────────────────────────────
+export EDITOR=nvim
+export VISUAL=nvim
+alias svim="sudo -E nvim"  # sudo nvim with your config
 
 # ─── Source extras ───────────────────────────────────────
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
