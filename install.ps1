@@ -2,7 +2,7 @@
 # Run as Administrator:  irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 Write-Host "=== dotfiles installer (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
@@ -23,7 +23,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Host "Error: git still not found. Please restart your terminal and run this script again." -ForegroundColor Red
-        exit 1
+        return
     }
 }
 Write-Host "Git: $(git --version)"
@@ -62,17 +62,19 @@ $packages = @(
 )
 
 foreach ($pkg in $packages) {
-    if (-not (Get-Command $pkg -ErrorAction SilentlyContinue)) {
-        Write-Host "  Installing $pkg..."
-        scoop install $pkg
-    } else {
+    # Check if already installed via scoop (more reliable than checking command name)
+    $installed = scoop list $pkg 2>$null | Select-String $pkg
+    if ($installed) {
         Write-Host "  $pkg already installed"
+    } else {
+        Write-Host "  Installing $pkg..."
+        try { scoop install $pkg 2>$null } catch { Write-Host "  Warning: $pkg install had issues, may need retry" -ForegroundColor Yellow }
     }
 }
 
 # Install a Nerd Font
 Write-Host "  Installing Nerd Font (MesloLGM)..."
-scoop install nerd-fonts/MesloLGM-NF 2>$null
+try { scoop install nerd-fonts/MesloLGM-NF 2>$null } catch {}
 
 # ─── Neovim language toolchain ──────────────────────────
 Write-Host ""
