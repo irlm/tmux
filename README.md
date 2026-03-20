@@ -1,6 +1,6 @@
 # Tmux + Neovim Dev Environment
 
-Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, and modern CLI tools.
+Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, full dev toolchain, and modern CLI tools.
 
 ## Quick Install
 
@@ -10,30 +10,39 @@ Cross-platform terminal setup: tmux, neovim (LazyVim), Oh My Posh, Nord theme, a
 curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 ```
 
+### Full Setup (multi-distro Linux + macOS)
+
+```bash
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/setup.sh | bash
+```
+
+Supports: macOS, Ubuntu/Debian, Fedora/RHEL, Arch/Manjaro, openSUSE, WSL.
+
 ### Windows (PowerShell — no prerequisites needed)
 
 ```powershell
 powershell -c "winget install Git.Git --accept-package-agreements --accept-source-agreements; $env:PATH += ';C:\Program Files\Git\cmd'; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
 ```
 
-This single command installs git via winget, then everything else via Scoop (neovim, lazygit, lazydocker, fzf, zoxide, oh-my-posh, bat, btop, gh, fastfetch, Nerd Font).
-
 > tmux doesn't run natively on Windows. For tmux, install WSL: `wsl --install` in an admin PowerShell.
 
 ## What You Get
 
 - **tmux** — `C-a` prefix, vim-style panes, popups (lazygit, btop, gh dash), sessionizer
-- **neovim** — LazyVim with Nord theme, LSP, telescope, treesitter, tmux navigation
+- **neovim** — LazyVim with Nord theme, LSP for 9 languages, telescope, treesitter, tmux navigation
+- **Dev toolchain** — Rust (rust-analyzer), Go, Python (pyright, ruff), Node.js, Java (jdtls), Scala (Metals), C/C++ (clangd)
+- **Docker** — Docker + Docker Desktop, lazydocker
 - **Oh My Posh** — Nord-themed prompt with git status, smart path truncation
-- **CLI tools** — fzf, zoxide, bat, lazygit, btop, fastfetch, gh
+- **CLI tools** — fzf, zoxide, bat, eza, lazygit, btop, fastfetch, gh, ripgrep, fd, jq
 - **Status bar** — CPU, RAM, network speed, battery (auto-hidden on desktops), git branch
+- **Session persistence** — tmux-resurrect + continuum auto-saves/restores sessions
 
 ## Post-Install
 
 1. Set your terminal font to a **Nerd Font** (e.g. MesloLGM, JetBrains Mono)
 2. Start tmux: `tmux`
 3. Install tmux plugins: `C-a I`
-4. Open neovim: `nvim` (plugins auto-install on first launch)
+4. Open neovim: `nvim` (plugins + LSPs auto-install on first launch)
 
 ## Updating
 
@@ -41,7 +50,7 @@ This single command installs git via winget, then everything else via Scoop (neo
 ~/.config/tmux/update.sh
 ```
 
-Fetches latest changes, updates plugins, and reloads config.
+Fetches latest changes, updates plugins, reloads config, and checks for missing toolchains.
 
 ## Keybindings (C-a prefix)
 
@@ -51,16 +60,16 @@ Fetches latest changes, updates plugins, and reloads config.
 |-----|--------|-----|--------|
 | `g` | lazygit | `n` | quick notes |
 | `G` | gh dash | `o` | sessionizer (project switcher) |
-| `t` | btop | `?` | cheatsheet |
-| `i` | fastfetch | `/` | search pane history |
-| `f` | floating shell | | |
+| `d` | lazydocker | `?` | cheatsheet |
+| `t` | btop | `/` | search pane history |
+| `i` | fastfetch | `f` | floating shell |
 
 ### Panes
 
 | Key | Action | Key | Action |
 |-----|--------|-----|--------|
 | `\|` | split horizontal | `z` | zoom toggle |
-| `-` | split vertical | `x` | kill pane |
+| `-` | split vertical | `x` | kill pane (confirms on last) |
 | `h j k l` | navigate | `b` | break to window |
 | `H J K L` | resize | `@` | join pane |
 | `{ }` | swap panes | `m` | mark pane |
@@ -78,6 +87,15 @@ Fetches latest changes, updates plugins, and reloads config.
 | `C-n` | auto-rename on | `D` | pick client to detach |
 | | | `Y` | sync panes on/off |
 
+### SSH / Nested Tmux
+
+| Key | Action |
+|-----|--------|
+| `s` | SSH + auto-attach remote tmux (prompts for host) |
+| `F12` | Toggle local prefix off/on (pass keys to inner tmux) |
+
+When `F12` is active, status bar shows **REMOTE** in red — all keys go to the inner (remote) tmux. Press `F12` again to switch back.
+
 ### Copy Mode (C-a [)
 
 | Key | Action | Key | Action |
@@ -93,6 +111,8 @@ Fetches latest changes, updates plugins, and reloads config.
 | `I` | install plugins |
 | `Space` | thumbs (copy text hints) |
 | `u` | fzf URLs |
+| `C-s` | save session (resurrect) |
+| `C-r` | restore session (resurrect) |
 | `r` | reload config |
 
 ### Utilities
@@ -128,8 +148,10 @@ Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
 
 - **Nord** colorscheme
 - **Ctrl+h/j/k/l** seamless tmux ↔ neovim pane navigation
+- **Language support**: Rust, C/C++, Java, TypeScript/JS, JSON, Python, Go, Scala, SQL
 - **`<Space>gg`** lazygit from within neovim
 - **`<Space>ff`** find files, **`<Space>fg`** live grep
+- **`gd`** go to definition, **`Ctrl-o`** jump back
 - Minimal lualine (no duplicate info with tmux status bar)
 
 ## Files
@@ -138,13 +160,15 @@ Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
 |------|-------------|
 | `install.sh` | Bootstrap for macOS / Linux |
 | `install.ps1` | Bootstrap for Windows (PowerShell) |
-| `update.sh` | Pull latest, update plugins, reload |
+| `setup.sh` | Full setup (multi-distro Linux + macOS) |
+| `update.sh` | Pull latest, update plugins, check toolchains |
 | `tmux.conf` | tmux configuration |
 | `nord.omp.json` | Oh My Posh Nord prompt theme |
 | `cheatsheet.txt` | keybinding reference (`C-a ?`) |
 | `scripts/status_right.sh` | dynamic status bar (cpu/ram/net/battery) |
 | `scripts/net_speed.sh` | network speed monitor |
 | `scripts/sessionizer.sh` | fzf project switcher |
+| `scripts/notes.sh` | quick notes manager |
 
 ## Repos
 
