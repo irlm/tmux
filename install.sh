@@ -158,6 +158,9 @@ if [ "$MODE" = "server" ]; then
         fi
     fi
 
+    # Mark nvim as server mode (disables LSPs, heavy treesitter, Mason packages)
+    touch "$HOME/.config/nvim/.server"
+
     # Data dirs
     mkdir -p "$HOME/.local/share/tmux" "$HOME/.local/bin"
     export PATH="$HOME/.local/bin:$PATH"
