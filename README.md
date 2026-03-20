@@ -16,14 +16,18 @@ wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
 
 ```bash
 curl -sL https://raw.githubusercontent.com/irlm/tmux/main/setup.sh | bash
+# or if curl is not installed:
+wget -qO- https://raw.githubusercontent.com/irlm/tmux/main/setup.sh | bash
 ```
 
 Supports: macOS, Ubuntu/Debian, Fedora/RHEL, Arch/Manjaro, openSUSE, WSL.
 
-### Windows (PowerShell — no prerequisites needed)
+### Windows (PowerShell)
+
+> Run PowerShell as **Administrator** (right-click -> Run as administrator).
 
 ```powershell
-powershell -c "irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
+irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 ```
 
 > tmux doesn't run natively on Windows. For tmux, install WSL: `wsl --install` in an admin PowerShell.

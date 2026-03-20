@@ -1,5 +1,5 @@
 # dotfiles installer for Windows (PowerShell)
-# Run:  powershell -c "irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex"
+# Run as Administrator:  irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
