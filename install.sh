@@ -86,11 +86,27 @@ if [ "$MODE" = "server" ]; then
         brew install tmux neovim fzf ripgrep bat btop fastfetch jq 2>/dev/null
     fi
 
-    # fastfetch (try repo, skip if unavailable)
+    # fastfetch (try repo first, then GitHub release .deb/.rpm)
     if ! command -v fastfetch &>/dev/null; then
         if [ "$OS" = "Linux" ]; then
             if command -v apt-get &>/dev/null; then
-                sudo apt-get install -y -qq fastfetch 2>/dev/null || true
+                sudo apt-get install -y -qq fastfetch 2>/dev/null || {
+                    # Not in repo (Ubuntu < 24.04) — install from GitHub .deb
+                    echo "  fastfetch not in repo, installing from GitHub..."
+                    ARCH=$(uname -m)
+                    [ "$ARCH" = "x86_64" ] && ARCH="amd64"
+                    [ "$ARCH" = "aarch64" ] && ARCH="aarch64"
+                    FF_URL=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" \
+                        | grep "browser_download_url" \
+                        | grep -i "linux-${ARCH}.*\\.deb" \
+                        | grep -v "source" | head -1 | cut -d '"' -f 4) || true
+                    if [ -n "$FF_URL" ]; then
+                        curl -fsSL "$FF_URL" -o /tmp/fastfetch.deb
+                        sudo dpkg -i /tmp/fastfetch.deb 2>/dev/null
+                        sudo apt-get install -f -y -qq 2>/dev/null
+                        rm -f /tmp/fastfetch.deb
+                    fi
+                }
             elif command -v dnf &>/dev/null; then
                 sudo dnf install -y -q fastfetch 2>/dev/null || true
             elif command -v pacman &>/dev/null; then
