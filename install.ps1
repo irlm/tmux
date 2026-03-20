@@ -47,7 +47,11 @@ $packages = @(
     "gh",
     "fastfetch",
     "btop",
-    "oh-my-posh"
+    "oh-my-posh",
+    "nodejs",
+    "go",
+    "python",
+    "openjdk"
 )
 
 foreach ($pkg in $packages) {
@@ -62,6 +66,49 @@ foreach ($pkg in $packages) {
 # Install a Nerd Font
 Write-Host "  Installing Nerd Font (MesloLGM)..."
 scoop install nerd-fonts/MesloLGM-NF 2>$null
+
+# ─── Neovim language toolchain ──────────────────────────
+Write-Host ""
+Write-Host "Installing neovim language dependencies..."
+
+# Rust: install rustup + rust-analyzer
+if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+    Write-Host "  Installing Rust via rustup..."
+    scoop install rustup-msvc
+    rustup default stable
+    rustup component add rust-analyzer
+} else {
+    $raInstalled = rustup component list 2>$null | Select-String "rust-analyzer.*installed"
+    if (-not $raInstalled) {
+        Write-Host "  Adding rust-analyzer component..."
+        rustup component add rust-analyzer
+    } else {
+        Write-Host "  rust-analyzer already installed"
+    }
+}
+
+# Scala: install coursier + metals
+if (-not (Get-Command metals -ErrorAction SilentlyContinue)) {
+    if (-not (Get-Command cs -ErrorAction SilentlyContinue)) {
+        Write-Host "  Installing Coursier..."
+        scoop install coursier
+    }
+    Write-Host "  Installing Metals LSP..."
+    cs install metals 2>$null
+} else {
+    Write-Host "  metals already installed"
+}
+
+# ─── Docker Desktop ─────────────────────────────────────
+Write-Host ""
+Write-Host "Checking Docker..."
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host "  Installing Docker Desktop via winget..."
+    winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements
+    Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
+} else {
+    Write-Host "  Docker already installed"
+}
 
 # ─── Backup existing configs ─────────────────────────────
 Write-Host ""
@@ -185,7 +232,10 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal"
 Write-Host "  2. Set terminal font to 'MesloLGM Nerd Font'"
-Write-Host "  3. Run: nvim (plugins auto-install on first launch)"
-Write-Host "  4. Run: lazygit, lazydocker, btop, fastfetch"
-Write-Host "  5. For tmux: install WSL ('wsl --install' in admin PowerShell)"
+Write-Host "  3. Launch Docker Desktop"
+Write-Host "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
+Write-Host "  5. Run: lazygit, lazydocker, btop, fastfetch"
+Write-Host "  6. For tmux: install WSL ('wsl --install' in admin PowerShell)"
+Write-Host ""
+Write-Host "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
 Write-Host ""

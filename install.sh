@@ -59,7 +59,7 @@ if [ "$OS" = "Darwin" ]; then
         echo "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
-    brew install tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh
+    brew install tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
     sudo apt-get install -y tmux fzf bat snapd
@@ -98,6 +98,74 @@ elif [ "$OS" = "Linux" ]; then
     command -v zoxide &>/dev/null || curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
     # oh-my-posh
     command -v oh-my-posh &>/dev/null || curl -s https://ohmyposh.dev/install.sh | bash -s
+fi
+
+# ─── Neovim language toolchain ───────────────────────────
+echo ""
+echo "Setting up neovim language dependencies..."
+
+# Rust: install rustup + rust-analyzer if not present
+if command -v rustup &>/dev/null; then
+    if ! rustup component list 2>/dev/null | grep -q 'rust-analyzer.*installed'; then
+        echo "Adding rust-analyzer component..."
+        rustup component add rust-analyzer
+    fi
+elif ! command -v rustc &>/dev/null; then
+    echo "Installing Rust via rustup..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+    [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+    rustup component add rust-analyzer
+fi
+
+# Scala: install coursier + metals if not present
+if ! command -v metals &>/dev/null; then
+    if [ "$OS" = "Darwin" ]; then
+        if ! command -v cs &>/dev/null; then
+            brew install coursier/formulas/coursier
+        fi
+        cs install metals 2>/dev/null || true
+    elif command -v cs &>/dev/null || command -v coursier &>/dev/null; then
+        $(command -v cs || command -v coursier) install metals 2>/dev/null || true
+    fi
+fi
+
+# Node.js: needed by Mason for prettier, typescript LSP
+if [ "$OS" = "Linux" ] && ! command -v node &>/dev/null; then
+    sudo apt-get install -y nodejs npm 2>/dev/null || true
+fi
+
+# Go: needed for gopls, gofumpt, goimports
+if [ "$OS" = "Linux" ] && ! command -v go &>/dev/null; then
+    sudo apt-get install -y golang-go 2>/dev/null || true
+fi
+
+# Java: needed for jdtls
+if ! command -v java &>/dev/null; then
+    if [ "$OS" = "Darwin" ]; then
+        brew install openjdk
+    else
+        sudo apt-get install -y default-jdk 2>/dev/null || true
+    fi
+fi
+
+# ─── Docker ──────────────────────────────────────────────
+echo ""
+echo "Setting up Docker..."
+
+if command -v docker &>/dev/null; then
+    echo "Docker already installed"
+else
+    if [ "$OS" = "Darwin" ]; then
+        brew install --cask docker
+        echo "Docker Desktop installed — launch it from Applications"
+    elif [ "$OS" = "Linux" ]; then
+        echo "Installing Docker..."
+        curl -fsSL https://get.docker.com | sh
+        sudo usermod -aG docker "$USER" 2>/dev/null || true
+        sudo systemctl enable docker 2>/dev/null || true
+        sudo systemctl start docker 2>/dev/null || true
+        echo "Docker installed (log out and back in for group changes)"
+    fi
 fi
 
 # ─── Clone configs ────────────────────────────────────────
@@ -164,5 +232,7 @@ echo "Next steps:"
 echo "  1. Open a new terminal"
 echo "  2. Run: tmux"
 echo "  3. Press C-a I to install tmux plugins"
-echo "  4. Run: nvim (plugins auto-install on first launch)"
+echo "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
+echo ""
+echo "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
 echo ""

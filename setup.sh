@@ -226,7 +226,7 @@ install_core_packages() {
   if [[ "$OS" == "macos" ]]; then
     # macOS: everything via Homebrew
     local BREW_PACKAGES=(
-      tmux fzf lazygit btop fastfetch gh
+      tmux fzf lazygit lazydocker btop fastfetch gh
       ripgrep fd bat eza zoxide tlrc jq
     )
     for pkg in "${BREW_PACKAGES[@]}"; do
@@ -409,6 +409,205 @@ install_core_packages() {
 
 install_core_packages
 
+# ─── Neovim ───────────────────────────────────────────
+install_neovim() {
+  if command -v nvim &>/dev/null; then
+    local nvim_ver
+    nvim_ver=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    local nvim_major nvim_minor
+    nvim_major=$(echo "$nvim_ver" | cut -d. -f1)
+    nvim_minor=$(echo "$nvim_ver" | cut -d. -f2)
+    if [ "$nvim_major" -gt 0 ] || [ "$nvim_minor" -ge 10 ]; then
+      ok "neovim $nvim_ver already installed"
+      return
+    fi
+    warn "neovim $nvim_ver is too old (need 0.10+), upgrading..."
+  fi
+
+  if [[ "$OS" == "macos" ]]; then
+    brew install neovim
+  else
+    case "$PKG_MGR" in
+      apt)
+        # apt version is usually too old, use snap
+        sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
+        if command -v snap &>/dev/null; then
+          sudo snap install nvim --classic
+        else
+          pkg_install snapd
+          sudo snap install nvim --classic
+        fi
+        ;;
+      dnf)    pkg_install neovim ;;
+      pacman) pkg_install neovim ;;
+      zypper) pkg_install neovim ;;
+    esac
+  fi
+  ok "neovim installed"
+}
+
+install_neovim
+
+# ─── Neovim Language Toolchain ────────────────────────
+# These are required by the LazyVim language extras (rust, scala, typescript, python, etc.)
+install_nvim_lang_deps() {
+  info "Installing neovim language toolchain dependencies..."
+
+  # ── Node.js (required by Mason for prettier, typescript-language-server, etc.) ──
+  if ! command -v node &>/dev/null; then
+    info "Installing Node.js..."
+    if [[ "$OS" == "macos" ]]; then
+      brew install node
+    else
+      case "$PKG_MGR" in
+        apt)
+          # Use NodeSource for recent Node on Debian/Ubuntu
+          if ! pkg_install nodejs 2>/dev/null; then
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+          fi
+          ;;
+        dnf)    pkg_install nodejs ;;
+        pacman) pkg_install nodejs npm ;;
+        zypper) pkg_install nodejs npm ;;
+      esac
+    fi
+    ok "Node.js installed"
+  else
+    ok "Node.js already installed ($(node --version))"
+  fi
+
+  # ── Rust toolchain + rust-analyzer (for LazyVim rust extra / rustaceanvim) ──
+  if command -v rustup &>/dev/null; then
+    if ! rustup component list 2>/dev/null | grep -q 'rust-analyzer.*installed'; then
+      info "Adding rust-analyzer component..."
+      rustup component add rust-analyzer
+      ok "rust-analyzer installed"
+    else
+      ok "rust-analyzer already installed"
+    fi
+  elif command -v rustc &>/dev/null; then
+    ok "Rust installed (system package — install rustup for rust-analyzer)"
+  else
+    info "Installing Rust via rustup..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+    # shellcheck disable=SC1091
+    [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+    rustup component add rust-analyzer
+    ok "Rust + rust-analyzer installed"
+  fi
+
+  # ── Coursier + Metals (for LazyVim scala extra / nvim-metals) ──
+  if ! command -v metals &>/dev/null; then
+    if command -v cs &>/dev/null || command -v coursier &>/dev/null; then
+      info "Installing Metals LSP via Coursier..."
+      local cs_cmd
+      cs_cmd=$(command -v cs || command -v coursier)
+      "$cs_cmd" install metals 2>/dev/null
+      ok "Metals installed"
+    elif [[ "$OS" == "macos" ]]; then
+      info "Installing Coursier + Metals..."
+      brew install coursier/formulas/coursier
+      cs install metals 2>/dev/null
+      ok "Coursier + Metals installed"
+    else
+      info "Installing Coursier + Metals..."
+      curl -fL https://github.com/coursier/coursier/releases/latest/download/cs-$(gh_arch x86_64 aarch64)-pc-linux.gz | gzip -d > /tmp/cs
+      chmod +x /tmp/cs
+      mkdir -p "$HOME/.local/bin"
+      mv /tmp/cs "$HOME/.local/bin/cs"
+      "$HOME/.local/bin/cs" install metals 2>/dev/null
+      ok "Coursier + Metals installed"
+    fi
+  else
+    ok "Metals already installed"
+  fi
+
+  # ── Go (for gopls, gofumpt, goimports via Mason) ──
+  if ! command -v go &>/dev/null; then
+    info "Installing Go..."
+    if [[ "$OS" == "macos" ]]; then
+      brew install go
+    else
+      case "$PKG_MGR" in
+        apt)    pkg_install golang-go ;;
+        dnf)    pkg_install golang ;;
+        pacman) pkg_install go ;;
+        zypper) pkg_install go ;;
+      esac
+    fi
+    ok "Go installed"
+  else
+    ok "Go already installed ($(go version | cut -d' ' -f3))"
+  fi
+
+  # ── Java JDK (for jdtls via Mason) ──
+  if ! command -v java &>/dev/null; then
+    info "Installing Java JDK..."
+    if [[ "$OS" == "macos" ]]; then
+      brew install openjdk
+    else
+      case "$PKG_MGR" in
+        apt)    pkg_install default-jdk ;;
+        dnf)    pkg_install java-latest-openjdk-devel ;;
+        pacman) pkg_install jdk-openjdk ;;
+        zypper) pkg_install java-21-openjdk-devel ;;
+      esac
+    fi
+    ok "Java JDK installed"
+  else
+    ok "Java already installed ($(java -version 2>&1 | head -1))"
+  fi
+
+  # ── Python 3 (for pyright, ruff via Mason) ──
+  if ! command -v python3 &>/dev/null; then
+    info "Installing Python 3..."
+    if [[ "$OS" == "macos" ]]; then
+      brew install python
+    else
+      case "$PKG_MGR" in
+        apt)    pkg_install python3 python3-venv ;;
+        dnf)    pkg_install python3 ;;
+        pacman) pkg_install python ;;
+        zypper) pkg_install python3 ;;
+      esac
+    fi
+    ok "Python 3 installed"
+  else
+    ok "Python 3 already installed ($(python3 --version))"
+  fi
+}
+
+install_nvim_lang_deps
+
+# ─── Docker ───────────────────────────────────────────
+install_docker() {
+  if command -v docker &>/dev/null; then
+    ok "Docker already installed ($(docker --version | cut -d' ' -f3 | tr -d ','))"
+  else
+    info "Installing Docker..."
+    if [[ "$OS" == "macos" ]]; then
+      brew install --cask docker
+      ok "Docker Desktop installed — launch it from Applications"
+    else
+      # Linux: official Docker install script
+      curl -fsSL https://get.docker.com | sh
+      # Add current user to docker group
+      sudo usermod -aG docker "$USER" 2>/dev/null || true
+      sudo systemctl enable docker 2>/dev/null || true
+      sudo systemctl start docker 2>/dev/null || true
+      ok "Docker installed (log out and back in for group changes)"
+    fi
+  fi
+
+  # lazydocker (Linux — macOS gets it via brew in core packages)
+  if [[ "$OS" == "linux" ]] && ! command -v lazydocker &>/dev/null; then
+    install_from_github "jesseduffield/lazydocker" "lazydocker" "Linux_$(gh_arch x86_64 arm64).*\\.tar\\.gz"
+  fi
+}
+
+install_docker
+
 # ─── Oh My Posh ────────────────────────────────────────
 install_oh_my_posh() {
   if command -v oh-my-posh &>/dev/null; then
@@ -534,6 +733,24 @@ fi
 if [ ! -e "$HOME/.tmux.conf" ]; then
   ln -sf "$TMUX_DIR/tmux.conf" "$HOME/.tmux.conf"
   ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
+fi
+
+# ─── Neovim config ────────────────────────────────────
+NVIM_DIR="$HOME/.config/nvim"
+if [ -d "$NVIM_DIR/.git" ]; then
+  remote=$(cd "$NVIM_DIR" && git remote get-url origin 2>/dev/null || echo "")
+  if echo "$remote" | grep -q "irlm"; then
+    info "nvim config exists, pulling..."
+    (cd "$NVIM_DIR" && git pull --ff-only) && ok "nvim config updated" || warn "nvim config pull failed"
+  else
+    ok "nvim config exists (custom repo: $remote)"
+  fi
+elif [ -d "$NVIM_DIR" ]; then
+  warn "nvim config exists but is not a git repo — skipping"
+else
+  info "Cloning nvim config..."
+  git clone https://github.com/irlm/nvim.git "$NVIM_DIR"
+  ok "nvim config installed"
 fi
 
 # ─── Shell plugins ────────────────────────────────────
@@ -779,6 +996,8 @@ echo ""
 echo "  What you got:"
 echo "    - Oh My Posh prompt with Nord theme + git status"
 echo "    - tmux with C-a prefix, popups, vim bindings"
+echo "    - neovim with LazyVim (LSPs for Rust, Go, Python, TS, Java, Scala, C/C++, SQL)"
+echo "    - Docker + lazydocker"
 echo "    - fzf (C-r history, C-t files, Alt-c directories)"
 echo "    - lazygit, btop, gh popups inside tmux"
 echo "    - fastfetch greeting on new terminal"
