@@ -72,5 +72,28 @@ if command -v nvim &>/dev/null; then
     echo "  Done."
 fi
 
+# Check language toolchain
+echo ""
+echo "── language toolchain ──"
+OS="$(uname -s)"
+missing=""
+command -v node &>/dev/null    || missing="$missing node"
+command -v go &>/dev/null      || missing="$missing go"
+command -v rustc &>/dev/null   || missing="$missing rust"
+command -v java &>/dev/null    || missing="$missing java"
+command -v python3 &>/dev/null || missing="$missing python3"
+if command -v rustup &>/dev/null; then
+    rustup component list 2>/dev/null | grep -q 'rust-analyzer.*installed' || missing="$missing rust-analyzer"
+fi
+command -v metals &>/dev/null  || missing="$missing metals"
+command -v docker &>/dev/null  || missing="$missing docker"
+
+if [ -z "$missing" ]; then
+    echo "  All toolchains present."
+else
+    echo "  Missing:$missing"
+    echo "  Run install.sh or setup.sh to install them."
+fi
+
 echo ""
 echo "=== All up to date! ==="

@@ -20,6 +20,8 @@ COPY MODE             PLUGINS                 UTILITIES
  [   enter              I   install             T    clock mode
  v   select            Spc  thumbs             C-l   clear history
  y   yank               u   fzf URLs            r    reload config
+                       C-s  save session
+                       C-r  restore session
 C-v  block select
 H/L  start/end                                NESTED TMUX (SSH)
 / ?  search                                    F12   toggle local/remote
