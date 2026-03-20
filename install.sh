@@ -115,6 +115,9 @@ if [ "$MODE" = "server" ]; then
     if [ ! -d "$TPM_DIR" ]; then
         git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
     fi
+    "$TPM_DIR/bin/install_plugins" 2>/dev/null || true
+    "$TPM_DIR/bin/update_plugins" all 2>/dev/null || true
+    "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
 
     # Shell: add lightweight prompt + zoxide
     RCFILE="$HOME/.bashrc"
@@ -369,10 +372,14 @@ clone_or_pull "nvim.git" "$HOME/.config/nvim" "nvim"
 # ─── TPM plugins ──────────────────────────────────────────
 echo ""
 echo "Installing tmux plugins..."
-if [ ! -d "$HOME/.config/tmux/plugins/tpm" ]; then
-    git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.config/tmux/plugins/tpm"
+TPM_DIR="$HOME/.config/tmux/plugins/tpm"
+if [ ! -d "$TPM_DIR" ]; then
+    git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
 fi
-"$HOME/.config/tmux/plugins/tpm/bin/install_plugins" || true
+# Install new plugins, update existing, remove unused
+"$TPM_DIR/bin/install_plugins" 2>/dev/null || true
+"$TPM_DIR/bin/update_plugins" all 2>/dev/null || true
+"$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
 
 # ─── Shell config ─────────────────────────────────────────
 echo ""

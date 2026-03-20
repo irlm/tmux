@@ -984,9 +984,13 @@ if [ -f "$TPM_DIR/bin/install_plugins" ]; then
     info "Starting temporary tmux server for plugin install..."
     tmux new-session -d -s _tpm_install 2>/dev/null
     "$TPM_DIR/bin/install_plugins" 2>/dev/null && ok "Plugins installed" || warn "Plugin install failed — press C-a I inside tmux"
+    "$TPM_DIR/bin/update_plugins" all 2>/dev/null && ok "Plugins updated" || true
+    "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
     tmux kill-session -t _tpm_install 2>/dev/null
   else
     "$TPM_DIR/bin/install_plugins" 2>/dev/null && ok "Plugins installed" || warn "Plugin install failed — press C-a I inside tmux"
+    "$TPM_DIR/bin/update_plugins" all 2>/dev/null && ok "Plugins updated" || true
+    "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
   fi
 else
   warn "TPM not found — start tmux and press C-a I to install plugins"
