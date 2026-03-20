@@ -116,15 +116,29 @@ if [ "$MODE" = "server" ]; then
         git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
     fi
 
-    # Shell: add zoxide to bashrc if missing
+    # Shell: add lightweight prompt + zoxide
     RCFILE="$HOME/.bashrc"
     [ "$OS" = "Darwin" ] && RCFILE="$HOME/.zshrc"
-    if [ -f "$RCFILE" ] && ! grep -q "zoxide" "$RCFILE" 2>/dev/null; then
-        echo '# zoxide' >> "$RCFILE"
-        if [ "$OS" = "Darwin" ]; then
-            echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$RCFILE"
-        else
-            echo 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)"' >> "$RCFILE"
+    if [ -f "$RCFILE" ]; then
+        # Lightweight prompt (pure shell, no external binaries)
+        if ! grep -q "prompt.sh\|prompt.zsh" "$RCFILE" 2>/dev/null; then
+            echo '' >> "$RCFILE"
+            echo '# ─── lightweight prompt (git branch, exit code, no oh-my-posh) ─' >> "$RCFILE"
+            if [ "$OS" = "Darwin" ]; then
+                echo '[ -f ~/.config/tmux/scripts/prompt.zsh ] && . ~/.config/tmux/scripts/prompt.zsh' >> "$RCFILE"
+            else
+                echo '[ -f ~/.config/tmux/scripts/prompt.sh ] && . ~/.config/tmux/scripts/prompt.sh' >> "$RCFILE"
+            fi
+        fi
+        # zoxide
+        if ! grep -q "zoxide" "$RCFILE" 2>/dev/null; then
+            echo '' >> "$RCFILE"
+            echo '# zoxide' >> "$RCFILE"
+            if [ "$OS" = "Darwin" ]; then
+                echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$RCFILE"
+            else
+                echo 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)"' >> "$RCFILE"
+            fi
         fi
     fi
 
