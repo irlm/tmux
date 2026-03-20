@@ -63,7 +63,8 @@ if [ "$MODE" = "server" ]; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat btop jq build-essential
+            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential
+            sudo apt-get install -y -qq btop 2>/dev/null || true  # not in Ubuntu < 23.10
             # neovim via snap (apt version is too old)
             if ! command -v nvim &>/dev/null; then
                 sudo apt-get install -y -qq snapd 2>/dev/null || true

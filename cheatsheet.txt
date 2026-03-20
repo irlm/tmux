@@ -4,8 +4,8 @@ POPUPS                 PANES                   WINDOWS/SESSIONS
  g   lazygit            |   split horiz          c    new window
  G   gh dash            -   split vert           ,    rename window
  d   lazydocker        hjkl navigate             X    kill window
- t   btop              HJKL resize              < >   reorder
- i   fastfetch          z   zoom                 W    pick window
+ t   btop/htop         HJKL resize              < >   reorder
+ i   sysinfo            z   zoom                 W    pick window
  f   float shell        x   kill pane            N    new session
  n   quick notes        b   break to win         .    rename session
  o   sessionizer        @   join pane            S    pick session
