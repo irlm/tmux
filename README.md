@@ -35,8 +35,8 @@ Minimal install for servers — no dev toolchain, no Docker, no fonts, no oh-my-
 | tmux, neovim (full LSP) | Everything in default + | tmux, neovim (no LSPs) |
 | Dev toolchain (Rust, Go, etc.) | Nerd Font, zsh plugins | fzf, ripgrep, bat, htop, jq |
 | Docker, lazygit, lazydocker | Shell config (.zshrc/.bashrc) | zoxide |
-| fzf, bat, zoxide, oh-my-posh | Multi-distro (Fedora, Arch...) | No dev toolchain |
-| btop, fastfetch, gh | WSL clipboard, fzf keybindings | No Docker, no fonts |
+| fzf, bat, zoxide, oh-my-posh | Multi-distro (Fedora, Arch...) | Lightweight prompt (pure shell) |
+| btop, fastfetch, gh | WSL clipboard, fzf keybindings | No Docker, no fonts, no oh-my-posh |
 
 ### Windows (PowerShell)
 
@@ -207,6 +207,8 @@ Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
 | `scripts/net_speed.sh` | network speed monitor |
 | `scripts/sessionizer.sh` | fzf project switcher |
 | `scripts/notes.sh` | quick notes manager |
+| `scripts/prompt.sh` | lightweight bash prompt for servers (no oh-my-posh) |
+| `scripts/prompt.zsh` | lightweight zsh prompt for servers |
 
 ## Repos
 
