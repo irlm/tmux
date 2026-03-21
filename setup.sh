@@ -699,41 +699,11 @@ if $IS_WSL; then
   fi
 fi
 
-# ─── TPM (Tmux Plugin Manager) ────────────────────────
-TPM_DIR="$HOME/.config/tmux/plugins/tpm"
-mkdir -p "$HOME/.config/tmux/plugins"
-
-if [ -f "$TPM_DIR/tpm" ]; then
-  ok "TPM already installed"
-else
-  # Clean up partial clone if exists
-  [ -d "$TPM_DIR" ] && rm -rf "$TPM_DIR"
-
-  info "Installing TPM..."
-  if git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
-    ok "TPM installed"
-  else
-    err "Failed to clone TPM — check your internet connection"
-    err "Run manually: git clone https://github.com/tmux-plugins/tpm $TPM_DIR"
-  fi
-fi
-
-# Ensure TPM scripts are executable
-if [ -f "$TPM_DIR/tpm" ]; then
-  chmod +x "$TPM_DIR/tpm"
-  chmod +x "$TPM_DIR/bin/"* 2>/dev/null
-  chmod +x "$TPM_DIR/scripts/"* 2>/dev/null
-  ok "TPM scripts are executable"
-else
-  err "TPM not found at $TPM_DIR — plugins will not work"
-  err "Run: git clone https://github.com/tmux-plugins/tpm $TPM_DIR"
-fi
-
 # ─── Tmux config ──────────────────────────────────────
 TMUX_DIR="$HOME/.config/tmux"
 mkdir -p "$TMUX_DIR"
 
-# Clone or update the tmux config repo
+# Clone or update the tmux config repo (must happen before TPM)
 if [ -d "$TMUX_DIR/.git" ]; then
   remote=$(cd "$TMUX_DIR" && git remote get-url origin 2>/dev/null || echo "")
   if echo "$remote" | grep -q "irlm"; then
@@ -753,6 +723,28 @@ fi
 if [ ! -e "$HOME/.tmux.conf" ]; then
   ln -sf "$TMUX_DIR/tmux.conf" "$HOME/.tmux.conf"
   ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
+fi
+
+# ─── TPM (Tmux Plugin Manager) ────────────────────────
+TPM_DIR="$HOME/.config/tmux/plugins/tpm"
+mkdir -p "$HOME/.config/tmux/plugins"
+
+if [ -f "$TPM_DIR/tpm" ]; then
+  ok "TPM already installed"
+else
+  [ -d "$TPM_DIR" ] && rm -rf "$TPM_DIR"
+  info "Installing TPM..."
+  if git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
+    ok "TPM installed"
+  else
+    err "Failed to clone TPM — check your internet connection"
+  fi
+fi
+
+if [ -f "$TPM_DIR/tpm" ]; then
+  chmod +x "$TPM_DIR/tpm"
+  chmod +x "$TPM_DIR/bin/"* 2>/dev/null
+  chmod +x "$TPM_DIR/scripts/"* 2>/dev/null
 fi
 
 # ─── Neovim config ────────────────────────────────────
