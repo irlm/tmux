@@ -733,14 +733,20 @@ fi
 TMUX_DIR="$HOME/.config/tmux"
 mkdir -p "$TMUX_DIR"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ "$SCRIPT_DIR" != "$TMUX_DIR" ]; then
-  [ -f "$SCRIPT_DIR/tmux.conf" ] && cp "$SCRIPT_DIR/tmux.conf" "$TMUX_DIR/tmux.conf" && ok "tmux.conf installed"
-  [ -f "$SCRIPT_DIR/nord.omp.json" ] && cp "$SCRIPT_DIR/nord.omp.json" "$TMUX_DIR/nord.omp.json" && ok "Oh My Posh Nord theme installed"
-  [ -f "$SCRIPT_DIR/catppuccin.omp.json" ] && cp "$SCRIPT_DIR/catppuccin.omp.json" "$TMUX_DIR/catppuccin.omp.json"
-  [ -f "$SCRIPT_DIR/cheatsheet.txt" ] && cp "$SCRIPT_DIR/cheatsheet.txt" "$TMUX_DIR/cheatsheet.txt"
+# Clone or update the tmux config repo
+if [ -d "$TMUX_DIR/.git" ]; then
+  remote=$(cd "$TMUX_DIR" && git remote get-url origin 2>/dev/null || echo "")
+  if echo "$remote" | grep -q "irlm"; then
+    info "tmux config exists, pulling..."
+    (cd "$TMUX_DIR" && git pull --ff-only) && ok "tmux config updated" || warn "tmux config pull failed"
+  else
+    ok "tmux config exists (custom repo: $remote)"
+  fi
 else
-  ok "Config files already in place"
+  info "Cloning tmux config..."
+  rm -rf "$TMUX_DIR"
+  git clone https://github.com/irlm/tmux.git "$TMUX_DIR"
+  ok "tmux config installed"
 fi
 
 # Symlink ~/.tmux.conf for older tmux versions (< 3.1) that don't read ~/.config/tmux/
