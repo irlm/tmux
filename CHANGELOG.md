@@ -2,6 +2,14 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [4.4.0] - 2026-03-21
+
+### Added
+- **Web search popup**: `C-a e` prompts for a query and shows DuckDuckGo results via fzf; `Enter` opens in browser, `Ctrl-W` opens in w3m
+- **Search scope picker**: `C-a E` lets you scope search to Wikipedia, GitHub, StackOverflow, or MDN before showing results
+- **Cross-platform browser opener**: Uses `xdg-open` on Linux, `open` on macOS, with w3m fallback
+- **Dependencies**: w3m (text browser), websearch scripts (`scripts/websearch.sh`, `scripts/websearch_fetch.py`)
+
 ## [4.3.0] - 2026-03-20
 
 ### Added
