@@ -227,7 +227,7 @@ install_core_packages() {
     # macOS: everything via Homebrew
     local BREW_PACKAGES=(
       tmux fzf lazygit lazydocker btop fastfetch gh
-      ripgrep fd bat eza zoxide tlrc jq
+      ripgrep fd bat eza zoxide tlrc jq w3m
     )
     for pkg in "${BREW_PACKAGES[@]}"; do
       if brew list "$pkg" &>/dev/null; then
@@ -246,16 +246,16 @@ install_core_packages() {
   local COMMON_PKGS
   case "$PKG_MGR" in
     apt)
-      COMMON_PKGS="tmux fzf btop ripgrep fd-find bat jq zoxide"
+      COMMON_PKGS="tmux fzf btop ripgrep fd-find bat jq zoxide w3m"
       ;;
     dnf)
-      COMMON_PKGS="tmux fzf btop ripgrep fd-find bat jq zoxide"
+      COMMON_PKGS="tmux fzf btop ripgrep fd-find bat jq zoxide w3m"
       ;;
     pacman)
-      COMMON_PKGS="tmux fzf btop ripgrep fd bat jq zoxide lazygit fastfetch github-cli eza"
+      COMMON_PKGS="tmux fzf btop ripgrep fd bat jq zoxide lazygit fastfetch github-cli eza w3m"
       ;;
     zypper)
-      COMMON_PKGS="tmux fzf btop ripgrep fd bat jq zoxide"
+      COMMON_PKGS="tmux fzf btop ripgrep fd bat jq zoxide w3m"
       ;;
   esac
 

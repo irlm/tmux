@@ -63,7 +63,7 @@ if [ "$MODE" = "server" ]; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential
+            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential w3m
             sudo apt-get install -y -qq btop 2>/dev/null || true  # not in Ubuntu < 23.10
             # neovim (apt version is too old for LazyVim on Ubuntu < 24.04)
             if ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; then
@@ -76,18 +76,18 @@ if [ "$MODE" = "server" ]; then
             # Symlink renamed binaries on Debian/Ubuntu
             [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && mkdir -p "$HOME/.local/bin" && ln -sf /usr/bin/batcat "$HOME/.local/bin/bat"
         elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl git tmux fzf ripgrep bat btop jq neovim gcc make
+            sudo dnf install -y -q curl git tmux fzf ripgrep bat btop jq neovim gcc make w3m
         elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat btop jq neovim base-devel
+            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat btop jq neovim base-devel w3m
         elif command -v zypper &>/dev/null; then
-            sudo zypper install -y curl git tmux fzf ripgrep bat btop jq neovim gcc make
+            sudo zypper install -y curl git tmux fzf ripgrep bat btop jq neovim gcc make w3m
         fi
     elif [ "$OS" = "Darwin" ]; then
         if ! command -v brew &>/dev/null; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
         fi
-        brew install tmux neovim fzf ripgrep bat btop fastfetch jq 2>/dev/null
+        brew install tmux neovim fzf ripgrep bat btop fastfetch jq tlrc w3m 2>/dev/null
     fi
 
     # fastfetch (try repo first, then GitHub release .deb/.rpm)
@@ -122,6 +122,26 @@ if [ "$MODE" = "server" ]; then
     # zoxide (light, useful on servers too)
     if ! command -v zoxide &>/dev/null; then
         curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+    fi
+
+    # tlrc (Rust tldr client — not in most Linux repos)
+    if [ "$OS" = "Linux" ] && ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
+        echo "Installing tlrc from GitHub..."
+        ARCH=$(uname -m)
+        TLRC_URL=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
+            | grep "browser_download_url" \
+            | grep -i "${ARCH}.*linux.*musl.*\\.tar\\.gz" \
+            | head -1 | cut -d '"' -f 4) || true
+        if [ -n "$TLRC_URL" ]; then
+            TLRC_TMP=$(mktemp -d)
+            curl -fsSL "$TLRC_URL" | tar xz -C "$TLRC_TMP"
+            if [ -f "$TLRC_TMP/tldr" ]; then
+                chmod +x "$TLRC_TMP/tldr"
+                mkdir -p "$HOME/.local/bin"
+                mv "$TLRC_TMP/tldr" "$HOME/.local/bin/tldr"
+            fi
+            rm -rf "$TLRC_TMP"
+        fi
     fi
 
     # Clone configs
