@@ -105,7 +105,8 @@ if [ "$MODE" = "server" ]; then
             if ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; then
                 echo "  Installing neovim via appimage..."
                 sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
-                curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$(uname -m).appimage" -o /tmp/nvim.appimage
+                NVIM_ARCH=$(uname -m); [ "$NVIM_ARCH" = "aarch64" ] && NVIM_ARCH="arm64"
+                curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.appimage" -o /tmp/nvim.appimage
                 chmod +x /tmp/nvim.appimage
                 sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
             fi
@@ -336,7 +337,8 @@ elif [ "$OS" = "Linux" ]; then
     if $install_nvim; then
         echo "Installing neovim via appimage..."
         sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
-        curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-$(uname -m).appimage" -o /tmp/nvim.appimage
+        NVIM_ARCH=$(uname -m); [ "$NVIM_ARCH" = "aarch64" ] && NVIM_ARCH="arm64"
+                curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.appimage" -o /tmp/nvim.appimage
         chmod +x /tmp/nvim.appimage
         sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
     fi
