@@ -41,6 +41,43 @@ download() {
     fi
 }
 
+# ─── Helper: install binary from GitHub release ─────────
+# Usage: install_gh_binary <repo> <binary> <pattern>
+# Installs to ~/.local/bin. Returns 0 on success.
+install_gh_binary() {
+    local repo="$1" binary="$2" pattern="$3"
+    command -v "$binary" &>/dev/null && return 0
+    echo "  Installing $binary from GitHub ($repo)..."
+    local url
+    url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
+        | grep "browser_download_url" \
+        | grep -i "$pattern" \
+        | grep -vi "sha256\|\.sig\|\.asc" \
+        | head -1 | cut -d '"' -f 4) || true
+    [ -z "$url" ] && echo "    Could not find release for $binary" && return 1
+    local tmp; tmp=$(mktemp -d)
+    if [[ "$url" == *.tbz ]] || [[ "$url" == *.tar.bz2 ]]; then
+        curl -fsSL "$url" | tar xj -C "$tmp"
+    elif [[ "$url" == *.zip ]]; then
+        curl -fsSL "$url" -o "$tmp/archive.zip" && unzip -qo "$tmp/archive.zip" -d "$tmp"
+    else
+        curl -fsSL "$url" | tar xz -C "$tmp"
+    fi
+    local found
+    found=$(find "$tmp" -name "$binary" -type f 2>/dev/null | head -1)
+    if [ -n "$found" ]; then
+        chmod +x "$found"
+        mkdir -p "$HOME/.local/bin"
+        mv "$found" "$HOME/.local/bin/$binary"
+        echo "    $binary installed to ~/.local/bin"
+    else
+        echo "    Binary '$binary' not found in release archive"
+        rm -rf "$tmp"
+        return 1
+    fi
+    rm -rf "$tmp"
+}
+
 # ─── Full setup mode ─────────────────────────────────────
 if [ "$MODE" = "full" ]; then
     echo "=== Full setup mode ==="
@@ -59,12 +96,11 @@ if [ "$MODE" = "server" ]; then
     echo ""
     OS="$(uname -s)"
 
-    # Ensure basics
+    # Ensure basics (only essentials from package managers)
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux fzf ripgrep bat htop jq build-essential w3m
-            sudo apt-get install -y -qq btop 2>/dev/null || true  # not in Ubuntu < 23.10
+            sudo apt-get install -y -qq curl git tmux htop jq build-essential w3m
             # neovim (apt version is too old for LazyVim on Ubuntu < 24.04)
             if ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; then
                 echo "  Installing neovim via appimage..."
@@ -73,15 +109,27 @@ if [ "$MODE" = "server" ]; then
                 chmod +x /tmp/nvim.appimage
                 sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
             fi
-            # Symlink renamed binaries on Debian/Ubuntu
-            [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && mkdir -p "$HOME/.local/bin" && ln -sf /usr/bin/batcat "$HOME/.local/bin/bat"
         elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl git tmux fzf ripgrep bat btop jq neovim gcc make w3m
+            sudo dnf install -y -q curl git tmux jq neovim gcc make w3m
         elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm --needed curl git tmux fzf ripgrep bat btop jq neovim base-devel w3m
+            sudo pacman -S --noconfirm --needed curl git tmux jq neovim base-devel w3m
         elif command -v zypper &>/dev/null; then
-            sudo zypper install -y curl git tmux fzf ripgrep bat btop jq neovim gcc make w3m
+            sudo zypper install -y curl git tmux jq neovim gcc make w3m
         fi
+
+        # GitHub-first installs (latest versions, package manager fallback)
+        ARCH=$(uname -m)
+        [ "$ARCH" = "aarch64" ] && GH_ARCH_GO="arm64" || GH_ARCH_GO="amd64"
+        mkdir -p "$HOME/.local/bin"
+        export PATH="$HOME/.local/bin:$PATH"
+
+        install_gh_binary "junegunn/fzf" "fzf" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+        install_gh_binary "BurntSushi/ripgrep" "rg" "${ARCH}.*linux.*\\.tar\\.gz" || true
+        install_gh_binary "sharkdp/fd" "fd" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+        install_gh_binary "sharkdp/bat" "bat" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+        install_gh_binary "aristocratos/btop" "btop" "${ARCH}.*linux.*musl.*\\.tbz" || true
+        install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${ARCH}.*\\.tar\\.gz" || true
+
     elif [ "$OS" = "Darwin" ]; then
         if ! command -v brew &>/dev/null; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -90,62 +138,18 @@ if [ "$MODE" = "server" ]; then
         brew install tmux neovim fzf ripgrep bat btop fastfetch jq w3m 2>/dev/null
     fi
 
-    # fastfetch (try repo first, then GitHub release .deb/.rpm)
-    if ! command -v fastfetch &>/dev/null; then
-        if [ "$OS" = "Linux" ]; then
-            if command -v apt-get &>/dev/null; then
-                sudo apt-get install -y -qq fastfetch 2>/dev/null || {
-                    # Not in repo (Ubuntu < 24.04) — install from GitHub .deb
-                    echo "  fastfetch not in repo, installing from GitHub..."
-                    ARCH=$(uname -m)
-                    [ "$ARCH" = "x86_64" ] && ARCH="amd64"
-                    [ "$ARCH" = "aarch64" ] && ARCH="aarch64"
-                    FF_URL=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" \
-                        | grep "browser_download_url" \
-                        | grep -i "linux-${ARCH}.*\\.deb" \
-                        | grep -v "source" | head -1 | cut -d '"' -f 4) || true
-                    if [ -n "$FF_URL" ]; then
-                        curl -fsSL "$FF_URL" -o /tmp/fastfetch.deb
-                        sudo dpkg -i /tmp/fastfetch.deb 2>/dev/null
-                        sudo apt-get install -f -y -qq 2>/dev/null
-                        rm -f /tmp/fastfetch.deb
-                    fi
-                }
-            elif command -v dnf &>/dev/null; then
-                sudo dnf install -y -q fastfetch 2>/dev/null || true
-            elif command -v pacman &>/dev/null; then
-                sudo pacman -S --noconfirm --needed fastfetch 2>/dev/null || true
-            fi
-        fi
-    fi
-
-    # zoxide (light, useful on servers too)
+    # zoxide (official install script)
     if ! command -v zoxide &>/dev/null; then
         curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
     fi
 
-    # tlrc (Rust tldr client — install from GitHub release, fresher than brew/repos)
+    # tlrc (Rust tldr client — GitHub release)
     if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
-        echo "Installing tlrc from GitHub..."
         ARCH=$(uname -m)
         if [ "$OS" = "Darwin" ]; then
-            TLRC_PATTERN="${ARCH}.*apple.*darwin.*\\.tar\\.gz"
+            install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*apple.*darwin.*\\.tar\\.gz" || true
         else
-            TLRC_PATTERN="${ARCH}.*linux.*musl.*\\.tar\\.gz"
-        fi
-        TLRC_URL=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
-            | grep "browser_download_url" \
-            | grep -i "$TLRC_PATTERN" \
-            | head -1 | cut -d '"' -f 4) || true
-        if [ -n "$TLRC_URL" ]; then
-            TLRC_TMP=$(mktemp -d)
-            curl -fsSL "$TLRC_URL" | tar xz -C "$TLRC_TMP"
-            if [ -f "$TLRC_TMP/tldr" ]; then
-                chmod +x "$TLRC_TMP/tldr"
-                mkdir -p "$HOME/.local/bin"
-                mv "$TLRC_TMP/tldr" "$HOME/.local/bin/tldr"
-            fi
-            rm -rf "$TLRC_TMP"
+            install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
         fi
     fi
 
@@ -305,7 +309,7 @@ if [ "$OS" = "Darwin" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
     fi
-    for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go; do
+    for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go w3m; do
         if brew list "$pkg" &>/dev/null; then
             echo "  $pkg already installed"
         else
@@ -315,7 +319,7 @@ if [ "$OS" = "Darwin" ]; then
     done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux fzf bat snapd nodejs npm golang-go default-jdk python3 build-essential
+    sudo apt-get install -y tmux nodejs npm golang-go default-jdk python3 build-essential w3m
     # neovim via appimage (apt version is too old for LazyVim, needs 0.10+)
     install_nvim=false
     if ! command -v nvim &>/dev/null; then
@@ -336,22 +340,31 @@ elif [ "$OS" = "Linux" ]; then
         chmod +x /tmp/nvim.appimage
         sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
     fi
-    # lazygit
-    if ! command -v lazygit &>/dev/null; then
-        LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-        curl -Lo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
-        sudo tar xf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit
-    fi
-    # lazydocker
-    if ! command -v lazydocker &>/dev/null; then
-        LAZYDOCKER_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazydocker/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-        curl -Lo /tmp/lazydocker.tar.gz "https://github.com/jesseduffield/lazydocker/releases/latest/download/lazydocker_${LAZYDOCKER_VERSION}_Linux_x86_64.tar.gz"
-        sudo tar xf /tmp/lazydocker.tar.gz -C /usr/local/bin lazydocker
-    fi
-    # zoxide
+
+    # GitHub-first installs (latest versions)
+    ARCH=$(uname -m)
+    [ "$ARCH" = "aarch64" ] && GH_ARCH_GO="arm64" || GH_ARCH_GO="amd64"
+    mkdir -p "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
+
+    install_gh_binary "junegunn/fzf" "fzf" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+    install_gh_binary "BurntSushi/ripgrep" "rg" "${ARCH}.*linux.*\\.tar\\.gz" || true
+    install_gh_binary "sharkdp/fd" "fd" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+    install_gh_binary "sharkdp/bat" "bat" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+    install_gh_binary "aristocratos/btop" "btop" "${ARCH}.*linux.*musl.*\\.tbz" || true
+    install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${ARCH}.*\\.tar\\.gz" || true
+    install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+    install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+    install_gh_binary "cli/cli" "gh" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+
+    # zoxide (official install script)
     command -v zoxide &>/dev/null || curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
-    # oh-my-posh
+    # oh-my-posh (official install script)
     command -v oh-my-posh &>/dev/null || curl -s https://ohmyposh.dev/install.sh | bash -s
+    # tlrc (GitHub release)
+    if ! command -v tldr &>/dev/null; then
+        install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+    fi
 fi
 
 # ─── Neovim language toolchain ───────────────────────────

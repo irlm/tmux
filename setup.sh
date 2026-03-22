@@ -127,6 +127,7 @@ install_from_github() {
   url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
     | grep "browser_download_url" \
     | grep -i "$pattern" \
+    | grep -vi "sha256\|\.sig\|\.asc" \
     | head -1 \
     | cut -d '"' -f 4) || true
 
@@ -141,6 +142,8 @@ install_from_github() {
 
   if [[ "$url" == *.tar.gz ]] || [[ "$url" == *.tgz ]]; then
     curl -fsSL "$url" | tar xz
+  elif [[ "$url" == *.tbz ]] || [[ "$url" == *.tar.bz2 ]]; then
+    curl -fsSL "$url" | tar xj
   elif [[ "$url" == *.zip ]]; then
     curl -fsSL "$url" -o archive.zip && unzip -q archive.zip
   else
@@ -227,7 +230,7 @@ install_core_packages() {
     # macOS: everything via Homebrew
     local BREW_PACKAGES=(
       tmux fzf lazygit lazydocker btop fastfetch gh
-      ripgrep fd bat eza zoxide jq w3m
+      jq w3m
     )
     for pkg in "${BREW_PACKAGES[@]}"; do
       if brew list "$pkg" &>/dev/null; then
@@ -246,16 +249,16 @@ install_core_packages() {
   local COMMON_PKGS
   case "$PKG_MGR" in
     apt)
-      COMMON_PKGS="tmux fzf btop ripgrep fd-find bat jq zoxide w3m"
+      COMMON_PKGS="tmux jq w3m"
       ;;
     dnf)
-      COMMON_PKGS="tmux fzf btop ripgrep fd-find bat jq zoxide w3m"
+      COMMON_PKGS="tmux jq w3m"
       ;;
     pacman)
-      COMMON_PKGS="tmux fzf btop ripgrep fd bat jq zoxide lazygit fastfetch github-cli eza w3m"
+      COMMON_PKGS="tmux jq w3m"
       ;;
     zypper)
-      COMMON_PKGS="tmux fzf btop ripgrep fd bat jq zoxide w3m"
+      COMMON_PKGS="tmux jq w3m"
       ;;
   esac
 
@@ -269,13 +272,21 @@ install_core_packages() {
     fi
   done
 
-  # ── Debian: symlink renamed binaries ──
-  if [[ "$DISTRO" == "debian" ]]; then
-    [ -x /usr/bin/fdfind ] && [ ! -e "$HOME/.local/bin/fd" ] && \
-      ln -sf /usr/bin/fdfind "$HOME/.local/bin/fd" && ok "Symlinked fd -> fdfind"
-    [ -x /usr/bin/batcat ] && [ ! -e "$HOME/.local/bin/bat" ] && \
-      ln -sf /usr/bin/batcat "$HOME/.local/bin/bat" && ok "Symlinked bat -> batcat"
-  fi
+  # ── GitHub-first installs (latest versions, no repo lag) ──
+  install_from_github "junegunn/fzf" "fzf" \
+    "linux_$(gh_arch amd64 arm64).*\\.tar\\.gz" || pkg_install fzf 2>/dev/null || true
+  install_from_github "BurntSushi/ripgrep" "rg" \
+    "$(gh_arch x86_64 aarch64).*linux.*\\.tar\\.gz" || pkg_install ripgrep 2>/dev/null || true
+  install_from_github "sharkdp/fd" "fd" \
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || pkg_install fd-find 2>/dev/null || true
+  install_from_github "sharkdp/bat" "bat" \
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || pkg_install bat 2>/dev/null || true
+  install_from_github "aristocratos/btop" "btop" \
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tbz" || pkg_install btop 2>/dev/null || true
+  install_from_github "eza-community/eza" "eza" \
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || true
+  install_from_github "ajeetdsouza/zoxide" "zoxide" \
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || true
 
   # ── Packages needing special handling on some distros ──
 
@@ -348,29 +359,7 @@ install_core_packages() {
     ok "fastfetch already installed"
   fi
 
-  # eza (not in older Debian/Fedora repos)
-  if [[ "$PKG_MGR" != "pacman" ]] && ! command -v eza &>/dev/null; then
-    case "$PKG_MGR" in
-      apt)
-        # Try the official eza repo
-        if ! pkg_install eza 2>/dev/null; then
-          sudo mkdir -p /etc/apt/keyrings
-          wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg 2>/dev/null || true
-          echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list >/dev/null
-          sudo apt-get update -qq && sudo apt-get install -y -qq eza
-        fi
-        ok "eza installed"
-        ;;
-      dnf)
-        pkg_install eza 2>/dev/null || \
-          install_from_github "eza-community/eza" "eza" "eza_$(gh_arch x86_64 aarch64).*linux.*gnu\\.tar\\.gz"
-        ;;
-      zypper)
-        pkg_install eza 2>/dev/null || \
-          install_from_github "eza-community/eza" "eza" "eza_$(gh_arch x86_64 aarch64).*linux.*gnu\\.tar\\.gz"
-        ;;
-    esac
-  fi
+  # eza already handled via install_from_github above
 
   # tlrc (Rust tldr client — install from GitHub release, fresher than brew/repos)
   if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
