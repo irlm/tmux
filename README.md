@@ -102,6 +102,17 @@ Fetches latest changes, updates plugins, reloads config, and checks for missing 
 | `t` | btop | `/` | search pane history |
 | `i` | fastfetch | `f` | floating shell |
 
+### Search & Reference
+
+| Key | Action |
+|-----|--------|
+| `e` | Web search (DuckDuckGo via fzf — Enter opens in browser, Ctrl-W opens in w3m) |
+| `E` | Web search with scope picker (All, Wikipedia, GitHub, StackOverflow, MDN) |
+| `a` | Ask AI (Claude — single question, answer in popup) |
+| `M` | Man page lookup |
+| `C` | Cheat.sh (community cheat sheets with syntax highlighting) |
+| `V` | tldr (simplified command examples) |
+
 ### Panes
 
 | Key | Action | Key | Action |
@@ -209,6 +220,9 @@ Separate repo: [irlm/nvim](https://github.com/irlm/nvim)
 | `scripts/notes.sh` | quick notes manager |
 | `scripts/prompt.sh` | lightweight bash prompt for servers (no oh-my-posh) |
 | `scripts/prompt.zsh` | lightweight zsh prompt for servers |
+| `scripts/websearch.sh` | DuckDuckGo search with fzf picker |
+| `scripts/websearch_fetch.py` | search result fetcher (used by websearch.sh) |
+| `scripts/ai-ask.sh` | quick AI answer via Claude |
 
 ## Repos
 
