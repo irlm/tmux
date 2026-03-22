@@ -2,6 +2,12 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [4.5.0] - 2026-03-21
+
+### Added (neovim)
+- **Markdown inline rendering**: `render-markdown.nvim` renders headings, bold, code blocks, tables directly in the buffer (`<Space>mr` to toggle)
+- **Markdown browser preview**: `markdown-preview.nvim` opens live preview in browser (`<Space>mp` to toggle)
+
 ## [4.4.0] - 2026-03-21
 
 ### Added
