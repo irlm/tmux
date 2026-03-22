@@ -284,7 +284,7 @@ install_core_packages() {
   install_from_github "aristocratos/btop" "btop" \
     "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tbz" || pkg_install btop 2>/dev/null || true
   install_from_github "eza-community/eza" "eza" \
-    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || true
+    "eza_$(gh_arch x86_64 aarch64).*linux.*gnu\\.tar\\.gz" || true
   install_from_github "ajeetdsouza/zoxide" "zoxide" \
     "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || true
 
@@ -361,33 +361,43 @@ install_core_packages() {
 
   # eza already handled via install_from_github above
 
-  # tlrc (Rust tldr client — install from GitHub release, fresher than brew/repos)
+  # tlrc (Rust tldr client — GitHub release or cargo install)
   if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
-    info "Installing tlrc from GitHub..."
-    local tlrc_pattern
-    if [[ "$OS" == "macos" ]]; then
-      tlrc_pattern="$(gh_arch x86_64 aarch64).*apple.*darwin.*\\.tar\\.gz"
-    else
-      tlrc_pattern="$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz"
-    fi
-    local tlrc_url
-    tlrc_url=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
-      | grep "browser_download_url" \
-      | grep -i "$tlrc_pattern" \
-      | head -1 | cut -d '"' -f 4) || true
-    if [ -n "$tlrc_url" ]; then
-      local tlrc_tmp
-      tlrc_tmp=$(mktemp -d)
-      curl -fsSL "$tlrc_url" | tar xz -C "$tlrc_tmp"
-      if [ -f "$tlrc_tmp/tldr" ]; then
-        chmod +x "$tlrc_tmp/tldr"
-        mkdir -p "$HOME/.local/bin"
-        mv "$tlrc_tmp/tldr" "$HOME/.local/bin/tlrc"
-        ok "tlrc installed to ~/.local/bin"
+    local tlrc_installed=false
+    # Try GitHub release first (x86_64 only)
+    if [[ "$ARCH" == "x86_64" ]]; then
+      info "Installing tlrc from GitHub..."
+      local tlrc_pattern
+      if [[ "$OS" == "macos" ]]; then
+        tlrc_pattern="x86_64.*apple.*darwin.*\\.tar\\.gz"
+      else
+        tlrc_pattern="x86_64.*linux.*musl.*\\.tar\\.gz"
       fi
-      rm -rf "$tlrc_tmp"
-    else
-      warn "Could not find tlrc release — skipping"
+      local tlrc_url
+      tlrc_url=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
+        | grep "browser_download_url" \
+        | grep -i "$tlrc_pattern" \
+        | head -1 | cut -d '"' -f 4) || true
+      if [ -n "$tlrc_url" ]; then
+        local tlrc_tmp
+        tlrc_tmp=$(mktemp -d)
+        curl -fsSL "$tlrc_url" | tar xz -C "$tlrc_tmp"
+        if [ -f "$tlrc_tmp/tldr" ]; then
+          chmod +x "$tlrc_tmp/tldr"
+          mkdir -p "$HOME/.local/bin"
+          mv "$tlrc_tmp/tldr" "$HOME/.local/bin/tldr"
+          tlrc_installed=true
+          ok "tlrc installed to ~/.local/bin"
+        fi
+        rm -rf "$tlrc_tmp"
+      fi
+    fi
+    # Fallback: cargo install (works on any arch)
+    if ! $tlrc_installed && command -v cargo &>/dev/null; then
+      info "Installing tlrc via cargo (no binary for $ARCH)..."
+      cargo install tlrc 2>/dev/null && ok "tlrc installed via cargo" || warn "tlrc cargo install failed"
+    elif ! $tlrc_installed; then
+      warn "No tlrc binary for $ARCH and cargo not available — skipping"
     fi
   else
     ok "tlrc already installed"
@@ -428,7 +438,7 @@ install_neovim() {
         sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
         info "Installing neovim via appimage..."
         NVIM_ARCH=$(uname -m); [ "$NVIM_ARCH" = "aarch64" ] && NVIM_ARCH="arm64"
-      curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.appimage" -o /tmp/nvim.appimage
+        curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.appimage" -o /tmp/nvim.appimage
         chmod +x /tmp/nvim.appimage
         sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
         ;;

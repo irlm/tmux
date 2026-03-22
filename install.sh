@@ -144,13 +144,18 @@ if [ "$MODE" = "server" ]; then
         curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
     fi
 
-    # tlrc (Rust tldr client — GitHub release)
+    # tlrc (Rust tldr client — GitHub release, x86_64 only; cargo fallback)
     if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
         ARCH=$(uname -m)
-        if [ "$OS" = "Darwin" ]; then
-            install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*apple.*darwin.*\\.tar\\.gz" || true
-        else
-            install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+        if [ "$ARCH" = "x86_64" ]; then
+            if [ "$OS" = "Darwin" ]; then
+                install_gh_binary "tldr-pages/tlrc" "tldr" "x86_64.*apple.*darwin.*\\.tar\\.gz" || true
+            else
+                install_gh_binary "tldr-pages/tlrc" "tldr" "x86_64.*linux.*musl.*\\.tar\\.gz" || true
+            fi
+        elif command -v cargo &>/dev/null; then
+            echo "  Installing tlrc via cargo (no binary for $ARCH)..."
+            cargo install tlrc 2>/dev/null || true
         fi
     fi
 
@@ -338,7 +343,7 @@ elif [ "$OS" = "Linux" ]; then
         echo "Installing neovim via appimage..."
         sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
         NVIM_ARCH=$(uname -m); [ "$NVIM_ARCH" = "aarch64" ] && NVIM_ARCH="arm64"
-                curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.appimage" -o /tmp/nvim.appimage
+        curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.appimage" -o /tmp/nvim.appimage
         chmod +x /tmp/nvim.appimage
         sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
     fi
