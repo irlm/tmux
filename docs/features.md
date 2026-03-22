@@ -25,6 +25,7 @@ The Neovim configuration lives in a separate repo: [irlm/nvim](https://github.co
 - designed to pair with the separate LazyVim-based Neovim config
 - tmux/Neovim navigation through `vim-tmux-navigator`
 - installer scripts clone both repos together
+- markdown preview: inline rendering (`Space mr`) and live browser preview (`Space mp`)
 
 ### Status Bar
 

@@ -38,14 +38,16 @@ If you just installed the project, these are the commands and keys you will prob
 
 ## Search and Reference
 
-| Key | Action |
-|-----|--------|
-| `e` | web search with DuckDuckGo via `fzf` |
-| `E` | web search with source picker |
-| `a` | ask AI in a popup |
-| `M` | man page lookup |
-| `C` | `cheat.sh` lookup |
-| `V` | `tldr` lookup |
+Quick lookups without leaving tmux. All results open in a popup — press `q` to close.
+
+| Key | Action | Notes |
+|-----|--------|-------|
+| `e` | web search (DuckDuckGo) | results in `fzf`: Enter opens in browser, Ctrl-W opens in `w3m` |
+| `E` | web search (pick scope) | choose from All, Wikipedia, GitHub, StackOverflow, or MDN |
+| `a` | ask AI (Claude) | single question, answer shown in popup |
+| `M` | man page | system manual pages |
+| `C` | cheat.sh | community-driven cheat sheets with syntax highlighting |
+| `V` | tldr | simplified command examples (like a short man page) |
 
 ## Panes
 

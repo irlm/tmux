@@ -76,7 +76,7 @@ wsl --install
 
 The default installer is the quick workstation path. It:
 
-- installs core terminal tools
+- installs core terminal tools (including `w3m` for terminal web search)
 - installs or upgrades Neovim when needed
 - installs development toolchains for Neovim extras
 - installs Docker when missing
