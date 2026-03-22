@@ -227,7 +227,7 @@ install_core_packages() {
     # macOS: everything via Homebrew
     local BREW_PACKAGES=(
       tmux fzf lazygit lazydocker btop fastfetch gh
-      ripgrep fd bat eza zoxide tlrc jq w3m
+      ripgrep fd bat eza zoxide jq w3m
     )
     for pkg in "${BREW_PACKAGES[@]}"; do
       if brew list "$pkg" &>/dev/null; then
@@ -372,13 +372,19 @@ install_core_packages() {
     esac
   fi
 
-  # tlrc (Rust tldr client — binary is named "tldr" in the archive)
+  # tlrc (Rust tldr client — install from GitHub release, fresher than brew/repos)
   if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
     info "Installing tlrc from GitHub..."
+    local tlrc_pattern
+    if [[ "$OS" == "macos" ]]; then
+      tlrc_pattern="$(gh_arch x86_64 aarch64).*apple.*darwin.*\\.tar\\.gz"
+    else
+      tlrc_pattern="$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz"
+    fi
     local tlrc_url
     tlrc_url=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
       | grep "browser_download_url" \
-      | grep -i "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" \
+      | grep -i "$tlrc_pattern" \
       | head -1 | cut -d '"' -f 4) || true
     if [ -n "$tlrc_url" ]; then
       local tlrc_tmp

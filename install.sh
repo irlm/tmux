@@ -87,7 +87,7 @@ if [ "$MODE" = "server" ]; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
         fi
-        brew install tmux neovim fzf ripgrep bat btop fastfetch jq tlrc w3m 2>/dev/null
+        brew install tmux neovim fzf ripgrep bat btop fastfetch jq w3m 2>/dev/null
     fi
 
     # fastfetch (try repo first, then GitHub release .deb/.rpm)
@@ -124,13 +124,18 @@ if [ "$MODE" = "server" ]; then
         curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
     fi
 
-    # tlrc (Rust tldr client — not in most Linux repos)
-    if [ "$OS" = "Linux" ] && ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
+    # tlrc (Rust tldr client — install from GitHub release, fresher than brew/repos)
+    if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
         echo "Installing tlrc from GitHub..."
         ARCH=$(uname -m)
+        if [ "$OS" = "Darwin" ]; then
+            TLRC_PATTERN="${ARCH}.*apple.*darwin.*\\.tar\\.gz"
+        else
+            TLRC_PATTERN="${ARCH}.*linux.*musl.*\\.tar\\.gz"
+        fi
         TLRC_URL=$(curl -fsSL "https://api.github.com/repos/tldr-pages/tlrc/releases/latest" \
             | grep "browser_download_url" \
-            | grep -i "${ARCH}.*linux.*musl.*\\.tar\\.gz" \
+            | grep -i "$TLRC_PATTERN" \
             | head -1 | cut -d '"' -f 4) || true
         if [ -n "$TLRC_URL" ]; then
             TLRC_TMP=$(mktemp -d)
