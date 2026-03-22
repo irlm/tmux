@@ -1,45 +1,47 @@
-CHEATSHEET v4.3.0 (C-a ?)
+CHEATSHEET v4.4.0 (C-a ?)
 ────────────────────────────────────────────────────────────────────────────────
-POPUPS                 PANES                   WINDOWS/SESSIONS
- g   lazygit            |   split horiz          c    new window
- G   gh dash            -   split vert           ,    rename window
- d   lazydocker        hjkl navigate             X    kill window
- t   btop/htop         HJKL resize              < >   reorder
- i   sysinfo            z   zoom                 W    pick window
- f   float shell        x   kill pane            N    new session
- n   quick notes        b   break to win         .    rename session
- o   sessionizer        @   join pane            S    pick session
- ?   cheatsheet        { }  swap pane           BkSp  last session
- /   search history     s   SSH + remote tmux
-                        m   mark pane            Q    kill ALL (confirm)
-                        q   pane numbers         D    pick client detach
-                                                 Y    sync panes on/off
-                                                C-n   auto-rename ON
-
-COPY MODE             PLUGINS                 UTILITIES
- [   enter              I   install             T    clock mode
- v   select            Spc  thumbs             C-l   clear history
- y   yank               u   fzf URLs            r    reload config
-                       C-s  save session
-                       C-r  restore session
-C-v  block select
-H/L  start/end                                NESTED TMUX (SSH)
-/ ?  search                                    F12   toggle local/remote
-Esc  exit                                            (pass keys to inner tmux)
-
-                                              SHELL
-                                                z    smart cd
-                                               C-r   fzf history
-                                               C-t   fzf files
-                                              Alt-c   fzf cd
+PANES                  WINDOWS                 SESSIONS
+ |   split horiz        c    new window         N    new session
+ -   split vert         ,    rename             .    rename
+hjkl navigate           X    kill               S    pick session
+HJKL resize            < >   reorder           BkSp  last session
+ z   zoom               W    pick window        Q    kill ALL (confirm)
+ x   kill pane         C-n   auto-rename ON     D    pick client detach
+ b   break to window    Y    sync panes on/off
+ @   join pane
+{ }  swap pane
+ m   mark pane
+ q   pane numbers
+ s   SSH + remote tmux
+────────────────────────────────────────────────────────────────────────────────
+POPUPS                 SEARCH & REFERENCE      COPY MODE
+ g   lazygit            e   web search (DDG)    [    enter
+ G   gh dash            E   web search (pick)   v    select
+ d   lazydocker         a   ask AI (Claude)     y    yank
+ t   btop/htop          M   man page           C-v   block select
+ i   sysinfo            C   cheat.sh           H/L   start/end of line
+ f   float shell        V   tldr               / ?   search
+ n   quick notes                               Esc   exit
+ o   sessionizer
+ ?   cheatsheet        UTILITIES
+ /   search history     r    reload config
+                        T    clock mode
+                       C-l   clear history
+────────────────────────────────────────────────────────────────────────────────
+PLUGINS                NESTED TMUX (SSH)       SHELL
+ I   install            F12  toggle local       z    smart cd
+Spc  thumbs                  /remote           C-r   fzf history
+ u   fzf URLs                                  C-t   fzf files
+C-s  save session                             Alt-c  fzf cd
+C-r  restore session
 ────────────────────────────────────────────────────────────────────────────────
 BTOP (C-a t)           LAZYGIT (C-a g)         GIT ALIASES
  h   help              Spc  stage/unstage       gs   status
- m   memory             c   commit              gl   log graph
- n   network            p   push                gp   push
- e   tree view          P   pull               gpl   pull
-Tab  cycle              b   branches            lg   lazygit
- f   filter             s   stash               ll   ls + git
-t/k  TERM/KILL          q   quit
+ m   menu               c   commit              gl   log graph
+1-4  cpu/mem/net/proc    p   push                gp   push
+Tab  cycle boxes         P   pull               gpl   pull
+ f   filter procs        b   branches            lg   lazygit
+ /   search procs        s   stash               ll   ls + git
+ q   quit                q   quit
 ────────────────────────────────────────────────────────────────────────────────
 ta: new session (dir name)  taa: attach  update.sh | install.sh

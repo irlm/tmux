@@ -7,8 +7,15 @@ All notable changes to this tmux configuration will be documented in this file.
 ### Added
 - **Web search popup**: `C-a e` prompts for a query and shows DuckDuckGo results via fzf; `Enter` opens in browser, `Ctrl-W` opens in w3m
 - **Search scope picker**: `C-a E` lets you scope search to Wikipedia, GitHub, StackOverflow, or MDN before showing results
+- **Ask AI popup**: `C-a a` prompts a question, shows Claude's answer in a popup
+- **Man page popup**: `C-a M` opens man pages in a popup
+- **Cheat.sh popup**: `C-a C` shows cheat sheets with syntax highlighting
+- **tldr popup**: `C-a V` shows simplified command examples
 - **Cross-platform browser opener**: Uses `xdg-open` on Linux, `open` on macOS, with w3m fallback
 - **Dependencies**: w3m (text browser), websearch scripts (`scripts/websearch.sh`, `scripts/websearch_fetch.py`)
+
+### Changed
+- **Cheatsheet**: Reorganized layout, added search & reference section, fixed btop keybindings
 
 ## [4.3.0] - 2026-03-20
 
