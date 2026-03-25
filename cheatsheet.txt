@@ -23,7 +23,8 @@ POPUPS                 SEARCH & REFERENCE      COPY MODE
  f   float shell        V   tldr               / ?   search
  n   quick notes                               Esc   exit
  o   sessionizer
- ?   cheatsheet (tmux/nvim)        UTILITIES
+ ?   cheatsheet (tmux)
+ !   cheatsheet (nvim)        UTILITIES
  /   search history     r    reload config
                         T    clock mode
                        C-l   clear history
