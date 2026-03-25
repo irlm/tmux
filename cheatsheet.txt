@@ -46,4 +46,4 @@ Tab  cycle boxes         P   pull               gpl   pull
  q   quit                q   quit
 ────────────────────────────────────────────────────────────────────────────────
 ta: new session (dir name)  taa: attach  update.sh | install.sh
-                        C-a !  nvim cheatsheet (/? same key, + shift)
+                           C-a !  nvim cheatsheet
