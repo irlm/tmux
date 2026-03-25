@@ -1,0 +1,91 @@
+NEOVIM CHEATSHEET (LazyVim)  leader = Space
+────────────────────────────────────────────────────────────────────────────────
+BASICS (vim)               MOVEMENT                    CLOSE / QUIT
+ i    insert mode           h j k l   char/line        :q     close window
+ a    append after cursor   w / b     word fwd/back    :bd    close buffer
+ A    append end of line    e         end of word      Spc bd  close buffer
+ o    new line below        0 / $     start/end line   Spc wd  close window
+ O    new line above        gg / G    top/bottom file  Spc qq  quit ALL nvim
+ v    visual select         { / }     paragraph        Esc     back to normal
+ V    visual line           C-u / C-d half page up/dn  q       close popup/list
+ C-v  visual block          %         matching bracket
+ .    repeat last change    f/F x     jump to char x
+────────────────────────────────────────────────────────────────────────────────
+SELECT / EDIT              COPY & PASTE                UNDO / REDO
+ viw  select word           y     yank (copy)          u     undo
+ vi"  select in quotes      yy    yank line            C-r   redo
+ vib  select in parens      d     delete (cut)
+ viB  select in braces      dd    delete line         SEARCH IN FILE
+ vat  select around tag     p     paste after          /     search forward
+ ggVG select ALL            P     paste before         ?     search backward
+ >    indent selection      "+y   yank to clipboard    n / N next/prev match
+ <    unindent selection    "+p   paste from clipboard  *     search word under cursor
+ gco  comment below         x     delete char          Spc ur clear highlights
+ gcO  comment above
+ gc   toggle comment (vis)
+────────────────────────────────────────────────────────────────────────────────
+FILES & BUFFERS            SEARCH (picker)             WINDOWS
+ Spc ff find files          Spc /   grep in project    Spc -   split horizontal
+ Spc fF find files (cwd)    Spc sg  grep (root)        Spc |   split vertical
+ Spc fr recent files        Spc sG  grep (cwd)         Spc wd  close window
+ Spc fb buffers             Spc sw  grep word/sel      Spc wm  maximize toggle
+ Spc fn new file            Spc sf  find files         C-h/j/k/l navigate panes
+ Spc ,  switch buffer       Spc sb  buffer lines       C-Up/Dn resize
+ S-h   prev buffer          Spc sk  keymaps            C-Left/Right resize
+ S-l   next buffer          Spc sh  help pages
+ Spc bb other buffer        Spc sc  command history
+ Spc bo close other bufs    Spc s"  registers
+ C-s   save file            Spc :   command history
+────────────────────────────────────────────────────────────────────────────────
+CODE / LSP                 DIAGNOSTICS                 FORMAT
+ gd    go to definition     Spc cd  line diagnostic     Spc cf  format file
+ gr    references            ]d     next diagnostic     Spc uf  toggle format on save
+ gI    go to impl            [d     prev diagnostic     Spc uF  toggle format (global)
+ gy    go to type def        ]e     next error
+ K     hover docs            [e     prev error         TROUBLE
+ gco   comment below         ]w     next warning       Spc xx  diagnostics
+ gcO   comment above         [w     prev warning       Spc xX  buffer diagnostics
+ Spc cr rename              Spc sd  all diagnostics    Spc cs  symbols
+ Spc ca code action         Spc sD  buffer diagnostics Spc cS  LSP refs/defs
+ Spc ss LSP symbols
+ Spc sS workspace symbols
+────────────────────────────────────────────────────────────────────────────────
+GIT                        FLASH (jump)                MOVE LINES
+ Spc gg lazygit (root)      s     flash jump           Alt-j  move line down
+ Spc gG lazygit (cwd)       S     flash treesitter     Alt-k  move line up
+ Spc gs git status           r    remote flash (o)     (works in normal, insert,
+ Spc gb blame line           R    treesitter search      and visual modes)
+ Spc gf file history
+ Spc gd diff hunks         HUNKS (gitsigns)
+ Spc gB browse (open)       ]h    next hunk           TREESITTER
+ Spc gY browse (copy)       [h    prev hunk            C-Spc  incremental select
+ ]h    next hunk            Spc ghs stage hunk
+ [h    prev hunk            Spc ghr reset hunk
+                            Spc ghS stage buffer
+                            Spc ghp preview hunk
+────────────────────────────────────────────────────────────────────────────────
+TOGGLES (Spc u)            TABS                        SCALA (metals)
+ f  format on save           Spc Tab Tab  new tab      Spc me  metals commands
+ s  spelling                 Spc Tab d    close tab    Spc mc  compile cascade
+ w  word wrap                Spc Tab ]    next tab     Spc mh  hover worksheet
+ l  line numbers             Spc Tab [    prev tab
+ L  relative numbers         Spc Tab o    close others TERMINAL
+ d  diagnostics              Spc Tab f    first tab    Spc ft  terminal (root)
+ c  conceal level            Spc Tab l    last tab     Spc fT  terminal (cwd)
+ h  inlay hints                                        C-/     toggle terminal
+ T  treesitter              PLUGINS
+ b  dark background          Spc l   Lazy manager     MISC
+ Z  zoom                     Spc ?   buffer keymaps    Spc fp  projects
+ z  zen mode                 Spc n   notifications     Spc su  undo tree
+ G  git signs                Spc uC  colorschemes      Spc sm  marks
+────────────────────────────────────────────────────────────────────────────────
+FORMATTERS BY LANGUAGE
+ Scala ........ Metals LSP     Go ........... goimports + gofumpt
+ Rust ......... rustfmt        Python ....... ruff
+ Java ......... google-java    C/C++ ........ clang-format
+ TypeScript ... prettier       Lua .......... stylua
+ JS/HTML/CSS .. prettier       Shell/Bash ... shfmt
+ JSON/YAML .... prettier       SQL .......... sql-formatter
+ Markdown ..... prettier       TOML ......... taplo
+────────────────────────────────────────────────────────────────────────────────
+Spc = Space (leader)  C- = Ctrl  S- = Shift  Alt- = Option/Alt
