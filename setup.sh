@@ -507,13 +507,13 @@ install_nvim_lang_deps() {
       info "Installing Metals LSP via Coursier..."
       local cs_cmd
       cs_cmd=$(command -v cs || command -v coursier)
-      "$cs_cmd" install metals 2>/dev/null
-      ok "Metals installed"
+      "$cs_cmd" install metals scalafmt 2>/dev/null
+      ok "Metals + scalafmt installed"
     elif [[ "$OS" == "macos" ]]; then
       info "Installing Coursier + Metals..."
       brew install coursier/formulas/coursier
-      cs install metals 2>/dev/null
-      ok "Coursier + Metals installed"
+      cs install metals scalafmt 2>/dev/null
+      ok "Coursier + Metals + scalafmt installed"
     else
       info "Installing Coursier + Metals..."
       curl -fLo /tmp/cs "https://github.com/coursier/launchers/raw/master/cs-$(uname -m)-pc-linux.gz" 2>/dev/null \
@@ -532,8 +532,8 @@ install_nvim_lang_deps() {
         chmod +x /tmp/cs
         mkdir -p "$HOME/.local/bin"
         mv /tmp/cs "$HOME/.local/bin/cs"
-        "$HOME/.local/bin/cs" install metals 2>/dev/null
-        ok "Coursier + Metals installed"
+        "$HOME/.local/bin/cs" install metals scalafmt 2>/dev/null
+        ok "Coursier + Metals + scalafmt installed"
       else
         warn "Could not install Coursier — install manually for Scala support"
       fi
@@ -541,6 +541,16 @@ install_nvim_lang_deps() {
   else
     ok "Metals already installed"
   fi
+  # Ensure Coursier-installed binaries are reachable from ~/.local/bin
+  # (Coursier may install to a path with spaces that some tools don't handle)
+  for bin in metals scalafmt; do
+    local bin_path
+    bin_path=$(command -v "$bin" 2>/dev/null)
+    if [ -n "$bin_path" ] && [ ! -e "$HOME/.local/bin/$bin" ]; then
+      mkdir -p "$HOME/.local/bin"
+      ln -sf "$bin_path" "$HOME/.local/bin/$bin"
+    fi
+  done
 
   # ── Go (for gopls, gofumpt, goimports via Mason) ──
   if ! command -v go &>/dev/null; then
