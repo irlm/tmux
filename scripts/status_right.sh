@@ -21,11 +21,17 @@ if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
     [ -n "$cpu" ] && out="${out}${sep}#[fg=cyan]${cpu}#[default]"
 fi
 
-# RAM
-if [ -x "$CPU_DIR/ram_percentage.sh" ]; then
-    ram=$("$CPU_DIR/ram_percentage.sh")
-    [ -n "$ram" ] && out="${out}${sep}#[fg=yellow]${ram}#[default]"
+# RAM (actual usage, not file cache — matches btop/Activity Monitor)
+ram=""
+if command -v memory_pressure &>/dev/null; then
+    # macOS: use memory_pressure to get system-wide free %, invert to used
+    pct_free=$(memory_pressure 2>/dev/null | awk '/free percentage/ {gsub(/%/,""); print $NF}')
+    [ -n "$pct_free" ] && ram=$(awk "BEGIN {printf \"%.0f%%\", 100 - $pct_free}")
+elif command -v free &>/dev/null; then
+    # Linux: available = truly free + reclaimable cache
+    ram=$(free | awk '/Mem/ {printf "%.0f%%", 100 * ($2 - $7) / $2}')
 fi
+[ -n "$ram" ] && out="${out}${sep}#[fg=yellow]${ram}#[default]"
 
 # Battery (only if hardware exists)
 has_battery=false
