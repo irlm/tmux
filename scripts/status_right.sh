@@ -28,8 +28,9 @@ if command -v memory_pressure &>/dev/null; then
     pct_free=$(memory_pressure 2>/dev/null | awk '/free percentage/ {gsub(/%/,""); print $NF}')
     [ -n "$pct_free" ] && ram=$(awk "BEGIN {printf \"%.0f%%\", 100 - $pct_free}")
 elif command -v free &>/dev/null; then
-    # Linux: available = truly free + reclaimable cache
-    ram=$(free | awk '/Mem/ {printf "%.0f%%", 100 * ($2 - $7) / $2}')
+    # Linux: use "available" column (free + reclaimable cache)
+    # Falls back to used/total if "available" column is missing (older kernels)
+    ram=$(free | awk '/Mem/ { if ($7 > 0) printf "%.0f%%", 100 * ($2 - $7) / $2; else printf "%.0f%%", 100 * $3 / $2 }')
 fi
 [ -n "$ram" ] && out="${out}${sep}#[fg=yellow]${ram}#[default]"
 
