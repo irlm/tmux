@@ -222,6 +222,74 @@ install_prerequisites() {
 
 install_prerequisites
 
+# ─── Tmux config ──────────────────────────────────────
+# Done early — so configs land even if later optional installs (Docker
+# cask, nerd font cask, etc.) fail for non-admin users.
+TMUX_DIR="$HOME/.config/tmux"
+mkdir -p "$TMUX_DIR"
+
+# Clone or update the tmux config repo (must happen before TPM)
+if [ -d "$TMUX_DIR/.git" ]; then
+  remote=$(cd "$TMUX_DIR" && git remote get-url origin 2>/dev/null || echo "")
+  if echo "$remote" | grep -q "irlm"; then
+    info "tmux config exists, pulling..."
+    (cd "$TMUX_DIR" && git pull --ff-only) && ok "tmux config updated" || warn "tmux config pull failed"
+  else
+    ok "tmux config exists (custom repo: $remote)"
+  fi
+else
+  info "Cloning tmux config..."
+  rm -rf "$TMUX_DIR"
+  git clone https://github.com/irlm/tmux.git "$TMUX_DIR"
+  ok "tmux config installed"
+fi
+
+# Symlink ~/.tmux.conf for older tmux versions (< 3.1) that don't read ~/.config/tmux/
+if [ ! -e "$HOME/.tmux.conf" ]; then
+  ln -sf "$TMUX_DIR/tmux.conf" "$HOME/.tmux.conf"
+  ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
+fi
+
+# ─── TPM (Tmux Plugin Manager) ────────────────────────
+TPM_DIR="$HOME/.config/tmux/plugins/tpm"
+mkdir -p "$HOME/.config/tmux/plugins"
+
+if [ -f "$TPM_DIR/tpm" ]; then
+  ok "TPM already installed"
+else
+  [ -d "$TPM_DIR" ] && rm -rf "$TPM_DIR"
+  info "Installing TPM..."
+  if git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
+    ok "TPM installed"
+  else
+    err "Failed to clone TPM — check your internet connection"
+  fi
+fi
+
+if [ -f "$TPM_DIR/tpm" ]; then
+  chmod +x "$TPM_DIR/tpm"
+  chmod +x "$TPM_DIR/bin/"* 2>/dev/null || true
+  chmod +x "$TPM_DIR/scripts/"* 2>/dev/null || true
+fi
+
+# ─── Neovim config ────────────────────────────────────
+NVIM_DIR="$HOME/.config/nvim"
+if [ -d "$NVIM_DIR/.git" ]; then
+  remote=$(cd "$NVIM_DIR" && git remote get-url origin 2>/dev/null || echo "")
+  if echo "$remote" | grep -q "irlm"; then
+    info "nvim config exists, pulling..."
+    (cd "$NVIM_DIR" && git pull --ff-only) && ok "nvim config updated" || warn "nvim config pull failed"
+  else
+    ok "nvim config exists (custom repo: $remote)"
+  fi
+elif [ -d "$NVIM_DIR" ]; then
+  warn "nvim config exists but is not a git repo — skipping"
+else
+  info "Cloning nvim config..."
+  git clone https://github.com/irlm/nvim.git "$NVIM_DIR"
+  ok "nvim config installed"
+fi
+
 # ─── Core Packages ─────────────────────────────────────
 install_core_packages() {
   info "Installing core packages..."
@@ -237,8 +305,11 @@ install_core_packages() {
         ok "$pkg already installed"
       else
         info "Installing $pkg..."
-        brew install "$pkg"
-        ok "$pkg installed"
+        if brew install "$pkg"; then
+          ok "$pkg installed"
+        else
+          warn "Failed to install $pkg (continuing)"
+        fi
       fi
     done
     return
@@ -616,17 +687,24 @@ install_docker() {
   else
     info "Installing Docker..."
     if [[ "$OS" == "macos" ]]; then
-      brew install --cask docker
-      open -a Docker
-      ok "Docker Desktop installed and starting"
+      # Cask install needs admin; non-admin users will skip.
+      if brew install --cask docker 2>/dev/null; then
+        open -a Docker 2>/dev/null || true
+        ok "Docker Desktop installed and starting"
+      else
+        warn "Skipped Docker (cask install failed — needs admin? install manually if needed)"
+      fi
     else
       # Linux: official Docker install script
-      curl -fsSL https://get.docker.com | sh
-      # Add current user to docker group
-      sudo usermod -aG docker "$USER" 2>/dev/null || true
-      sudo systemctl enable docker 2>/dev/null || true
-      sudo systemctl start docker 2>/dev/null || true
-      ok "Docker installed (log out and back in for group changes)"
+      if curl -fsSL https://get.docker.com | sh; then
+        # Add current user to docker group
+        sudo usermod -aG docker "$USER" 2>/dev/null || true
+        sudo systemctl enable docker 2>/dev/null || true
+        sudo systemctl start docker 2>/dev/null || true
+        ok "Docker installed (log out and back in for group changes)"
+      else
+        warn "Skipped Docker (install failed — install manually if needed)"
+      fi
     fi
   fi
 
@@ -646,10 +724,16 @@ install_oh_my_posh() {
   fi
 
   if [[ "$OS" == "macos" ]]; then
-    brew install oh-my-posh
+    if ! brew install oh-my-posh; then
+      warn "Skipped oh-my-posh (install failed — continuing)"
+      return
+    fi
   else
     info "Installing Oh My Posh..."
-    curl -fsSL https://ohmyposh.dev/install.sh | bash -s -- -d "$HOME/.local/bin"
+    if ! curl -fsSL https://ohmyposh.dev/install.sh | bash -s -- -d "$HOME/.local/bin"; then
+      warn "Skipped oh-my-posh (install failed — continuing)"
+      return
+    fi
   fi
   ok "oh-my-posh installed"
 }
@@ -661,8 +745,12 @@ install_nerd_font() {
   if [[ "$OS" == "macos" ]]; then
     if ! brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
       info "Installing JetBrains Mono Nerd Font..."
-      brew install --cask font-jetbrains-mono-nerd-font
-      ok "Nerd Font installed — set it as your terminal font"
+      # Cask install needs admin; non-admin users will skip.
+      if brew install --cask font-jetbrains-mono-nerd-font 2>/dev/null; then
+        ok "Nerd Font installed — set it as your terminal font"
+      else
+        warn "Skipped Nerd Font (cask install failed — install manually if needed)"
+      fi
     else
       ok "Nerd Font already installed"
     fi
@@ -713,72 +801,6 @@ if $IS_WSL; then
   else
     ok "win32yank already available"
   fi
-fi
-
-# ─── Tmux config ──────────────────────────────────────
-TMUX_DIR="$HOME/.config/tmux"
-mkdir -p "$TMUX_DIR"
-
-# Clone or update the tmux config repo (must happen before TPM)
-if [ -d "$TMUX_DIR/.git" ]; then
-  remote=$(cd "$TMUX_DIR" && git remote get-url origin 2>/dev/null || echo "")
-  if echo "$remote" | grep -q "irlm"; then
-    info "tmux config exists, pulling..."
-    (cd "$TMUX_DIR" && git pull --ff-only) && ok "tmux config updated" || warn "tmux config pull failed"
-  else
-    ok "tmux config exists (custom repo: $remote)"
-  fi
-else
-  info "Cloning tmux config..."
-  rm -rf "$TMUX_DIR"
-  git clone https://github.com/irlm/tmux.git "$TMUX_DIR"
-  ok "tmux config installed"
-fi
-
-# Symlink ~/.tmux.conf for older tmux versions (< 3.1) that don't read ~/.config/tmux/
-if [ ! -e "$HOME/.tmux.conf" ]; then
-  ln -sf "$TMUX_DIR/tmux.conf" "$HOME/.tmux.conf"
-  ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
-fi
-
-# ─── TPM (Tmux Plugin Manager) ────────────────────────
-TPM_DIR="$HOME/.config/tmux/plugins/tpm"
-mkdir -p "$HOME/.config/tmux/plugins"
-
-if [ -f "$TPM_DIR/tpm" ]; then
-  ok "TPM already installed"
-else
-  [ -d "$TPM_DIR" ] && rm -rf "$TPM_DIR"
-  info "Installing TPM..."
-  if git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
-    ok "TPM installed"
-  else
-    err "Failed to clone TPM — check your internet connection"
-  fi
-fi
-
-if [ -f "$TPM_DIR/tpm" ]; then
-  chmod +x "$TPM_DIR/tpm"
-  chmod +x "$TPM_DIR/bin/"* 2>/dev/null
-  chmod +x "$TPM_DIR/scripts/"* 2>/dev/null
-fi
-
-# ─── Neovim config ────────────────────────────────────
-NVIM_DIR="$HOME/.config/nvim"
-if [ -d "$NVIM_DIR/.git" ]; then
-  remote=$(cd "$NVIM_DIR" && git remote get-url origin 2>/dev/null || echo "")
-  if echo "$remote" | grep -q "irlm"; then
-    info "nvim config exists, pulling..."
-    (cd "$NVIM_DIR" && git pull --ff-only) && ok "nvim config updated" || warn "nvim config pull failed"
-  else
-    ok "nvim config exists (custom repo: $remote)"
-  fi
-elif [ -d "$NVIM_DIR" ]; then
-  warn "nvim config exists but is not a git repo — skipping"
-else
-  info "Cloning nvim config..."
-  git clone https://github.com/irlm/nvim.git "$NVIM_DIR"
-  ok "nvim config installed"
 fi
 
 # ─── Shell plugins ────────────────────────────────────
