@@ -273,21 +273,35 @@ if [ -f "$TPM_DIR/tpm" ]; then
 fi
 
 # ─── Neovim config ────────────────────────────────────
+# If an existing ~/.config/nvim is not our git repo, back it up and
+# clone fresh. Previous versions silently skipped, leaving the user
+# with the default nvim experience.
 NVIM_DIR="$HOME/.config/nvim"
+needs_nvim_clone=true
 if [ -d "$NVIM_DIR/.git" ]; then
   remote=$(cd "$NVIM_DIR" && git remote get-url origin 2>/dev/null || echo "")
   if echo "$remote" | grep -q "irlm"; then
     info "nvim config exists, pulling..."
     (cd "$NVIM_DIR" && git pull --ff-only) && ok "nvim config updated" || warn "nvim config pull failed"
+    needs_nvim_clone=false
   else
-    ok "nvim config exists (custom repo: $remote)"
+    nvim_backup="$NVIM_DIR.bak-$(date +%Y%m%d-%H%M%S)"
+    warn "nvim config has different remote ($remote) — backing up to $nvim_backup"
+    mv "$NVIM_DIR" "$nvim_backup"
   fi
 elif [ -d "$NVIM_DIR" ]; then
-  warn "nvim config exists but is not a git repo — skipping"
-else
+  nvim_backup="$NVIM_DIR.bak-$(date +%Y%m%d-%H%M%S)"
+  warn "nvim config exists but is not a git repo — backing up to $nvim_backup"
+  mv "$NVIM_DIR" "$nvim_backup"
+fi
+
+if $needs_nvim_clone; then
   info "Cloning nvim config..."
-  git clone https://github.com/irlm/nvim.git "$NVIM_DIR"
-  ok "nvim config installed"
+  if git clone https://github.com/irlm/nvim.git "$NVIM_DIR"; then
+    ok "nvim config installed"
+  else
+    err "nvim clone failed — check your network or git access"
+  fi
 fi
 
 # ─── Core Packages ─────────────────────────────────────
@@ -743,16 +757,38 @@ install_oh_my_posh
 # ─── Nerd Font ─────────────────────────────────────────
 install_nerd_font() {
   if [[ "$OS" == "macos" ]]; then
-    if ! brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
-      info "Installing JetBrains Mono Nerd Font..."
-      # Cask install needs admin; non-admin users will skip.
-      if brew install --cask font-jetbrains-mono-nerd-font 2>/dev/null; then
-        ok "Nerd Font installed — set it as your terminal font"
-      else
-        warn "Skipped Nerd Font (cask install failed — install manually if needed)"
-      fi
+    # Already present via cask?
+    if brew list --cask font-jetbrains-mono-nerd-font &>/dev/null; then
+      ok "Nerd Font already installed (Homebrew cask)"
+      return
+    fi
+    # Already present in per-user font dir from a previous fallback install?
+    if ls "$HOME/Library/Fonts"/JetBrainsMono*Nerd* &>/dev/null 2>&1; then
+      ok "Nerd Font already installed (~/Library/Fonts)"
+      return
+    fi
+
+    info "Installing JetBrains Mono Nerd Font..."
+    # Try cask first (system-wide, needs admin).
+    if brew install --cask font-jetbrains-mono-nerd-font 2>/dev/null; then
+      ok "Nerd Font installed via Homebrew cask"
+      return
+    fi
+
+    # Fallback: per-user download to ~/Library/Fonts (no admin required).
+    warn "Cask install failed — falling back to per-user font install"
+    local FONT_DIR="$HOME/Library/Fonts"
+    local FONT_VERSION="v3.3.0"
+    mkdir -p "$FONT_DIR"
+    local tmpfile
+    tmpfile=$(mktemp)
+    if curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/${FONT_VERSION}/JetBrainsMono.zip" -o "$tmpfile" \
+       && unzip -qo "$tmpfile" '*.ttf' -d "$FONT_DIR"; then
+      rm -f "$tmpfile"
+      ok "Nerd Font installed to ~/Library/Fonts — set 'JetBrainsMono Nerd Font' as your terminal font"
     else
-      ok "Nerd Font already installed"
+      rm -f "$tmpfile"
+      warn "Nerd Font fallback failed — install manually from https://github.com/ryanoasis/nerd-fonts/releases"
     fi
     return
   fi
