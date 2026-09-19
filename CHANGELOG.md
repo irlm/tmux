@@ -2,6 +2,15 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [4.6.0] - 2026-09-19
+
+### Added
+- **Server bootstrap over SSH**: `C-a s` now checks the host first and, when this config is not there yet, offers to install it — it copies this machine's own `install.sh` to the server and runs it with `--server`, so both ends run the same version. The check, the install, and the attach share one SSH connection, so you authenticate once
+- **Automatic remote mode**: a window opened with `C-a s` switches the local prefix off while it is in front, so `C-a` and every other binding act on the server's tmux, and switches it back when you move to a local window or the connection ends. `F12` remains the manual toggle and the way out of a remote window
+
+### Changed
+- `F12` and the new automatic switching share one implementation (`scripts/remote-mode.sh`) instead of two inline command sequences in `tmux.conf`
+
 ## [4.5.1] - 2026-09-19
 
 ### Added

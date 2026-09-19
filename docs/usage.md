@@ -77,10 +77,16 @@ Quick lookups without leaving tmux. All results open in a popup — press `q` to
 
 | Key | Action |
 |-----|--------|
-| `s` | SSH to a host and auto-attach or create remote tmux |
-| `F12` | toggle local prefix off or on for nested tmux |
+| `s` | SSH to a host, install this config there if it is missing, and attach its tmux |
+| `F12` | toggle remote mode by hand |
 
-When nested mode is active, the status bar shows `REMOTE` and keys go to the inner tmux until you press `F12` again.
+`C-a s` asks for a host (anything `ssh` accepts: an alias from `~/.ssh/config`, or `user@host`) and opens it in a new window. The first time you connect to a server that does not have this config, it offers to install it — it copies this machine's own `install.sh` over and runs it with `--server`, so both ends run the same version. You authenticate once; the check, the install, and the attach share one SSH connection.
+
+While that window is in front, the local tmux is in **remote mode**: its prefix is switched off, so every key — `C-a` included — goes to the server's tmux, and the same bindings you use locally (`C-a |`, `C-a g`, `C-a ?`, ...) act on the server. The status bar shows `REMOTE` while it is active.
+
+Remote mode follows the window. Press `F12` to get the local prefix back, move to another window with `C-a n` as usual, and the local tmux is fully yours again; come back to the SSH window and keys go to the server again. When the connection ends, the window closes and remote mode ends with it.
+
+`F12` also works on its own, for an `ssh` session you started by hand in an ordinary pane.
 
 ## Copy Mode
 

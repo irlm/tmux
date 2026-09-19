@@ -103,6 +103,8 @@ The tmux config enables these plugins:
 | `scripts/status_right.sh` | right side status bar renderer |
 | `scripts/net_speed.sh` | network speed helper |
 | `scripts/status_ssh.sh` | SSH-aware status helper |
+| `scripts/ssh-remote.sh` | `C-a s`: connect, install the config on the server if missing, attach its tmux |
+| `scripts/remote-mode.sh` | switches the local prefix off or on so keys reach the remote tmux (`F12`, and automatically per window) |
 | `scripts/prompt.sh` | lightweight bash prompt |
 | `scripts/prompt.zsh` | lightweight zsh prompt |
 
