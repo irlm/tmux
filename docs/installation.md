@@ -109,6 +109,8 @@ The installers clone this repo into `~/.config/tmux` and the Neovim repo into `~
 
 If the installer finds an existing config that is not already one of these repos, it may prompt to back it up first. The default backup location is under `~/.config/dotfiles-backup/`.
 
+`install.sh` appends its shell settings to the file your shells already read: an existing `~/.zshrc` first, then an existing `~/.zprofile` (common on macOS setups that never had a `.zshrc`), and it only creates `~/.zshrc` when neither exists. It prints which file it chose and backs that file up before touching it. Every block it adds is guarded, so re-running the installer does not duplicate them. `setup.sh --full` is different: it owns the shell config and writes a complete `~/.zshrc` (or `~/.bashrc`) after backing up the old one, leaving any `~/.zprofile` alone.
+
 ## Post-Install Checklist
 
 1. Open a new terminal or restart the current one.

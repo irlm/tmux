@@ -8,6 +8,7 @@ All notable changes to this tmux configuration will be documented in this file.
 - **`dotup` / `dotcheck` aliases and `C-a C-u` popup**: update everything without remembering the script path — `dotup` runs `~/.config/tmux/update.sh`, `dotcheck` reports without changing anything, `C-a C-u` runs the same update in a tmux popup
 - **Self-updating `update.sh`**: after pulling the repo, it re-executes the freshly pulled copy of itself, so a new updater takes effect in the same run instead of needing a second invocation
 - **Repair in `update.sh`**: clones TPM when missing, updates and cleans tmux plugins (it only installed them before), installs `gh-dash` when absent, upgrades the Homebrew formulae these installers manage, and offers to run `install.sh` for anything still missing
+- **Shell config lands where your shells read it**: `install.sh` appends to an existing `~/.zshrc`, falling back to an existing `~/.zprofile` before creating a `.zshrc` that was never there — so on a machine with only a `.zprofile` the PATH entries, prompt, and aliases actually take effect. It reports the file it chose and backs that file up
 - **`update.sh` flags**: `--check` (report only), `--quick` (repos and plugins only), `--fix` (install missing pieces without asking), `--help`
 
 ### Fixed

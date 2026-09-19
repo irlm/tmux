@@ -78,6 +78,25 @@ install_gh_binary() {
     rm -rf "$tmp"
 }
 
+# ─── Shell rc file ────────────────────────────────────────
+# Append to the file this machine's shells actually read: an existing .zshrc
+# first, then an existing .zprofile (common on macOS setups that never had a
+# .zshrc), and only create .zshrc when neither is there.
+shell_rc_file() {
+    local candidates
+    local os="${OS:-$(uname -s)}"
+    if [ "$os" = "Darwin" ] || [ "${SHELL##*/}" = "zsh" ]; then
+        candidates="$HOME/.zshrc $HOME/.zprofile"
+    else
+        candidates="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile"
+    fi
+    local f
+    for f in $candidates; do
+        [ -f "$f" ] && echo "$f" && return
+    done
+    echo "${candidates%% *}"
+}
+
 # ─── Full setup mode ─────────────────────────────────────
 if [ "$MODE" = "full" ]; then
     echo "=== Full setup mode ==="
@@ -188,8 +207,7 @@ if [ "$MODE" = "server" ]; then
     "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
 
     # Shell: add lightweight prompt + zoxide
-    RCFILE="$HOME/.bashrc"
-    [ "$OS" = "Darwin" ] && RCFILE="$HOME/.zshrc"
+    RCFILE="$(shell_rc_file)"
     if [ -f "$RCFILE" ]; then
         # Lightweight prompt (pure shell, no external binaries)
         if ! grep -q "prompt.sh\|prompt.zsh" "$RCFILE" 2>/dev/null; then
@@ -298,11 +316,12 @@ backup_if_exists() {
 backup_if_exists "$HOME/.config/tmux" "tmux"
 backup_if_exists "$HOME/.config/nvim" "nvim"
 
-# Backup .zshrc if it exists
-if [ -f "$HOME/.zshrc" ]; then
+# Backup the shell config this run will append to, if it exists
+RC_TO_BACKUP="$(shell_rc_file)"
+if [ -f "$RC_TO_BACKUP" ]; then
     mkdir -p "$BACKUP_DIR"
-    cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc"
-    echo "Backed up .zshrc to $BACKUP_DIR/.zshrc"
+    cp "$RC_TO_BACKUP" "$BACKUP_DIR/$(basename "$RC_TO_BACKUP")"
+    echo "Backed up $(basename "$RC_TO_BACKUP") to $BACKUP_DIR/"
 fi
 
 # ─── Install dependencies ────────────────────────────────
@@ -509,23 +528,25 @@ fi
 
 # ─── Shell config ─────────────────────────────────────────
 echo ""
-if ! grep -q "oh-my-posh" "$HOME/.zshrc" 2>/dev/null; then
-    echo "Adding oh-my-posh to .zshrc..."
-    cat >> "$HOME/.zshrc" << 'ZSHRC'
+RCFILE="$(shell_rc_file)"
+echo "Shell config: $RCFILE"
+if ! grep -q "oh-my-posh" "$RCFILE" 2>/dev/null; then
+    echo "  Adding oh-my-posh..."
+    cat >> "$RCFILE" << 'ZSHRC'
 
 # ─── oh-my-posh prompt ─────────────────────────────────
 eval "$(oh-my-posh init zsh --config ~/.config/tmux/nord.omp.json)"
 ZSHRC
 fi
 
-if ! grep -q "zoxide" "$HOME/.zshrc" 2>/dev/null; then
-    echo "Adding zoxide to .zshrc..."
-    echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$HOME/.zshrc"
+if ! grep -q "zoxide" "$RCFILE" 2>/dev/null; then
+    echo "  Adding zoxide..."
+    echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$RCFILE"
 fi
 
-if ! grep "Coursier" "$HOME/.zshrc" >/dev/null 2>&1; then
-    echo "Adding JDK + Coursier to PATH in .zshrc..."
-    cat >> "$HOME/.zshrc" << 'ZSHRC'
+if ! grep "Coursier" "$RCFILE" >/dev/null 2>&1; then
+    echo "  Adding JDK + Coursier to PATH..."
+    cat >> "$RCFILE" << 'ZSHRC'
 
 # ─── Java + Coursier tools (metals, scalafmt) ──────────
 # Homebrew's openjdk is keg-only; Coursier installs outside any default PATH.
@@ -540,9 +561,9 @@ unset _cs_bin
 ZSHRC
 fi
 
-if ! grep -q "dotup" "$HOME/.zshrc" 2>/dev/null; then
-    echo "Adding update aliases to .zshrc..."
-    cat >> "$HOME/.zshrc" << 'ZSHRC'
+if ! grep -q "dotup" "$RCFILE" 2>/dev/null; then
+    echo "  Adding update aliases..."
+    cat >> "$RCFILE" << 'ZSHRC'
 
 # ─── Dotfiles update ───────────────────────────────────
 alias dotup='~/.config/tmux/update.sh'             # update repos, plugins, tools
