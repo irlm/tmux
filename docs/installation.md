@@ -150,6 +150,7 @@ That script:
 | `Blocked by local changes — these plugins could not update` | a Neovim plugin has uncommitted changes, usually a generated file such as `markdown-preview.nvim`'s `app/yarn.lock`. Run the `git -C <path> checkout .` line it prints, then update again |
 | `gh-dash missing, installing...` followed by a failure | the GitHub CLI is not authenticated yet — run `gh auth login`, then update again |
 | `Toolchains missing: ...` | language toolchains are absent; answer the prompt, or re-run with `dotup --fix` |
+| `Toolchains missing: java` or `metals` after installing them | on macOS both live off the default PATH (keg-only `openjdk`, and Coursier's `~/Library/Application Support/Coursier/bin`). The installers add them to the shell config they write — open a new shell, or re-run the installer if your shell config predates it |
 
 Neovim's plugin sync is verbose, so its full transcript goes to `~/.local/share/tmux/update-nvim.log` and only problems are printed.
 

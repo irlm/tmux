@@ -11,6 +11,8 @@ All notable changes to this tmux configuration will be documented in this file.
 - **`update.sh` flags**: `--check` (report only), `--quick` (repos and plugins only), `--fix` (install missing pieces without asking), `--help`
 
 ### Fixed
+- **Metals installed but unreachable on macOS**: Coursier puts `metals` and `scalafmt` in `~/Library/Application Support/Coursier/bin`, which is on no default PATH, and Homebrew's `openjdk` is keg-only, so `java` resolved to the macOS stub that has no runtime behind it. The installers now install `openjdk` on macOS, add both locations to PATH in the shell config they write, and add them to their own PATH before probing for the toolchain
+- **`command -v java` was a false positive on macOS**: `/usr/bin/java` exists with no JDK behind it, so the health check and the JDK install step both believed Java was present. Both now run `java -version` instead
 - **`grep -q` under `set -o pipefail`**: a matching `grep -q` killed its upstream process with SIGPIPE and made the whole pipeline report failure, so checks like "is gh-dash installed?" and "is rust-analyzer installed?" could silently answer "no"
 - **Noisy Neovim plugin sync**: `update.sh` now keeps Lazy's full transcript in `~/.local/share/tmux/update-nvim.log` and prints only the plugins blocked by local changes
 - **Credential prompts during update**: git fetches run with `GIT_TERMINAL_PROMPT=0`, so an auth failure reports "cannot reach GitHub" instead of hanging on a keychain prompt in a popup

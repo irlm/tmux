@@ -564,6 +564,14 @@ install_neovim
 # ─── Neovim Language Toolchain ────────────────────────
 # These are required by the LazyVim language extras (rust, scala, typescript, python, etc.)
 install_nvim_lang_deps() {
+  # Keg-only openjdk and Coursier's bin directory are on no default PATH, so
+  # without this the checks below (and metals itself) cannot see them.
+  for _p in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin \
+            "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+      [ -d "$_p" ] && export PATH="$_p:$PATH"
+  done
+  unset _p
+
   info "Installing neovim language toolchain dependencies..."
 
   # ── Node.js (required by Mason for prettier, typescript-language-server, etc.) ──
@@ -680,7 +688,7 @@ install_nvim_lang_deps() {
   fi
 
   # ── Java JDK (for jdtls via Mason) ──
-  if ! command -v java &>/dev/null; then
+  if ! java -version &>/dev/null; then
     info "Installing Java JDK..."
     if [[ "$OS" == "macos" ]]; then
       brew install openjdk
@@ -937,6 +945,19 @@ if [[ "$SHELL_TYPE" == "zsh" ]]; then
 # ─── Path ────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$PATH"
 
+# Homebrew's openjdk is keg-only, so without this `java` resolves to the
+# macOS stub that has no runtime behind it.
+for _jdk in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin; do
+  [ -d "$_jdk" ] && export PATH="$_jdk:$PATH" && break
+done
+unset _jdk
+
+# Coursier installs metals and scalafmt here, outside any default PATH.
+for _cs_bin in "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+  [ -d "$_cs_bin" ] && export PATH="$_cs_bin:$PATH" && break
+done
+unset _cs_bin
+
 # ─── Homebrew (macOS) ───────────────────────────────────
 if [ -d /opt/homebrew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -1014,6 +1035,19 @@ else
   cat > "$RCFILE" << 'BASHRC_EOF'
 # ─── Path ────────────────────────────────────────────────
 export PATH="$HOME/.local/bin:$PATH"
+
+# Homebrew's openjdk is keg-only, so without this `java` resolves to the
+# macOS stub that has no runtime behind it.
+for _jdk in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin; do
+  [ -d "$_jdk" ] && export PATH="$_jdk:$PATH" && break
+done
+unset _jdk
+
+# Coursier installs metals and scalafmt here, outside any default PATH.
+for _cs_bin in "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+  [ -d "$_cs_bin" ] && export PATH="$_cs_bin:$PATH" && break
+done
+unset _cs_bin
 
 # ─── Oh My Posh prompt ──────────────────────────────────
 if command -v oh-my-posh &>/dev/null; then

@@ -315,7 +315,7 @@ if [ "$OS" = "Darwin" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
     fi
-    for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go w3m; do
+    for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go w3m openjdk; do
         if brew list "$pkg" &>/dev/null; then
             echo "  $pkg already installed"
         else
@@ -452,6 +452,14 @@ elif ! command -v rustc &>/dev/null; then
     fi
 fi
 
+# Keg-only openjdk and Coursier's bin directory are on no default PATH, so
+# without this the checks below (and metals itself) cannot see them.
+for _p in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin \
+          "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+    [ -d "$_p" ] && export PATH="$_p:$PATH"
+done
+unset _p
+
 # Scala: install coursier + metals if not present
 if ! command -v metals &>/dev/null; then
     if [ "$OS" = "Darwin" ]; then
@@ -461,7 +469,7 @@ if ! command -v metals &>/dev/null; then
         cs install metals 2>/dev/null || true
     elif command -v cs &>/dev/null || command -v coursier &>/dev/null; then
         $(command -v cs || command -v coursier) install metals 2>/dev/null || true
-    elif command -v java &>/dev/null; then
+    elif java -version &>/dev/null; then
         echo "Installing Coursier + Metals..."
         curl -fLo "$HOME/.local/bin/cs" "https://github.com/coursier/coursier/releases/latest/download/coursier" 2>/dev/null || true
         if [ -f "$HOME/.local/bin/cs" ] && [ -s "$HOME/.local/bin/cs" ]; then
@@ -513,6 +521,23 @@ fi
 if ! grep -q "zoxide" "$HOME/.zshrc" 2>/dev/null; then
     echo "Adding zoxide to .zshrc..."
     echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$HOME/.zshrc"
+fi
+
+if ! grep "Coursier" "$HOME/.zshrc" >/dev/null 2>&1; then
+    echo "Adding JDK + Coursier to PATH in .zshrc..."
+    cat >> "$HOME/.zshrc" << 'ZSHRC'
+
+# ─── Java + Coursier tools (metals, scalafmt) ──────────
+# Homebrew's openjdk is keg-only; Coursier installs outside any default PATH.
+for _jdk in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin; do
+  [ -d "$_jdk" ] && export PATH="$_jdk:$PATH" && break
+done
+unset _jdk
+for _cs_bin in "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+  [ -d "$_cs_bin" ] && export PATH="$_cs_bin:$PATH" && break
+done
+unset _cs_bin
+ZSHRC
 fi
 
 if ! grep -q "dotup" "$HOME/.zshrc" 2>/dev/null; then

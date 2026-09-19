@@ -218,6 +218,14 @@ fi
 
 # ─── Health check + repair ────────────────────────────────
 section "health check"
+# Same PATH additions the shell config makes — otherwise a perfectly good
+# metals or java install reads as missing here.
+for _p in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin \
+          "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+    [ -d "$_p" ] && export PATH="$_p:$PATH"
+done
+unset _p
+
 missing=""
 for tool in $MANAGED_TOOLS; do
     command -v "$tool" &>/dev/null || missing="$missing $tool"
@@ -227,7 +235,9 @@ missing_lang=""
 command -v node &>/dev/null    || missing_lang="$missing_lang node"
 command -v go &>/dev/null      || missing_lang="$missing_lang go"
 command -v rustc &>/dev/null   || missing_lang="$missing_lang rust"
-command -v java &>/dev/null    || missing_lang="$missing_lang java"
+# macOS ships a /usr/bin/java stub with no runtime behind it, so only an
+# actual invocation proves a JDK is there.
+java -version &>/dev/null      || missing_lang="$missing_lang java"
 command -v python3 &>/dev/null || missing_lang="$missing_lang python3"
 if command -v rustup &>/dev/null; then
     rustup component list 2>/dev/null | grep 'rust-analyzer.*installed' >/dev/null || missing_lang="$missing_lang rust-analyzer"
