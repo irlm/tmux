@@ -374,6 +374,21 @@ elif [ "$OS" = "Linux" ]; then
     fi
 fi
 
+# ─── gh extensions ────────────────────────────────────────
+# `gh dash` (the C-a G popup) ships as an extension, not with gh itself —
+# installing the GitHub CLI alone leaves that binding dead.
+if command -v gh &>/dev/null; then
+    if gh extension list 2>/dev/null | grep "dlvhdr/gh-dash" >/dev/null; then
+        echo "  gh-dash already installed"
+    else
+        echo "  Installing gh-dash extension..."
+        if ! gh extension install dlvhdr/gh-dash; then
+            echo "    Failed to install gh-dash. Run 'gh auth login', then:"
+            echo "      gh extension install dlvhdr/gh-dash"
+        fi
+    fi
+fi
+
 # ─── Clone configs ────────────────────────────────────────
 # Done early — so configs land even if later optional installs fail
 # (Docker cask, rust-analyzer, etc. often fail for non-admin users).
@@ -423,7 +438,7 @@ echo "Setting up neovim language dependencies..."
 
 # Rust: install rustup + rust-analyzer if not present (non-fatal)
 if command -v rustup &>/dev/null; then
-    if ! rustup component list 2>/dev/null | grep -q 'rust-analyzer.*installed'; then
+    if ! rustup component list 2>/dev/null | grep 'rust-analyzer.*installed' >/dev/null; then
         echo "Adding rust-analyzer component..."
         rustup component add rust-analyzer || echo "  Skipped rust-analyzer (continuing)"
     fi
@@ -498,6 +513,16 @@ fi
 if ! grep -q "zoxide" "$HOME/.zshrc" 2>/dev/null; then
     echo "Adding zoxide to .zshrc..."
     echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$HOME/.zshrc"
+fi
+
+if ! grep -q "dotup" "$HOME/.zshrc" 2>/dev/null; then
+    echo "Adding update aliases to .zshrc..."
+    cat >> "$HOME/.zshrc" << 'ZSHRC'
+
+# ─── Dotfiles update ───────────────────────────────────
+alias dotup='~/.config/tmux/update.sh'             # update repos, plugins, tools
+alias dotcheck='~/.config/tmux/update.sh --check'  # report only, change nothing
+ZSHRC
 fi
 
 # ─── Create data dirs ─────────────────────────────────────

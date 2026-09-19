@@ -72,6 +72,21 @@ foreach ($pkg in $packages) {
     }
 }
 
+# ─── gh extensions ────────────────────────────────────────
+# `gh dash` (Alt+Shift+G / tmux C-a G) is a gh extension, not part of gh itself.
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+    $ghDash = gh extension list 2>$null | Select-String "dlvhdr/gh-dash"
+    if ($ghDash) {
+        Write-Host "  gh-dash already installed"
+    } else {
+        Write-Host "  Installing gh-dash extension..."
+        gh extension install dlvhdr/gh-dash
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  Warning: gh-dash install failed. Run 'gh auth login', then 'gh extension install dlvhdr/gh-dash'" -ForegroundColor Yellow
+        }
+    }
+}
+
 # Install Nerd Fonts
 Write-Host "  Installing Nerd Fonts..."
 foreach ($font in @("JetBrainsMono-NF", "MesloLGM-NF")) {

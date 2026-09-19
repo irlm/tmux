@@ -35,6 +35,7 @@ If you just installed the project, these are the commands and keys you will prob
 | `d` | `lazydocker` | `?` | cheatsheet |
 | `t` | `btop` or `htop` | `/` | search pane history |
 | `i` | system info | `f` | floating shell |
+| `C-u` | update everything | | |
 
 ## Search and Reference
 
@@ -126,6 +127,8 @@ These are the aliases documented for the shell setup that ships with the project
 
 | Command | Action |
 |---------|--------|
-| `~/.config/tmux/update.sh` | update tmux, Neovim, and plugins |
+| `dotup` | update everything: repos, plugins, gh extensions, CLI tools |
+| `dotcheck` | report what is outdated or missing, change nothing |
+| `C-a C-u` | same update, in a tmux popup |
 | `C-a ?` | open the on-screen cheatsheet |
 | `nvim` | open the paired Neovim setup |

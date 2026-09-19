@@ -1,4 +1,4 @@
-CHEATSHEET v4.4.0 (C-a ?)
+CHEATSHEET v4.5.1 (C-a ?)
 ────────────────────────────────────────────────────────────────────────────────
 PANES                  WINDOWS                 SESSIONS
  |   split horiz        c    new window         N    new session
@@ -28,6 +28,7 @@ POPUPS                 SEARCH & REFERENCE      COPY MODE
  /   search history     r    reload config
                         T    clock mode
                        C-l   clear history
+                       C-u   update everything
 ────────────────────────────────────────────────────────────────────────────────
 PLUGINS                NESTED TMUX (SSH)       SHELL
  I   install            F12  toggle local       z    smart cd
@@ -45,5 +46,5 @@ Tab  cycle boxes         P   pull               gpl   pull
  /   search procs        s   stash               ll   ls + git
  q   quit                q   quit
 ────────────────────────────────────────────────────────────────────────────────
-ta: new session (dir name)  taa: attach  update.sh | install.sh
+ta: new session (dir name)  taa: attach  dotup: update all | install.sh
                            C-a !  nvim cheatsheet

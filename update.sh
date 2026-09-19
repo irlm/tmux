@@ -1,12 +1,66 @@
 #!/usr/bin/env bash
+# ─── Dotfiles Updater ────────────────────────────────────
+# Updates this repo, the nvim repo, tmux/nvim plugins, gh extensions and the
+# CLI tools — and repairs anything the installers were supposed to leave behind.
+#
+#   update.sh            update everything, offer to install what's missing
+#   update.sh --quick    repo + plugin updates only (skip package upgrades)
+#   update.sh --check    report only, change nothing
+#   update.sh --fix      install missing tools without asking
 set -euo pipefail
 
-REPO_BASE="https://github.com/irlm"
+# Never let a git fetch block on a credential prompt — in a tmux popup or a
+# non-interactive run there is nobody to answer it, and the fetch failure is
+# already handled below.
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=""
+export SSH_ASKPASS=""
 
+REPO_BASE="https://github.com/irlm"
+TMUX_DIR="$HOME/.config/tmux"
+NVIM_DIR="$HOME/.config/nvim"
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
+MODE="full"     # full | quick | check
+AUTO_FIX=0      # --fix: repair without prompting
+
+for arg in "$@"; do
+    case "$arg" in
+        --quick|-q) MODE="quick" ;;
+        --check|-c) MODE="check" ;;
+        --fix|-f)   AUTO_FIX=1 ;;
+        --help|-h)
+            cat <<'USAGE'
+Dotfiles updater — repos, plugins, gh extensions, CLI tools.
+
+  update.sh            update everything, offer to install what's missing
+  update.sh --quick    repo + plugin updates only (skip package upgrades)
+  update.sh --check    report only, change nothing
+  update.sh --fix      install missing tools without asking
+
+Shell aliases: dotup (update everything), dotcheck (--check)
+tmux: C-a C-u runs this in a popup
+USAGE
+            exit 0
+            ;;
+        *) echo "Unknown option: $arg (try --help)"; exit 1 ;;
+    esac
+done
+
+DRY=0
+[ "$MODE" = "check" ] && DRY=1
+
+section() { echo ""; echo "── $1 ──"; }
+
+# Tools the installers are meant to provide, checked by command name.
+MANAGED_TOOLS="tmux nvim git fzf zoxide bat btop fastfetch lazygit lazydocker gh oh-my-posh rg fd jq w3m tldr"
+
+# ─── Repo updates ─────────────────────────────────────────
 update_repo() {
     local name="$1"
     local dir="$2"
     local repo="$REPO_BASE/$name.git"
+    local remote local_rev
 
     echo "── $name ──"
 
@@ -22,78 +76,200 @@ update_repo() {
             echo "  Error: cannot reach GitHub."
             return
         fi
-        local remote
         remote=$(git rev-parse origin/main)
     else
-        local remote
         remote=$(git rev-parse FETCH_HEAD)
     fi
 
-    local local_rev
     local_rev=$(git rev-parse HEAD)
 
     if [ "$local_rev" = "$remote" ]; then
         echo "  Already up to date."
-    else
-        echo "  New commits:"
-        git log --oneline HEAD.."$remote"
-        git pull --ff-only "$repo" main
-        echo "  Updated."
+        return
     fi
+
+    echo "  New commits:"
+    git log --oneline HEAD.."$remote"
+    if [ "$DRY" = "1" ]; then
+        echo "  (--check: not pulling)"
+        return
+    fi
+    if ! git pull --ff-only "$repo" main; then
+        echo "  Pull failed (local changes?) — resolve in $dir, then re-run."
+        return
+    fi
+    echo "  Updated."
 }
+
+# Checksum that works on macOS and Linux without extra tools.
+file_sum() { [ -f "$1" ] && cksum "$1" | awk '{print $1"-"$2}' || echo "none"; }
 
 echo "=== Updating dotfiles ==="
 echo ""
 
-# Update tmux config
-update_repo "tmux" "$HOME/.config/tmux"
-
-# Install/update TPM plugins
-if [ -x "$HOME/.config/tmux/plugins/tpm/bin/install_plugins" ]; then
-    echo "  Installing/updating tmux plugins..."
-    "$HOME/.config/tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
+# ─── tmux repo (with self-update) ─────────────────────────
+# The running copy of this script is the old one after a pull, so when
+# update.sh itself changed, re-exec the freshly pulled version.
+if [ "$SELF" = "$TMUX_DIR/update.sh" ] && [ -z "${DOTFILES_UPDATE_REEXEC:-}" ]; then
+    before=$(file_sum "$SELF")
+    update_repo "tmux" "$TMUX_DIR"
+    after=$(file_sum "$SELF")
+    if [ "$before" != "$after" ]; then
+        echo "  update.sh changed — restarting with the new version..."
+        echo ""
+        DOTFILES_UPDATE_REEXEC=1 exec bash "$SELF" "$@"
+    fi
+else
+    update_repo "tmux" "$TMUX_DIR"
 fi
 
-# Reload tmux config if running
-if tmux info &>/dev/null; then
-    tmux source-file "$HOME/.config/tmux/tmux.conf"
-    echo "  Config reloaded."
+# ─── tmux plugins ─────────────────────────────────────────
+TPM_DIR="$TMUX_DIR/plugins/tpm"
+if [ -d "$TMUX_DIR" ]; then
+    if [ ! -d "$TPM_DIR" ]; then
+        if [ "$DRY" = "1" ]; then
+            echo "  TPM missing (would install)."
+        else
+            echo "  TPM missing, installing..."
+            git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR" 2>/dev/null \
+                || echo "  TPM clone failed."
+        fi
+    fi
+    if [ "$DRY" != "1" ] && [ -x "$TPM_DIR/bin/install_plugins" ]; then
+        echo "  Installing/updating tmux plugins..."
+        "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 || true
+        "$TPM_DIR/bin/update_plugins" all >/dev/null 2>&1 || true
+        "$TPM_DIR/bin/clean_plugins" >/dev/null 2>&1 || true
+        echo "  Done."
+    fi
+
+    # Reload tmux config if running
+    if [ "$DRY" != "1" ] && tmux info &>/dev/null; then
+        tmux source-file "$TMUX_DIR/tmux.conf" 2>/dev/null && echo "  Config reloaded."
+    fi
 fi
 
 echo ""
 
-# Update nvim config
-update_repo "nvim" "$HOME/.config/nvim"
+# ─── nvim repo + plugins ──────────────────────────────────
+update_repo "nvim" "$NVIM_DIR"
 
-# Update nvim plugins if nvim is installed
-if command -v nvim &>/dev/null; then
+if [ "$DRY" != "1" ] && [ "$MODE" != "quick" ] && command -v nvim &>/dev/null; then
     echo "  Updating nvim plugins..."
-    nvim --headless "+Lazy! sync" +qa 2>/dev/null || true
-    echo "  Done."
+    LOG_DIR="$HOME/.local/share/tmux"
+    mkdir -p "$LOG_DIR"
+    NVIM_LOG="$LOG_DIR/update-nvim.log"
+    nvim --headless "+Lazy! sync" +qa > "$NVIM_LOG" 2>&1 || true
+    # Lazy is very chatty — keep the full transcript in a log, report the gist.
+    strip_ansi() { sed $'s/\033\[[0-9;]*m//g' "$1"; }
+    echo "  Done (full log: $NVIM_LOG)"
+    if strip_ansi "$NVIM_LOG" | grep "You have local changes" >/dev/null; then
+        echo "  Blocked by local changes — these plugins could not update:"
+        strip_ansi "$NVIM_LOG" | grep -o "You have local changes in \`[^\`]*\`" \
+            | sed 's/You have local changes in //' | tr -d '`' | sort -u | sed 's/^/    /'
+        echo "    Fix with: git -C <path> checkout . && dotup"
+    fi
 fi
 
-# Check language toolchain
-echo ""
-echo "── language toolchain ──"
-OS="$(uname -s)"
-missing=""
-command -v node &>/dev/null    || missing="$missing node"
-command -v go &>/dev/null      || missing="$missing go"
-command -v rustc &>/dev/null   || missing="$missing rust"
-command -v java &>/dev/null    || missing="$missing java"
-command -v python3 &>/dev/null || missing="$missing python3"
-if command -v rustup &>/dev/null; then
-    rustup component list 2>/dev/null | grep -q 'rust-analyzer.*installed' || missing="$missing rust-analyzer"
+# ─── gh extensions ────────────────────────────────────────
+# `gh dash` (the C-a G popup) is an extension, so it needs its own update.
+section "gh extensions"
+if ! command -v gh &>/dev/null; then
+    echo "  gh not installed — C-a G popup will not work."
+elif [ "$DRY" = "1" ]; then
+    gh extension list 2>/dev/null | sed 's/^/  /' || echo "  none"
+else
+    if gh extension list 2>/dev/null | grep "dlvhdr/gh-dash" >/dev/null; then
+        gh extension upgrade --all 2>&1 | sed 's/^/  /' || echo "  Upgrade failed (continuing)."
+    else
+        echo "  gh-dash missing, installing..."
+        gh extension install dlvhdr/gh-dash || echo "  Install failed — run 'gh auth login' first."
+    fi
 fi
-command -v metals &>/dev/null  || missing="$missing metals"
-command -v docker &>/dev/null  || missing="$missing docker"
+
+# ─── CLI tool upgrades ────────────────────────────────────
+if [ "$MODE" = "full" ]; then
+    section "cli tools"
+    if command -v brew &>/dev/null; then
+        echo "  Checking Homebrew packages..."
+        brew update --quiet >/dev/null 2>&1 || true
+        # Only the formulae these installers manage — leaves the rest of the
+        # user's Homebrew alone.
+        BREW_MANAGED=" tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go w3m jq eza ripgrep fd tlrc "
+        outdated=""
+        for pkg in $(brew outdated --quiet 2>/dev/null); do
+            case "$BREW_MANAGED" in
+                *" $pkg "*) outdated="$outdated $pkg" ;;
+            esac
+        done
+        outdated="${outdated# }"
+        if [ -z "$outdated" ]; then
+            echo "  All managed packages up to date."
+        else
+            echo "  Outdated: $outdated"
+            # shellcheck disable=SC2086
+            brew upgrade $outdated 2>&1 | sed 's/^/    /' || echo "  Some upgrades failed (continuing)."
+        fi
+    else
+        echo "  System packages are managed by your package manager —"
+        echo "  run 'sudo apt upgrade' (or dnf/pacman/zypper) to upgrade them."
+    fi
+fi
+
+# ─── Health check + repair ────────────────────────────────
+section "health check"
+missing=""
+for tool in $MANAGED_TOOLS; do
+    command -v "$tool" &>/dev/null || missing="$missing $tool"
+done
+
+missing_lang=""
+command -v node &>/dev/null    || missing_lang="$missing_lang node"
+command -v go &>/dev/null      || missing_lang="$missing_lang go"
+command -v rustc &>/dev/null   || missing_lang="$missing_lang rust"
+command -v java &>/dev/null    || missing_lang="$missing_lang java"
+command -v python3 &>/dev/null || missing_lang="$missing_lang python3"
+if command -v rustup &>/dev/null; then
+    rustup component list 2>/dev/null | grep 'rust-analyzer.*installed' >/dev/null || missing_lang="$missing_lang rust-analyzer"
+fi
+command -v metals &>/dev/null  || missing_lang="$missing_lang metals"
+command -v docker &>/dev/null  || missing_lang="$missing_lang docker"
 
 if [ -z "$missing" ]; then
-    echo "  All toolchains present."
+    echo "  CLI tools: all present."
 else
-    echo "  Missing:$missing"
-    echo "  Run install.sh or setup.sh to install them."
+    echo "  CLI tools missing:$missing"
+fi
+if [ -z "$missing_lang" ]; then
+    echo "  Toolchains: all present."
+else
+    echo "  Toolchains missing:$missing_lang"
+fi
+
+if [ -n "$missing$missing_lang" ] && [ "$DRY" != "1" ]; then
+    INSTALLER="$TMUX_DIR/install.sh"
+    if [ ! -f "$INSTALLER" ]; then
+        echo "  Run install.sh to install them."
+    else
+        run_installer=0
+        if [ "$AUTO_FIX" = "1" ]; then
+            run_installer=1
+        elif [ -t 0 ]; then
+            read -rp "  Install the missing pieces now? [y/N] " answer
+            [[ "$answer" =~ ^[Yy] ]] && run_installer=1
+        else
+            echo "  Re-run with --fix to install them."
+        fi
+        if [ "$run_installer" = "1" ]; then
+            echo "  Running install.sh (it skips whatever is already installed)..."
+            bash "$INSTALLER" || echo "  Installer reported errors — see output above."
+        fi
+    fi
 fi
 
 echo ""
-echo "=== All up to date! ==="
+if [ "$DRY" = "1" ]; then
+    echo "=== Check complete (nothing changed) ==="
+else
+    echo "=== All up to date! ==="
+fi

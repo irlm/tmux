@@ -57,7 +57,8 @@ For tmux on Windows, use WSL: `wsl --install`
 | `C-a g` | open `lazygit` in a popup |
 | `C-a o` | open the sessionizer/project switcher |
 | `C-a ?` | open the built-in cheatsheet |
-| `~/.config/tmux/update.sh` | update tmux, Neovim, and plugins |
+| `C-a C-u` | update everything in a popup |
+| `dotup` | update repos, plugins, gh extensions, and CLI tools |
 
 ## Full Documentation
 

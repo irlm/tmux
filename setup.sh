@@ -499,6 +499,30 @@ install_core_packages() {
 
 install_core_packages
 
+# ─── gh extensions ─────────────────────────────────────
+# `gh dash` (the C-a G popup) ships as a gh extension, not with gh itself —
+# installing the GitHub CLI alone leaves that binding dead.
+install_gh_extensions() {
+  if ! command -v gh &>/dev/null; then
+    warn "gh not installed — skipping gh-dash (C-a G popup will not work)"
+    return
+  fi
+
+  if gh extension list 2>/dev/null | grep "dlvhdr/gh-dash" >/dev/null; then
+    ok "gh-dash already installed"
+    return
+  fi
+
+  info "Installing gh-dash extension..."
+  if gh extension install dlvhdr/gh-dash; then
+    ok "gh-dash installed"
+  else
+    warn "gh-dash install failed — run 'gh auth login', then 'gh extension install dlvhdr/gh-dash'"
+  fi
+}
+
+install_gh_extensions
+
 # ─── Neovim ───────────────────────────────────────────
 install_neovim() {
   if command -v nvim &>/dev/null; then
@@ -568,7 +592,7 @@ install_nvim_lang_deps() {
 
   # ── Rust toolchain + rust-analyzer (for LazyVim rust extra / rustaceanvim) ──
   if command -v rustup &>/dev/null; then
-    if ! rustup component list 2>/dev/null | grep -q 'rust-analyzer.*installed'; then
+    if ! rustup component list 2>/dev/null | grep 'rust-analyzer.*installed' >/dev/null; then
       info "Adding rust-analyzer component..."
       rustup component add rust-analyzer
       ok "rust-analyzer installed"
@@ -964,6 +988,8 @@ alias gpl='git pull'
 alias lg='lazygit'
 alias t='tmux'
 alias ta='tmux attach || tmux new'
+alias dotup='~/.config/tmux/update.sh'          # update repos, plugins, tools
+alias dotcheck='~/.config/tmux/update.sh --check'  # report only, change nothing
 command -v tlrc &>/dev/null && alias help='tlrc'
 
 # ─── Fastfetch on new shell (only interactive, non-tmux) ─
@@ -1030,6 +1056,8 @@ alias gpl='git pull'
 alias lg='lazygit'
 alias t='tmux'
 alias ta='tmux attach || tmux new'
+alias dotup='~/.config/tmux/update.sh'          # update repos, plugins, tools
+alias dotcheck='~/.config/tmux/update.sh --check'  # report only, change nothing
 command -v tlrc &>/dev/null && alias help='tlrc'
 
 # ─── WSL browser ─────────────────────────────────────────

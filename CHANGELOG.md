@@ -2,6 +2,20 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [4.5.1] - 2026-09-19
+
+### Added
+- **`dotup` / `dotcheck` aliases and `C-a C-u` popup**: update everything without remembering the script path — `dotup` runs `~/.config/tmux/update.sh`, `dotcheck` reports without changing anything, `C-a C-u` runs the same update in a tmux popup
+- **Self-updating `update.sh`**: after pulling the repo, it re-executes the freshly pulled copy of itself, so a new updater takes effect in the same run instead of needing a second invocation
+- **Repair in `update.sh`**: clones TPM when missing, updates and cleans tmux plugins (it only installed them before), installs `gh-dash` when absent, upgrades the Homebrew formulae these installers manage, and offers to run `install.sh` for anything still missing
+- **`update.sh` flags**: `--check` (report only), `--quick` (repos and plugins only), `--fix` (install missing pieces without asking), `--help`
+
+### Fixed
+- **`grep -q` under `set -o pipefail`**: a matching `grep -q` killed its upstream process with SIGPIPE and made the whole pipeline report failure, so checks like "is gh-dash installed?" and "is rust-analyzer installed?" could silently answer "no"
+- **Noisy Neovim plugin sync**: `update.sh` now keeps Lazy's full transcript in `~/.local/share/tmux/update-nvim.log` and prints only the plugins blocked by local changes
+- **Credential prompts during update**: git fetches run with `GIT_TERMINAL_PROMPT=0`, so an auth failure reports "cannot reach GitHub" instead of hanging on a keychain prompt in a popup
+- **`gh dash` popup (`C-a G`) was dead on fresh installs**: the installers set up the GitHub CLI but never the `gh-dash` extension it depends on. `install.sh`, `setup.sh`, `install.ps1`, and `setup-windows.ps1` now install `dlvhdr/gh-dash`, `update.sh` upgrades it, and the `C-a G` binding shows the install command instead of a popup that closes instantly when the extension is missing
+
 ## [4.5.0] - 2026-03-21
 
 ### Added (neovim)

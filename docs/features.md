@@ -88,7 +88,7 @@ The tmux config enables these plugins:
 | `install.sh` | quick installer for macOS and Linux |
 | `setup.sh` | fuller multi-distro installer |
 | `install.ps1` | Windows installer |
-| `update.sh` | updater for tmux + Neovim repos and plugins |
+| `update.sh` | updater for repos, plugins, gh extensions, and CLI tools (`dotup` / `C-a C-u`) |
 | `cheatsheet.txt` | popup cheatsheet shown with `C-a ?` |
 
 ## Script Layout

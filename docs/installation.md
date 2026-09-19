@@ -59,6 +59,7 @@ The Windows installer uses Scoop plus winget to set up:
 
 - Neovim
 - `lazygit`, `lazydocker`, `gh`, `fzf`, `zoxide`, `bat`, `btop`, `fastfetch`, `oh-my-posh`
+- `gh-dash` (installed as a `gh` extension: `gh extension install dlvhdr/gh-dash`)
 - Rust, Go, Python, Node.js, Java, and Scala tooling
 - Docker Desktop
 - Nerd Fonts
@@ -77,6 +78,7 @@ wsl --install
 The default installer is the quick workstation path. It:
 
 - installs core terminal tools (including `w3m` for terminal web search)
+- installs the `gh-dash` GitHub CLI extension that backs the `C-a G` popup (run `gh auth login` once for it to show data)
 - installs or upgrades Neovim when needed
 - installs development toolchains for Neovim extras
 - installs Docker when missing
@@ -115,23 +117,43 @@ If the installer finds an existing config that is not already one of these repos
 4. Install tmux plugins with `C-a I`.
 5. Open Neovim with `nvim` and let the first-run setup finish.
 6. If Docker was installed, launch Docker Desktop on macOS or Windows, or re-log on Linux if Docker group membership changed.
+7. Run `gh auth login` so the `C-a G` GitHub dashboard popup can load your PRs and issues.
 
 ## Updating
 
-Run:
+Run any of these:
 
 ```bash
-~/.config/tmux/update.sh
+dotup                 # update everything (alias for ~/.config/tmux/update.sh)
+dotcheck              # report only, change nothing
+dotup --quick         # repo and plugin updates only, skip package upgrades
+dotup --fix           # install anything missing without asking
 ```
+
+`C-a C-u` runs the same update inside a tmux popup.
 
 That script:
 
-- updates the tmux repo
-- updates tmux plugins
+- updates the tmux repo, then re-executes itself if `update.sh` itself changed
+- installs TPM if missing, then installs, updates, and cleans tmux plugins
 - reloads the tmux config if tmux is running
-- updates the Neovim repo
-- runs Neovim plugin sync
-- checks for missing language toolchains
+- updates the Neovim repo and runs Neovim plugin sync
+- upgrades the `gh-dash` extension, installing it when missing
+- upgrades the Homebrew formulae these installers manage (macOS)
+- checks for missing CLI tools and language toolchains, and offers to run `install.sh` to fill the gaps
+
+### When an update reports a problem
+
+| Message | What it means |
+|---------|---------------|
+| `cannot reach GitHub` | the fetch failed (offline, or credentials the helper could not supply); the update skips that repo and carries on |
+| `Blocked by local changes — these plugins could not update` | a Neovim plugin has uncommitted changes, usually a generated file such as `markdown-preview.nvim`'s `app/yarn.lock`. Run the `git -C <path> checkout .` line it prints, then update again |
+| `gh-dash missing, installing...` followed by a failure | the GitHub CLI is not authenticated yet — run `gh auth login`, then update again |
+| `Toolchains missing: ...` | language toolchains are absent; answer the prompt, or re-run with `dotup --fix` |
+
+Neovim's plugin sync is verbose, so its full transcript goes to `~/.local/share/tmux/update-nvim.log` and only problems are printed.
+
+Homebrew upgrades are limited to the formulae these installers manage, so the rest of your Homebrew setup is left alone.
 
 ## Related Repos
 

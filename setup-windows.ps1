@@ -52,6 +52,22 @@ foreach ($pkg in $Packages) {
     }
 }
 
+# ─── gh extensions ─────────────────────────────────────
+# `gh dash` (Alt+Shift+G) is a gh extension, not part of gh itself.
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+    $ghDash = gh extension list 2>$null | Select-String "dlvhdr/gh-dash"
+    if ($ghDash) {
+        Ok "gh-dash already installed"
+    } else {
+        Info "Installing gh-dash extension..."
+        gh extension install dlvhdr/gh-dash
+        if ($LASTEXITCODE -eq 0) { Ok "gh-dash installed" }
+        else { Warn "gh-dash install failed - run 'gh auth login', then 'gh extension install dlvhdr/gh-dash'" }
+    }
+} else {
+    Warn "gh not installed - skipping gh-dash (Alt+Shift+G will not work)"
+}
+
 # ─── Nerd Font ─────────────────────────────────────────
 $FontName = "JetBrainsMono"
 $FontDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
