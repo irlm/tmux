@@ -82,11 +82,16 @@ Quick lookups without leaving tmux. All results open in a popup — press `q` to
 
 `C-a s` asks for a host (anything `ssh` accepts: an alias from `~/.ssh/config`, or `user@host`) and opens it in a new window. The first time you connect to a server that does not have this config, it offers to install it — it copies this machine's own `install.sh` over and runs it with `--server`, so both ends run the same version. You authenticate once; the check, the install, and the attach share one SSH connection.
 
-While that window is in front, the local tmux is in **remote mode**: its prefix is switched off, so every key — `C-a` included — goes to the server's tmux, and the same bindings you use locally (`C-a |`, `C-a g`, `C-a ?`, ...) act on the server. The status bar shows `REMOTE` while it is active.
+While a remote tmux is in front of you, the local tmux is in **remote mode**: its prefix is switched off, so every key — `C-a` included — goes to the server's tmux, and the same bindings you use locally (`C-a |`, `C-a t`, `C-a ?`, ...) act on the server. The status bar shows `REMOTE` while it is active.
 
-Remote mode follows the window. Press `F12` to get the local prefix back, move to another window with `C-a n` as usual, and the local tmux is fully yours again; come back to the SSH window and keys go to the server again. When the connection ends, the window closes and remote mode ends with it.
+Remote mode is automatic and does not depend on how you connected. A server running this config announces its tmux through the terminal title (`tmux-remote:<host>`), so it works for a `C-a s` window, an `ssh` you typed by hand in any pane, `mosh`, or a jump host — the moment the remote tmux attaches, keys go to it; the moment it detaches or the connection ends, they come back. It also follows your focus: move to a local window or pane and the local tmux is yours again.
 
-`F12` also works on its own, for an `ssh` session you started by hand in an ordinary pane.
+`F12` overrides the automatic choice for the window you are in, until you leave it:
+
+- inside a remote tmux, `F12` gives the local prefix back — that is how you reach `C-a n` to switch local windows
+- on a server that does **not** run this config (nothing announces itself), `F12` is how you turn remote mode on by hand
+
+The announcement only happens when the tmux server was started inside an SSH session, so your local tmux never marks itself remote.
 
 ## Copy Mode
 

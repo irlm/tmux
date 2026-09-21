@@ -85,6 +85,7 @@ The tmux config enables these plugins:
 | `docs/usage.md` | tmux usage and keybindings |
 | `docs/features.md` | feature overview and project layout |
 | `tmux.conf` | main tmux configuration |
+| `remote.conf` | sourced only under SSH: makes a server-side tmux announce itself so the tmux you connected from hands it the keyboard |
 | `install.sh` | quick installer for macOS and Linux |
 | `setup.sh` | fuller multi-distro installer |
 | `install.ps1` | Windows installer |
@@ -104,7 +105,7 @@ The tmux config enables these plugins:
 | `scripts/net_speed.sh` | network speed helper |
 | `scripts/status_ssh.sh` | SSH-aware status helper |
 | `scripts/ssh-remote.sh` | `C-a s`: connect, install the config on the server if missing, attach its tmux |
-| `scripts/remote-mode.sh` | switches the local prefix off or on so keys reach the remote tmux (`F12`, and automatically per window) |
+| `scripts/remote-mode.sh` | decides whether the pane in front shows a remote tmux and switches the local prefix off or on accordingly; `F12` overrides it |
 | `scripts/prompt.sh` | lightweight bash prompt |
 | `scripts/prompt.zsh` | lightweight zsh prompt |
 

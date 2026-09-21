@@ -6,7 +6,9 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Added
 - **Server bootstrap over SSH**: `C-a s` now checks the host first and, when this config is not there yet, offers to install it — it copies this machine's own `install.sh` to the server and runs it with `--server`, so both ends run the same version. The check, the install, and the attach share one SSH connection, so you authenticate once
-- **Automatic remote mode**: a window opened with `C-a s` switches the local prefix off while it is in front, so `C-a` and every other binding act on the server's tmux, and switches it back when you move to a local window or the connection ends. `F12` remains the manual toggle and the way out of a remote window
+- **Automatic remote mode**: whenever the pane in front is showing a remote tmux, the local prefix switches off so `C-a` and every other binding act on the server, and switches back when you move away, detach, or the connection ends. It does not matter how you connected: a server running this config announces its tmux through the terminal title (`remote.conf`, sourced only under SSH), so an `ssh` typed by hand, `mosh`, and jump hosts are picked up the same way as a `C-a s` window
+- **`F12` is now an override**, sticky for the window you are in: the way out of a remote window, and the way in for a server that does not run this config
+- **Server prompts reset the terminal title** at a bare SSH shell, so a remote tmux that exited uncleanly cannot leave its marker behind
 
 ### Changed
 - `F12` and the new automatic switching share one implementation (`scripts/remote-mode.sh`) instead of two inline command sequences in `tmux.conf`

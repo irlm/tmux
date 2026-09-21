@@ -11,6 +11,10 @@ __git_branch() {
 
 __prompt_cmd() {
     local exit_code=$?
+    # At a bare ssh shell, put the terminal title back to the hostname. A tmux
+    # that exited uncleanly leaves its "tmux-remote:" title behind, and the
+    # tmux you connected from would take the next full-screen program for it.
+    [ -n "$SSH_CONNECTION" ] && [ -z "$TMUX" ] && printf '\033]2;%s\033\\' "${HOSTNAME%%.*}"
     local reset='\[\e[0m\]'
     local bold='\[\e[1m\]'
     local dim='\[\e[2m\]'

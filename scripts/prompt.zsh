@@ -4,7 +4,13 @@
 # Source this in .zshrc: [ -f ~/.config/tmux/scripts/prompt.zsh ] && . ~/.config/tmux/scripts/prompt.zsh
 
 autoload -Uz vcs_info
-precmd() { vcs_info }
+precmd() {
+  vcs_info
+  # At a bare ssh shell, put the terminal title back to the hostname. A tmux
+  # that exited uncleanly leaves its "tmux-remote:" title behind, and the tmux
+  # you connected from would take the next full-screen program for it.
+  [[ -n $SSH_CONNECTION && -z $TMUX ]] && print -Pn '\e]2;%m\e\\'
+}
 zstyle ':vcs_info:git:*' formats ' %b'
 
 setopt PROMPT_SUBST
