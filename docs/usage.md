@@ -93,6 +93,8 @@ Remote mode is automatic and does not depend on how you connected. A server runn
 
 The announcement only happens when the tmux server was started inside an SSH session, so your local tmux never marks itself remote.
 
+The title alone is not trusted. Remote mode needs all three: the program in front is a remote client (`ssh`, `slogin`, `mosh`, `autossh`, `sshpass`, `et`, `tsh`), it is showing something full-screen, and the title carries the marker. A remote tmux that dies with its server never gets to clear its title, and without the other two checks the leftover would make a local `vim` look like a remote tmux; leftovers are also wiped as soon as they are noticed. While remote mode is on it re-checks itself on every status refresh, so an abruptly dropped connection hands the prefix back within a few seconds even though tmux raises no event for it. If you connect through some other program, add it: `set -g @remote_clients "ssh mosh-client my-wrapper"`.
+
 ## Copy Mode
 
 Enter copy mode with `C-a [`.
