@@ -127,35 +127,37 @@ If the installer finds an existing config that is not already one of these repos
 
 ## Updating
 
-Run any of these:
+One command updates a machine, whatever state it is in — the only question is how to reach it:
+
+| Where you are | Command |
+|---------------|---------|
+| A shell on the machine, alias set up | `dotup` |
+| A shell on the machine, no alias (servers, bash) | `~/.config/tmux/update.sh` |
+| Inside tmux | `C-a C-u` (same update, in a popup) |
+| From another machine, over SSH | `ssh host '~/.config/tmux/update.sh'` |
+| Anywhere, straight from GitHub | `curl -sL https://raw.githubusercontent.com/irlm/tmux/main/update.sh \| bash` |
+
+Flags go on the end of any form (`bash -s -- --fix` for the curl one):
 
 ```bash
-dotup                 # update everything (alias for ~/.config/tmux/update.sh)
-dotcheck              # report only, change nothing
-dotup --quick         # repo and plugin updates only, skip package upgrades
-dotup --fix           # install anything missing without asking
+--check    report only, change nothing        (dotcheck is an alias for this)
+--quick    repo and plugin updates only, skip package upgrades
+--fix      install anything missing without asking
 ```
 
-`C-a C-u` runs the same update inside a tmux popup.
+The `dotup` and `dotcheck` aliases exist only where the installer wrote the shell config; a server-mode install has the script but not the alias. A machine that does not have the config at all needs the install one-liner, or `C-a s` from a machine that does — not this.
 
-On a server, or anywhere the alias is not set up, the same script runs straight from GitHub — the counterpart of the install one-liner:
+**One run is always enough**, however far behind the machine is. The script pulls the repo first and, if `update.sh` itself changed, re-executes the freshly pulled copy in the same run. The curl form does the same by handing over to the installed copy after the pull: what `raw.githubusercontent.com` serves can lag a push by a few minutes, and a piped script cannot re-run itself, so without the hand-over it could pull the newest commit and still finish with the old logic.
 
-```bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/update.sh | bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/update.sh | bash -s -- --fix   # also install what is missing
-```
+What the script does:
 
-It works over a plain `ssh host '...'` too, with no login shell. A server that does not have the config yet needs the install one-liner (or `C-a s` from a machine that does), not this.
-
-That script:
-
-- updates the tmux repo, then re-executes itself if `update.sh` itself changed
+- updates the tmux repo, then continues with the newest `update.sh` as above
 - installs TPM if missing, then installs, updates, and cleans tmux plugins
 - reloads the tmux config if tmux is running
-- updates the Neovim repo and runs Neovim plugin sync
+- updates the Neovim repo (discarding a `lazy-lock.json`-only local change, which Lazy rewrites on every sync) and runs Neovim plugin sync
 - upgrades the `gh-dash` extension, installing it when missing
 - upgrades the Homebrew formulae these installers manage (macOS)
-- checks for missing CLI tools and language toolchains, and offers to run `install.sh` to fill the gaps
+- checks for missing CLI tools and language toolchains — the server-mode set on a server install — and offers to run the installer to fill the gaps
 
 ### When an update reports a problem
 

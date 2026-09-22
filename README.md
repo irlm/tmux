@@ -61,7 +61,7 @@ For tmux on Windows, use WSL: `wsl --install`
 | `C-a s` / `C-a P` | SSH to a server (new window / split pane), set it up if needed, attach its tmux |
 | `F12` | hand the keys to the remote tmux, or take them back |
 | `C-a C-u` | update everything in a popup |
-| `dotup` | update repos, plugins, gh extensions, and CLI tools |
+| `dotup` | update repos, plugins, gh extensions, and CLI tools (on a server: `~/.config/tmux/update.sh`, or the curl one-liner in the [installation guide](docs/installation.md#updating)) |
 
 ## Full Documentation
 

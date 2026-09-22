@@ -121,7 +121,7 @@ Nothing announces itself, so the local tmux keeps its prefix. Press `F12` in tha
 
 ### Keeping servers current
 
-The server gets the same `update.sh` as your workstation. Run `~/.config/tmux/update.sh` there (or `dotup`, once the server's shell config has the alias), and it pulls this repo, updates plugins, and reloads its tmux config. An old server updater pulls the new one and re-executes it, so one run is always enough.
+The server gets the same `update.sh` as your workstation. Run `~/.config/tmux/update.sh` there — or from your own machine, `ssh host '~/.config/tmux/update.sh'`, or the curl one-liner in the [installation guide](installation.md#updating) — and it pulls this repo, updates plugins, and reloads its tmux config. One run is always enough, however old the server's copy is. The `dotup` alias is only there if the installer wrote the server's shell config; a server-mode install has the script but not the alias.
 
 ## Copy Mode
 
