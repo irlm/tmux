@@ -101,6 +101,8 @@ Install this config on a server and your local keys work there unchanged: while 
 
 `REMOTE` on the left means the local prefix is off and every key, `C-a` included, is going to the server. Below it you see the server's own status bar, since the remote tmux is drawing the pane — that is the quickest way to tell which machine `C-a t` will hit.
 
+Whenever the active pane holds an ssh session — remote tmux or not — a second status line appears underneath the first showing where it is connected: `SSH host as user:port`, taken from the running `ssh` command (works for `mosh`, `autossh` and the other remote clients too). It follows the active pane and disappears when the session ends.
+
 ### How detection works
 
 A tmux server started inside an SSH session loads `remote.conf` and sets its terminal title to `tmux-remote:<host>`. Your local tmux sees that title on the pane, and switches the prefix off when three things hold at once: the program in the pane is a remote client (`ssh`, `slogin`, `mosh`, `mosh-client`, `autossh`, `sshpass`, `et`, `tsh`), it is showing something full-screen, and the title carries the marker. The three together mean a stale title cannot capture the keyboard: a remote tmux that dies with its server never clears its title, and without the other checks a local `vim` in that pane would be mistaken for it. Leftover markers are wiped as soon as they are seen.

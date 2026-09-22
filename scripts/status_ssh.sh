@@ -1,60 +1,72 @@
 #!/usr/bin/env bash
-# Detect SSH in active pane — toggle second status line on/off
-# Called by status-format[1] every status-interval
-
-pane_pid="$1"
+# Second status line while the active pane holds an ssh session: where to.
+#
+#   status_ssh.sh toggle <pane_pid>   silent: turn the second line on or off
+#   status_ssh.sh line   <pane_pid>   print the line's content
+#
+# tmux only runs the #() commands of a line it is showing, so a hidden second
+# line can never switch itself on. The toggle therefore lives in status-right
+# (always shown) and the renderer in status-format[1]. Both get the active
+# pane's shell pid and look for an ssh among its children and grandchildren
+# — a hand-typed ssh is a child; ssh-remote.sh puts it one level down.
+mode="${1:-line}"
+pane_pid="${2:-}"
 [ -z "$pane_pid" ] && exit 0
 
-# Find SSH process: check children and grandchildren of the pane shell
-ssh_cmd=""
-for child in $(pgrep -P "$pane_pid" 2>/dev/null) "$pane_pid"; do
-    cmd=$(ps -o command= -p "$child" 2>/dev/null)
-    if echo "$cmd" | grep -qE '^ssh '; then
-        ssh_cmd="$cmd"
-        break
-    fi
-    # Check grandchildren
-    for gchild in $(pgrep -P "$child" 2>/dev/null); do
-        cmd=$(ps -o command= -p "$gchild" 2>/dev/null)
-        if echo "$cmd" | grep -qE '^ssh '; then
-            ssh_cmd="$cmd"
-            break 2
-        fi
+find_ssh() {
+    local child gchild cmd
+    for child in $(pgrep -P "$pane_pid" 2>/dev/null); do
+        cmd=$(ps -o command= -p "$child" 2>/dev/null)
+        case "$cmd" in ssh\ *|slogin\ *|mosh\ *|mosh-client\ *|autossh\ *|et\ *|tsh\ *) echo "$cmd"; return ;; esac
+        for gchild in $(pgrep -P "$child" 2>/dev/null); do
+            cmd=$(ps -o command= -p "$gchild" 2>/dev/null)
+            case "$cmd" in ssh\ *|slogin\ *|mosh\ *|mosh-client\ *|autossh\ *|et\ *|tsh\ *) echo "$cmd"; return ;; esac
+        done
     done
-done
+}
 
-current=$(tmux show -gqv status 2>/dev/null)
+ssh_cmd="$(find_ssh)"
 
-if [ -z "$ssh_cmd" ]; then
-    # No SSH — hide second bar
-    [ "$current" != "on" ] && tmux set -g status on 2>/dev/null
+if [ "$mode" = "toggle" ]; then
+    current=$(tmux show -gqv status 2>/dev/null)
+    if [ -z "$ssh_cmd" ]; then
+        [ "$current" = "2" ] && tmux set -g status on 2>/dev/null
+    else
+        [ "$current" != "2" ] && tmux set -g status 2 2>/dev/null
+    fi
     exit 0
 fi
 
-# SSH detected — ensure second bar is visible
-[ "$current" != "2" ] && tmux set -g status 2 2>/dev/null
+[ -z "$ssh_cmd" ] && exit 0
 
-# Extract user@host
-target=$(echo "$ssh_cmd" | sed 's/^ssh //' \
-    | sed -E 's/-[iopFJLRDwWeEbcSmBO] [^ ]+//g' \
-    | sed -E 's/-[46AaCfGgKkMNnqsTtVvXxYy]//g' \
-    | tr -s ' ' | sed 's/^ //' | awk '{print $1}')
-
+# Walk the arguments: skip options (with their value where they take one)
+# until the first bare word, which is the destination. Anything after it is
+# the remote command.
+target=""; port=""
+# shellcheck disable=SC2206  # word-splitting the command line is the point
+args=($ssh_cmd); unset 'args[0]'
+skip=0
+for a in "${args[@]}"; do
+    if [ "$skip" = "1" ]; then skip=0; continue; fi
+    case "$a" in
+        -p)  skip=1; port_next=1; continue ;;
+        -p*) port="${a#-p}"; continue ;;
+        -[iopFJLRDwWeEbcSmBOP]) skip=1; continue ;;   # option with a value
+        -*)  continue ;;                               # bare flag(s)
+        *)   target="$a"; break ;;
+    esac
+done
+# the value after -p was skipped above; fetch it again
+if [ -n "${port_next:-}" ]; then
+    port=$(echo "$ssh_cmd" | grep -oE '(^| )-p ?[0-9]+' | grep -oE '[0-9]+$')
+fi
 [ -z "$target" ] && exit 0
 
-if echo "$target" | grep -q '@'; then
-    user=$(echo "$target" | cut -d'@' -f1)
-    host=$(echo "$target" | cut -d'@' -f2)
-else
-    user=""
-    host="$target"
-fi
-
-port=$(echo "$ssh_cmd" | grep -oE '\-p [0-9]+' | awk '{print $2}')
-
-# Build output
-out="#[fg=colour2,bold]  SSH #[fg=colour4]${host}#[default]"
+case "$target" in
+    *@*) user="${target%%@*}"; host="${target#*@}" ;;
+    *)   user="";              host="$target" ;;
+esac
+out="#[fg=colour2,bold] 󰢹 SSH #[fg=colour4]${host}#[default]"
 [ -n "$user" ] && out="${out} #[fg=colour8]as#[default] #[fg=colour3]${user}#[default]"
 [ -n "$port" ] && out="${out}#[fg=colour8]:${port}#[default]"
-
 echo "$out"
