@@ -151,8 +151,10 @@ if [ "$MODE" = "server" ]; then
         # fastfetch names x86_64 assets "amd64" but keeps "aarch64" for arm
         [ "$ARCH" = "x86_64" ] && FF_ARCH="amd64" || FF_ARCH="$ARCH"
         install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${FF_ARCH}[^-]*\\.tar\\.gz" || true
-        # C-a g is a headline binding; one static binary is worth it on a server
-        install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+        # C-a g is a headline binding; one static binary is worth it on a server.
+        # lazygit/lazydocker assets: Linux_x86_64 and Linux_arm64
+        [ "$ARCH" = "aarch64" ] && LZ_ARCH="arm64" || LZ_ARCH="$ARCH"
+        install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
 
     elif [ "$OS" = "Darwin" ]; then
         if ! command -v brew &>/dev/null; then
@@ -384,8 +386,9 @@ elif [ "$OS" = "Linux" ]; then
     install_gh_binary "aristocratos/btop" "btop" "${ARCH}.*linux.*musl.*\\.tbz" || true
     [ "$ARCH" = "x86_64" ] && FF_ARCH="amd64" || FF_ARCH="$ARCH"   # fastfetch: amd64 but aarch64
     install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${FF_ARCH}[^-]*\\.tar\\.gz" || true
-    install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
-    install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+    [ "$ARCH" = "aarch64" ] && LZ_ARCH="arm64" || LZ_ARCH="$ARCH"   # lazygit/lazydocker: x86_64 / arm64
+    install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
+    install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
     install_gh_binary "cli/cli" "gh" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
 
     # zoxide (official install script)
