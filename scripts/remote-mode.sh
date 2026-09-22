@@ -10,7 +10,7 @@
 #   remote-mode.sh title-reset <tty>        server side: clear the marker on detach
 #
 # A pane counts as remote when either
-#   - its window was opened by ssh-remote.sh (@remote), or
+#   - ssh-remote.sh is running in it (@remote, a pane option), or
 #   - all three hold: the program in front is a remote client (ssh, mosh, ...),
 #     it is showing something full-screen, and the terminal title carries the
 #     marker a server-side tmux sets (remote.conf) — which is how an ssh typed

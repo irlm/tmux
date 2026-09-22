@@ -5,6 +5,9 @@
 # switched off (see remote-mode.sh) so C-a and friends reach the remote tmux.
 #
 #   ssh-remote.sh <host>      host is anything ssh accepts (alias, user@host)
+#
+# Runs in whatever pane it is started in: C-a s gives it a new window, C-a P
+# a pane split beside the current one.
 
 host="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -84,16 +87,17 @@ esac
 # ─── Attach ───────────────────────────────────────────────
 case "$state" in
     *HAS_TMUX*)
-        # Mark the window remote and hand the keyboard to the inner tmux. The
-        # session-window-changed hook keeps this in step as windows change.
+        # Mark this pane remote (the pane, not the window: in a split the other
+        # pane is still local) and hand the keyboard to the inner tmux. The
+        # window/pane-change hooks keep this in step as focus moves.
         if [ -n "${TMUX_PANE:-}" ]; then
-            tmux set -w -t "$TMUX_PANE" @remote 1
+            tmux set -p -t "$TMUX_PANE" @remote 1
             "$REMOTE_MODE" auto "$TMUX_PANE"
         fi
         ssh -t "${SSH_OPTS[@]}" "$host" 'exec "${SHELL:-sh}" -l -c "tmux attach 2>/dev/null || tmux new"'
         rc=$?
         if [ -n "${TMUX_PANE:-}" ]; then
-            tmux set -w -u -t "$TMUX_PANE" @remote
+            tmux set -p -u -t "$TMUX_PANE" @remote
             "$REMOTE_MODE" auto "$TMUX_PANE"
         fi
         [ "$rc" -eq 255 ] && { echo "Connection to $host lost."; pause_exit "$rc"; }

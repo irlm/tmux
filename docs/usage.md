@@ -80,13 +80,16 @@ Install this config on a server and your local keys work there unchanged: while 
 | Key | Action |
 |-----|--------|
 | `s` | SSH to a host in a new window; install this config there if it is missing; attach its tmux |
+| `P` | the same, in a pane split beside the current one |
 | `F12` | override remote mode for the current window (the way out, or the way in on a server without this config) |
 
 ### Connecting
 
 **`C-a s`** asks for a host — anything `ssh` accepts: an alias from `~/.ssh/config`, or `user@host` — and opens it in a new window. If the server does not have this config yet, it offers to install it, using the same `install.sh` as this machine in `--server` mode, so both ends run the same version. You authenticate once: the check, the install, and the attach share one SSH connection. A server without tmux gets a plain shell; an unreachable host shows ssh's error and waits for a key instead of closing the window.
 
-**By hand** works just as well. Type `ssh host` in any window or split pane, start or attach tmux there, and remote mode switches on by itself. There is no pane variant of `C-a s`; split first, then type `ssh`.
+**`C-a P`** does the same in a pane split beside the current one — for a server console next to local work. The split opens in the current pane's directory, like `C-a |`.
+
+**By hand** works just as well. Type `ssh host` in any window or split pane, start or attach tmux there, and remote mode switches on by itself.
 
 **Getting out** — remote mode follows your focus, so leave the remote pane and you are local again:
 
