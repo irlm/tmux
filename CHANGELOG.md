@@ -13,6 +13,9 @@ All notable changes to this tmux configuration will be documented in this file.
 - **Server prompts reset the terminal title** at a bare SSH shell, so a remote tmux that exited uncleanly cannot leave its marker behind
 - **Docs**: the usage guide's SSH section is rewritten around the workflow — connecting (`C-a s` or by hand, windows and split panes alike), getting out (`F12` then `C-a n` / `C-a l`), what the status bar means, how detection works, servers without the config, keeping servers current
 
+### Fixed
+- **nvim config never updated on servers**: Lazy rewrites `lazy-lock.json` on every plugin sync, so on any machine other than the one where the config is edited the file was always locally modified and `git pull --ff-only` refused. `update.sh` now discards a `lazy-lock.json`-only change before pulling (the committed version wins and Lazy regenerates it anyway); any other local edit still stops the pull and is reported
+
 ### Changed
 - `F12` and the new automatic switching share one implementation (`scripts/remote-mode.sh`) instead of two inline command sequences in `tmux.conf`
 - Verified against a real Linux server (`tmux 3.4`): hand-typed `ssh` in a window and in a split pane, `C-a t` opening btop on the server, prefix returning on pane and window changes, and cleanup after detach
