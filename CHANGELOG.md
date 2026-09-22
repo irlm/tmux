@@ -2,7 +2,7 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
-## [4.6.0] - 2026-09-19
+## [4.6.0] - 2026-09-22
 
 ### Added
 - **Server bootstrap over SSH**: `C-a s` now checks the host first and, when this config is not there yet, offers to install it — it copies this machine's own `install.sh` to the server and runs it with `--server`, so both ends run the same version. The check, the install, and the attach share one SSH connection, so you authenticate once
@@ -10,9 +10,11 @@ All notable changes to this tmux configuration will be documented in this file.
 - **Remote detection does not trust the title alone**: it also requires a remote client program in front (`ssh`, `mosh`, ...; extend with `@remote_clients`) and a full-screen display, wipes leftover markers from a remote tmux that died with its server, and re-checks itself on every status refresh while remote mode is on — so a stale title cannot capture a local `vim`, and a dropped connection cannot leave the prefix off at a local shell
 - **`F12` is now an override**, sticky for the window you are in: the way out of a remote window, and the way in for a server that does not run this config
 - **Server prompts reset the terminal title** at a bare SSH shell, so a remote tmux that exited uncleanly cannot leave its marker behind
+- **Docs**: the usage guide's SSH section is rewritten around the workflow — connecting (`C-a s` or by hand, windows and split panes alike), getting out (`F12` then `C-a n` / `C-a l`), what the status bar means, how detection works, servers without the config, keeping servers current
 
 ### Changed
 - `F12` and the new automatic switching share one implementation (`scripts/remote-mode.sh`) instead of two inline command sequences in `tmux.conf`
+- Verified against a real Linux server (`tmux 3.4`): hand-typed `ssh` in a window and in a split pane, `C-a t` opening btop on the server, prefix returning on pane and window changes, and cleanup after detach
 
 ## [4.5.1] - 2026-09-19
 

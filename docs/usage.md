@@ -73,27 +73,50 @@ Quick lookups without leaving tmux. All results open in a popup — press `q` to
 | `C-n` | automatic rename on | `D` | choose client to detach |
 | `Y` | synchronize panes on or off | | |
 
-## SSH and Nested Tmux
+## SSH and Remote Servers
+
+Install this config on a server and your local keys work there unchanged: while a remote tmux is in front of you, `C-a t` opens btop on the server, `C-a g` opens lazygit on the server, `C-a |` splits the server's window. The local tmux notices the remote one and steps aside. It does not matter whether you connected with `C-a s`, typed `ssh` yourself, or use a split pane.
 
 | Key | Action |
 |-----|--------|
-| `s` | SSH to a host, install this config there if it is missing, and attach its tmux |
-| `F12` | toggle remote mode by hand |
+| `s` | SSH to a host in a new window; install this config there if it is missing; attach its tmux |
+| `F12` | override remote mode for the current window (the way out, or the way in on a server without this config) |
 
-`C-a s` asks for a host (anything `ssh` accepts: an alias from `~/.ssh/config`, or `user@host`) and opens it in a new window. The first time you connect to a server that does not have this config, it offers to install it — it copies this machine's own `install.sh` over and runs it with `--server`, so both ends run the same version. You authenticate once; the check, the install, and the attach share one SSH connection.
+### Connecting
 
-While a remote tmux is in front of you, the local tmux is in **remote mode**: its prefix is switched off, so every key — `C-a` included — goes to the server's tmux, and the same bindings you use locally (`C-a |`, `C-a t`, `C-a ?`, ...) act on the server. The status bar shows `REMOTE` while it is active.
+**`C-a s`** asks for a host — anything `ssh` accepts: an alias from `~/.ssh/config`, or `user@host` — and opens it in a new window. If the server does not have this config yet, it offers to install it, using the same `install.sh` as this machine in `--server` mode, so both ends run the same version. You authenticate once: the check, the install, and the attach share one SSH connection. A server without tmux gets a plain shell; an unreachable host shows ssh's error and waits for a key instead of closing the window.
 
-Remote mode is automatic and does not depend on how you connected. A server running this config announces its tmux through the terminal title (`tmux-remote:<host>`), so it works for a `C-a s` window, an `ssh` you typed by hand in any pane, `mosh`, or a jump host — the moment the remote tmux attaches, keys go to it; the moment it detaches or the connection ends, they come back. It also follows your focus: move to a local window or pane and the local tmux is yours again.
+**By hand** works just as well. Type `ssh host` in any window or split pane, start or attach tmux there, and remote mode switches on by itself. There is no pane variant of `C-a s`; split first, then type `ssh`.
 
-`F12` overrides the automatic choice for the window you are in, until you leave it:
+**Getting out** — remote mode follows your focus, so leave the remote pane and you are local again:
 
-- inside a remote tmux, `F12` gives the local prefix back — that is how you reach `C-a n` to switch local windows
-- on a server that does **not** run this config (nothing announces itself), `F12` is how you turn remote mode on by hand
+- another window: press `F12`, then `C-a n` (or any window key). `F12` gives the local prefix back for as long as you stay in that window.
+- another pane in a split: `F12`, then `C-a l` (or `h` `j` `k`). Landing on the local pane returns the prefix; moving back to the remote pane hands it over again.
+- for good: detach the remote tmux (`C-a :` then `detach`) or exit the ssh session.
 
-The announcement only happens when the tmux server was started inside an SSH session, so your local tmux never marks itself remote.
+### What the status bar shows
 
-The title alone is not trusted. Remote mode needs all three: the program in front is a remote client (`ssh`, `slogin`, `mosh`, `autossh`, `sshpass`, `et`, `tsh`), it is showing something full-screen, and the title carries the marker. A remote tmux that dies with its server never gets to clear its title, and without the other two checks the leftover would make a local `vim` look like a remote tmux; leftovers are also wiped as soon as they are noticed. While remote mode is on it re-checks itself on every status refresh, so an abruptly dropped connection hands the prefix back within a few seconds even though tmux raises no event for it. If you connect through some other program, add it: `set -g @remote_clients "ssh mosh-client my-wrapper"`.
+`REMOTE` on the left means the local prefix is off and every key, `C-a` included, is going to the server. Below it you see the server's own status bar, since the remote tmux is drawing the pane — that is the quickest way to tell which machine `C-a t` will hit.
+
+### How detection works
+
+A tmux server started inside an SSH session loads `remote.conf` and sets its terminal title to `tmux-remote:<host>`. Your local tmux sees that title on the pane, and switches the prefix off when three things hold at once: the program in the pane is a remote client (`ssh`, `slogin`, `mosh`, `mosh-client`, `autossh`, `sshpass`, `et`, `tsh`), it is showing something full-screen, and the title carries the marker. The three together mean a stale title cannot capture the keyboard: a remote tmux that dies with its server never clears its title, and without the other checks a local `vim` in that pane would be mistaken for it. Leftover markers are wiped as soon as they are seen.
+
+Your local tmux never announces itself, because it was not started under SSH. If you connect through some other program, add it to the client list:
+
+```
+set -g @remote_clients "ssh mosh-client my-wrapper"
+```
+
+Re-evaluation is event driven — window change, pane change, window rename, title change — and, while remote mode is on, also runs on every status refresh (5 s), so a dropped connection hands the prefix back within a few seconds even though tmux raises no event for a program exiting.
+
+### Servers without this config
+
+Nothing announces itself, so the local tmux keeps its prefix. Press `F12` in that window to hand the keys over by hand, and `F12` again to take them back. Or run `C-a s` once and accept the install.
+
+### Keeping servers current
+
+The server gets the same `update.sh` as your workstation. Run `~/.config/tmux/update.sh` there (or `dotup`, once the server's shell config has the alias), and it pulls this repo, updates plugins, and reloads its tmux config. An old server updater pulls the new one and re-executes it, so one run is always enough.
 
 ## Copy Mode
 

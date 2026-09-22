@@ -7,7 +7,7 @@ The root [`README.md`](../README.md) is the quick-start version. Use the guides 
 ## Start Here
 
 - [Installation guide](installation.md): install modes, platform notes, first-run checklist, and updating
-- [Usage and keybindings](usage.md): the main tmux workflow, popups, pane/session management, copy mode, and shell aliases
+- [Usage and keybindings](usage.md): the main tmux workflow, popups, pane/session management, working on servers over SSH, copy mode, and shell aliases
 - [Features and project layout](features.md): what the project includes, how the status bar and plugins fit together, and which files do what
 
 ## Project Summary

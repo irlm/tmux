@@ -8,6 +8,7 @@ This repo is the tmux and terminal side of the setup. It gives you:
 
 - a tmux workflow built around the `C-a` prefix
 - helper popups for tools like `lazygit`, `lazydocker`, notes, and project switching
+- the same keys on your servers: `C-a s` installs the config over SSH and, while a remote tmux is in front, your bindings act there
 - shell prompt and CLI tooling bootstrap scripts
 - integration with the separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config
 
@@ -57,6 +58,8 @@ For tmux on Windows, use WSL: `wsl --install`
 | `C-a g` | open `lazygit` in a popup |
 | `C-a o` | open the sessionizer/project switcher |
 | `C-a ?` | open the built-in cheatsheet |
+| `C-a s` | SSH to a server, set it up if needed, attach its tmux |
+| `F12` | hand the keys to the remote tmux, or take them back |
 | `C-a C-u` | update everything in a popup |
 | `dotup` | update repos, plugins, gh extensions, and CLI tools |
 
