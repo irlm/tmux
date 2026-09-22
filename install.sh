@@ -148,14 +148,18 @@ if [ "$MODE" = "server" ]; then
         install_gh_binary "sharkdp/fd" "fd" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
         install_gh_binary "sharkdp/bat" "bat" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
         install_gh_binary "aristocratos/btop" "btop" "${ARCH}.*linux.*musl.*\\.tbz" || true
-        install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${ARCH}.*\\.tar\\.gz" || true
+        # fastfetch names x86_64 assets "amd64" but keeps "aarch64" for arm
+        [ "$ARCH" = "x86_64" ] && FF_ARCH="amd64" || FF_ARCH="$ARCH"
+        install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${FF_ARCH}[^-]*\\.tar\\.gz" || true
+        # C-a g is a headline binding; one static binary is worth it on a server
+        install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
 
     elif [ "$OS" = "Darwin" ]; then
         if ! command -v brew &>/dev/null; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
         fi
-        brew install tmux neovim fzf ripgrep bat btop fastfetch jq w3m 2>/dev/null
+        brew install tmux neovim fzf ripgrep bat btop fastfetch jq w3m lazygit 2>/dev/null
     fi
 
     # zoxide (official install script)
@@ -378,7 +382,8 @@ elif [ "$OS" = "Linux" ]; then
     install_gh_binary "sharkdp/fd" "fd" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
     install_gh_binary "sharkdp/bat" "bat" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
     install_gh_binary "aristocratos/btop" "btop" "${ARCH}.*linux.*musl.*\\.tbz" || true
-    install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${ARCH}.*\\.tar\\.gz" || true
+    [ "$ARCH" = "x86_64" ] && FF_ARCH="amd64" || FF_ARCH="$ARCH"   # fastfetch: amd64 but aarch64
+    install_gh_binary "fastfetch-cli/fastfetch" "fastfetch" "linux-${FF_ARCH}[^-]*\\.tar\\.gz" || true
     install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
     install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
     install_gh_binary "cli/cli" "gh" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true

@@ -14,6 +14,10 @@ All notable changes to this tmux configuration will be documented in this file.
 - **Docs**: the usage guide's SSH section is rewritten around the workflow — connecting (`C-a s` or by hand, windows and split panes alike), getting out (`F12` then `C-a n` / `C-a l`), what the status bar means, how detection works, servers without the config, keeping servers current
 
 ### Fixed
+- **`C-a g` did nothing on a server**: two causes. Server mode never installed lazygit — it now does (one static binary). And the tmux server's PATH lacked `~/.local/bin`, where server mode puts `bat`, `fd`, `rg`, `zoxide` and `tldr`, so no popup could find them either; `scripts/tmux-path.sh` now runs at config load and adds the per-user tool directories (plus Homebrew, the JDK and Coursier) to the server environment
+- **Popups no longer vanish when their tool is missing**: `C-a g` and `C-a d` go through `scripts/popup.sh`, which keeps the popup open with the reason and the install command
+- **fastfetch never installed on x86_64 servers**: its release assets are named `amd64`, not `x86_64`; the install pattern now maps the architecture
+- **Health check knows about server installs**: it checks the server tool set, skips language toolchains, and `--fix` runs `install.sh --server` instead of the full workstation install
 - **nvim config never updated on servers**: Lazy rewrites `lazy-lock.json` on every plugin sync, so on any machine other than the one where the config is edited the file was always locally modified and `git pull --ff-only` refused. `update.sh` now discards a `lazy-lock.json`-only change before pulling (the committed version wins and Lazy regenerates it anyway); any other local edit still stops the pull and is reported
 
 ### Changed

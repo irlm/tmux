@@ -53,7 +53,15 @@ DRY=0
 section() { echo ""; echo "── $1 ──"; }
 
 # Tools the installers are meant to provide, checked by command name.
-MANAGED_TOOLS="tmux nvim git fzf zoxide bat btop fastfetch lazygit lazydocker gh oh-my-posh rg fd jq w3m tldr"
+# A server-mode install (install.sh --server, marked by ~/.config/nvim/.server)
+# is a deliberately smaller set, and has no language toolchains to check.
+if [ -f "$NVIM_DIR/.server" ]; then
+    SERVER_MODE=1
+    MANAGED_TOOLS="tmux nvim git fzf zoxide bat btop fastfetch lazygit rg fd jq w3m tldr"
+else
+    SERVER_MODE=0
+    MANAGED_TOOLS="tmux nvim git fzf zoxide bat btop fastfetch lazygit lazydocker gh oh-my-posh rg fd jq w3m tldr"
+fi
 
 # ─── Repo updates ─────────────────────────────────────────
 update_repo() {
@@ -241,6 +249,7 @@ for tool in $MANAGED_TOOLS; do
 done
 
 missing_lang=""
+[ "$SERVER_MODE" = "1" ] || {
 command -v node &>/dev/null    || missing_lang="$missing_lang node"
 command -v go &>/dev/null      || missing_lang="$missing_lang go"
 command -v rustc &>/dev/null   || missing_lang="$missing_lang rust"
@@ -253,13 +262,16 @@ if command -v rustup &>/dev/null; then
 fi
 command -v metals &>/dev/null  || missing_lang="$missing_lang metals"
 command -v docker &>/dev/null  || missing_lang="$missing_lang docker"
+}
 
 if [ -z "$missing" ]; then
     echo "  CLI tools: all present."
 else
     echo "  CLI tools missing:$missing"
 fi
-if [ -z "$missing_lang" ]; then
+if [ "$SERVER_MODE" = "1" ]; then
+    echo "  Toolchains: not expected (server install)."
+elif [ -z "$missing_lang" ]; then
     echo "  Toolchains: all present."
 else
     echo "  Toolchains missing:$missing_lang"
@@ -280,8 +292,13 @@ if [ -n "$missing$missing_lang" ] && [ "$DRY" != "1" ]; then
             echo "  Re-run with --fix to install them."
         fi
         if [ "$run_installer" = "1" ]; then
-            echo "  Running install.sh (it skips whatever is already installed)..."
-            bash "$INSTALLER" || echo "  Installer reported errors — see output above."
+            if [ "$SERVER_MODE" = "1" ]; then
+                echo "  Running install.sh --server (it skips whatever is already installed)..."
+                bash "$INSTALLER" --server || echo "  Installer reported errors — see output above."
+            else
+                echo "  Running install.sh (it skips whatever is already installed)..."
+                bash "$INSTALLER" || echo "  Installer reported errors — see output above."
+            fi
         fi
     fi
 fi

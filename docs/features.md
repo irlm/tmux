@@ -103,6 +103,8 @@ The tmux config enables these plugins:
 | `scripts/ai-ask.sh` | quick AI prompt popup |
 | `scripts/status_right.sh` | right side status bar renderer |
 | `scripts/net_speed.sh` | network speed helper |
+| `scripts/tmux-path.sh` | run at config load: puts `~/.local/bin`, Homebrew, the JDK and Coursier on the tmux server's PATH so popups and new panes can find per-user tools |
+| `scripts/popup.sh` | runs a popup's tool, or keeps the popup open with why it cannot and how to install it |
 | `scripts/status_ssh.sh` | SSH target for a second status line (not wired into `tmux.conf` at present) |
 | `scripts/ssh-remote.sh` | `C-a s` / `C-a P`: connect, install the config on the server if missing, attach its tmux (new window / split pane) |
 | `scripts/remote-mode.sh` | decides whether the pane in front shows a remote tmux and switches the local prefix off or on accordingly; `F12` overrides it |
