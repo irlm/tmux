@@ -138,6 +138,16 @@ if [ "$SELF" = "$TMUX_DIR/update.sh" ] && [ -z "${DOTFILES_UPDATE_REEXEC:-}" ]; 
     fi
 else
     update_repo "tmux" "$TMUX_DIR"
+    # Piped from curl, $0 is just "bash": whatever the CDN served is what is
+    # running, possibly stale. Hand over to the copy the pull just brought in,
+    # which is the newest by definition. A real file as $0 (a dev checkout,
+    # say) is left alone — it may be newer than what is installed.
+    if [ ! -f "$0" ] && [ -z "${DOTFILES_UPDATE_REEXEC:-}" ] && [ -f "$TMUX_DIR/update.sh" ] \
+       && [ "$DRY" != "1" ]; then
+        echo "  Continuing with the installed update.sh..."
+        echo ""
+        DOTFILES_UPDATE_REEXEC=1 exec bash "$TMUX_DIR/update.sh" "$@"
+    fi
 fi
 
 # ─── tmux plugins ─────────────────────────────────────────
