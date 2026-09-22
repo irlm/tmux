@@ -138,6 +138,15 @@ dotup --fix           # install anything missing without asking
 
 `C-a C-u` runs the same update inside a tmux popup.
 
+On a server, or anywhere the alias is not set up, the same script runs straight from GitHub — the counterpart of the install one-liner:
+
+```bash
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/update.sh | bash
+curl -sL https://raw.githubusercontent.com/irlm/tmux/main/update.sh | bash -s -- --fix   # also install what is missing
+```
+
+It works over a plain `ssh host '...'` too, with no login shell. A server that does not have the config yet needs the install one-liner (or `C-a s` from a machine that does), not this.
+
 That script:
 
 - updates the tmux repo, then re-executes itself if `update.sh` itself changed

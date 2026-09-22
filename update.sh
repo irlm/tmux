@@ -236,9 +236,12 @@ fi
 # ─── Health check + repair ────────────────────────────────
 section "health check"
 # Same PATH additions the shell config makes — otherwise a perfectly good
-# metals or java install reads as missing here.
+# install reads as missing here. ~/.local/bin matters most: it is where
+# server mode puts its tools, and a non-login shell (ssh host 'cmd', or
+# curl ... | bash over one) does not have it.
 for _p in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin \
-          "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
+          "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin" \
+          "$HOME/.cargo/bin" "$HOME/.local/bin"; do
     [ -d "$_p" ] && export PATH="$_p:$PATH"
 done
 unset _p
