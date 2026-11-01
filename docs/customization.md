@@ -59,6 +59,12 @@ to move to the next or previous holiday inside the same popup. Fireworks mix
 round bursts, cascading willow sparks and hearts; Halloween includes a floating
 ghost and Christmas has a shooting star.
 
+July 4 fireworks reveal a large **U S A** in sparks. New Year fireworks reveal
+the celebration year: December 31, 2026 welcomes **2027**, and January 1, 2027
+shows **2027**. Manual New Year replays on other dates look ahead to the next
+January 1. Date previews and the picker use the same calendar rules. Smaller
+terminals fall back to readable single-line lettering.
+
 Motion runs once for about four seconds at 12 frames per
 second, on a canvas capped at 96 by 16 characters. Only changed rows are written
 to the terminal. Finished manual scenes sleep until a key is pressed; animation

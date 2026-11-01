@@ -6,6 +6,8 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Special day ASCII art
 
+- Reveal U S A inside July 4 fireworks and the celebration year inside New Year fireworks; use the upcoming year on New Year's Eve and preserve date context in previews and automatic greetings.
+
 - Show one dismissible greeting per local special day, with fireworks for New Year's Day, July 4 and New Year's Eve; include holiday motifs beside the date on wide terminals.
 - Add `C-a A` and **Special day art** in the command palette to choose and replay celebrations, with static previews and controls for automatic greetings and motion.
 - Add rocket trails, drifting sparks, flying bats, falling snow, floating hearts, clover sparkles and a turkey strut. Cap each animation at four seconds and 12 fps, redraw changed rows only, and sleep without polling after playback. Press `r` to replay.

@@ -253,6 +253,32 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, '')
 
+    def test_special_day_picker_keeps_the_preview_date(self):
+        import sys
+        self.executable('fzf', 'cat >/dev/null; printf "new-years-eve\\tNew Year\\n"')
+        result = subprocess.run([sys.executable, str(REPO / 'scripts/special_days.py'),
+                                 '--pick', '--date', '2030-12-31'], env=self.env,
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("New Year's Eve! 2031", result.stdout)
+
+    def test_special_day_auto_passes_the_date_to_the_greeting(self):
+        import sys
+        self.env['TEST_GREETING'] = str(self.root / 'greeting')
+        self.executable('tmux', '''case "$1" in
+    show-option) printf 'on\\n' ;;
+    display-message) printf '80 24 0\\n' ;;
+    display-popup)
+        for greeting_argument in "$@"; do greeting_command=$greeting_argument; done
+        bash -c "$greeting_command --plain" > "$TEST_GREETING"
+        ;;
+esac''')
+        result = subprocess.run([sys.executable, str(REPO / 'scripts/special_days.py'),
+                                 '--auto', '--client', '/dev/test', '--date', '2030-12-31'],
+                                env=self.env, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("New Year's Eve! 2031", Path(self.env['TEST_GREETING']).read_text())
+
     def test_special_day_status_updates_at_midnight_and_respects_opt_out(self):
         self.env.update(TEST_STATUS_TIME='1000', TEST_STATUS_DAY='2026-10-31', TEST_SPECIAL_DAYS='on')
         self.executable('date', '''if [ "$1" = '+%s %F' ]; then

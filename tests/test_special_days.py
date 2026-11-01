@@ -99,6 +99,36 @@ class SpecialDayTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn('invalid', result.stderr)
 
+    def test_firework_titles_show_usa_and_the_celebration_year(self):
+        for identifier, day, label in (('july-4', '2026-07-04', 'U S A'),
+                                       ('new-year', '2026-11-01', '2027'),
+                                       ('new-years-eve', '2026-12-31', '2027'),
+                                       ('new-year', '2027-01-01', '2027'),
+                                       ('new-years-eve', '2030-12-31', '2031')):
+            with self.subTest(event=identifier, date=day):
+                result = self.cli('--date', day, '--play', identifier, '--plain', '--width', '40')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(label, result.stdout.splitlines()[0])
+                self.assertTrue(all(len(line) <= 40 for line in result.stdout.splitlines()))
+                self.assertTrue(result.stdout.isascii())
+
+    def test_firework_letters_stay_clear_of_moving_sparks(self):
+        for label in ('USA', '2027', '2031'):
+            letters = scenes.banner_rows(label, 60, 12)
+            top, left = (12 - len(letters)) // 2, (60 - len(letters[0])) // 2
+            for frame, variation in ((30, 0), (40, 13), (47, 65535)):
+                with self.subTest(text=label, frame=frame, variation=variation):
+                    picture = scenes.fireworks_frame(60, 12, frame, variation, banner=label)
+                    visible = tuple(row[left:left + len(letters[0])] for row in picture[top:top + len(letters)])
+                    self.assertEqual(visible, letters)
+                    self.assertTrue(any('*' in row for row in visible))
+
+    def test_short_firework_canvases_keep_readable_lettering(self):
+        for label, expected in (('USA', 'U S A'), ('2027', '2027')):
+            picture = scenes.fireworks_frame(38, 3, 30, banner=label)
+            self.assertIn(expected, '\n'.join(picture))
+            self.assertTrue(all(len(line) == 38 and line.isascii() for line in picture))
+
     def test_replay_variations_change_the_scene_and_remain_reproducible(self):
         for identifier, event in special_days.CELEBRATIONS.items():
             with self.subTest(event=identifier):

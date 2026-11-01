@@ -48,9 +48,33 @@ def celebration_on(day):
     return FIXED_DAYS.get((day.month, day.day))
 
 
-def artwork(identifier, width=80):
+def fireworks_banner(identifier, day):
+    if identifier == 'july-4':
+        return 'USA'
+    if identifier in ('new-year', 'new-years-eve'):
+        # Manual replays look forward to the next celebration; January 1 is today.
+        upcoming = identifier == 'new-years-eve' or (day.month, day.day) != (1, 1)
+        return str(day.year + int(upcoming))
+    return ''
+
+
+def celebration_title(identifier, day):
+    label = fireworks_banner(identifier, day)
+    return CELEBRATIONS[identifier].name + (' ' + ('U S A' if label == 'USA' else label) if label else '')
+
+
+def celebration_art(identifier, day, width=80, height=16):
+    label = fireworks_banner(identifier, day)
+    if label:
+        from special_day_scenes import banner_rows
+        return banner_rows(label, width, height)
+    return CELEBRATIONS[identifier].art.splitlines()
+
+
+def artwork(identifier, width=80, day=None):
+    day = day or date.today()
     event = CELEBRATIONS[identifier]
-    lines = [event.name, '', *event.art.splitlines(), '', event.when]
+    lines = [celebration_title(identifier, day), '', *celebration_art(identifier, day, width), '', event.when]
     return '\n'.join(line[:width].center(width).rstrip() for line in lines) + '\n'
 
 
@@ -59,7 +83,8 @@ def tmux(*arguments):
                           timeout=10)
 
 
-def play(identifier, auto_close=False, plain=False, columns=None):
+def play(identifier, auto_close=False, plain=False, columns=None, day=None):
+    day = day or date.today()
     try:
         width, height = os.get_terminal_size(sys.stdout.fileno())
     except OSError:
@@ -67,7 +92,7 @@ def play(identifier, auto_close=False, plain=False, columns=None):
     preview_width = os.environ.get('FZF_PREVIEW_COLUMNS', '')
     width = max(1, (columns or (int(preview_width) if preview_width.isdigit() else width)) - 2)
     if plain or not (sys.stdin.isatty() and sys.stdout.isatty()):
-        print(artwork(identifier, width), end='')
+        print(artwork(identifier, width, day), end='')
         return
 
     # Imported only for interactive Unix terminals; text previews stay portable.
@@ -144,6 +169,8 @@ def play(identifier, auto_close=False, plain=False, columns=None):
         animated = tmux('show-option', '-gqv', '@special_days_motion').stdout.strip() != 'off'
         while True:
             event = CELEBRATIONS[identifier]
+            title = celebration_title(identifier, day)
+            banner = fireworks_banner(identifier, day)
             variation = (variation + randomizer.randrange(1, 65536)) % 65536
             action = None
             if animated:
@@ -151,15 +178,16 @@ def play(identifier, auto_close=False, plain=False, columns=None):
                 frame = 0
                 while frame < FRAME_COUNT:
                     deadline = started + (frame + 1) / FPS
-                    scene = scene_frame(identifier, event.art, scene_width, scene_height, frame, event.fireworks, variation)
-                    draw([event.name, '', *scene, '', playing_hint], colors[0])
+                    scene = scene_frame(identifier, event.art, scene_width, scene_height, frame,
+                                        event.fireworks, variation, banner=banner)
+                    draw([title, '', *scene, '', playing_hint], colors[0])
                     action = wait_action(max(0, deadline - time.monotonic()))
                     if action:
                         break
                     # Skip late frames instead of extending playback or catching up.
                     frame = max(frame + 1, int((time.monotonic() - started) * FPS))
             if action is None:
-                draw([event.name, '', *event.art.splitlines(), '', hint], colors[0])
+                draw([title, '', *celebration_art(identifier, day, scene_width, scene_height), '', hint], colors[0])
                 # No redraw timer or polling while the finished scene waits for input.
                 if auto_close:
                     wait_action(1.25)
@@ -202,23 +230,24 @@ def auto_greet(client, day):
     except FileExistsError:
         return
     command = shlex.join([sys.executable, str(Path(__file__).resolve()),
-                          '--play', identifier, '--auto-close'])
+                          '--play', identifier, '--auto-close', '--date', day.isoformat()])
     result = tmux('display-popup', '-c', client, '-w', '70%', '-h', '65%', '-E', command)
     if result.returncode:
         stamp.rmdir()  # A failed popup can retry at the next attachment.
 
 
-def pick():
-    listing = ''.join(f'{key}\t{event.name}\t{event.when}\n'
+def pick(day=None):
+    day = day or date.today()
+    listing = ''.join(f'{key}\t{celebration_title(key, day)}\t{event.when}\n'
                       for key, event in CELEBRATIONS.items())
-    preview = shlex.join([sys.executable, str(Path(__file__).resolve())]) + ' --play {1} --plain'
+    preview = shlex.join([sys.executable, str(Path(__file__).resolve()), '--date', day.isoformat()]) + ' --play {1} --plain'
     result = subprocess.run(['fzf', '--delimiter=\t', '--with-nth=2..', '--prompt=Special day > ',
                              '--header=Enter: play art | Esc: cancel', '--preview=' + preview,
                              '--preview-window=right:50%:wrap'], input=listing,
                             stdout=subprocess.PIPE, text=True)
     identifier = result.stdout.split('\t', 1)[0].strip()
     if result.returncode == 0 and identifier in CELEBRATIONS:
-        play(identifier)
+        play(identifier, day=day)
 
 
 def main(argv=None):
@@ -240,14 +269,14 @@ def main(argv=None):
     if args.auto:
         auto_greet(args.client, day)
     elif args.pick:
-        pick()
+        pick(day)
     else:
         identifier = args.play or celebration_on(day)
         if identifier:
             if args.status:
                 print(CELEBRATIONS[identifier].motif)
             else:
-                play(identifier, args.auto_close, args.plain, args.width)
+                play(identifier, args.auto_close, args.plain, args.width, day)
 
 
 if __name__ == '__main__':

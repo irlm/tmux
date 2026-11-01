@@ -1,5 +1,6 @@
 """Small, finite ASCII scenes. Loaded only while a celebration is playing."""
 import math
+from functools import lru_cache
 
 FPS = 12
 FRAME_COUNT = 48
@@ -14,6 +15,30 @@ HEART = tuple((math.sin(t) ** 3,
               for t in (n * math.pi / 12 for n in range(24)))
 BURSTS = (DIRECTIONS, WILLOW, HEART)
 SWAY = (0, 0, 1, 1, 0, 0, -1, -1)
+LETTERS = {
+    'U': ('*   *', '*   *', '*   *', '*   *', ' *** '),
+    'S': (' ****', '*    ', ' *** ', '    *', '**** '),
+    'A': (' *** ', '*   *', '*****', '*   *', '*   *'),
+    '0': (' *** ', '*   *', '*   *', '*   *', ' *** '),
+    '1': ('  *  ', ' **  ', '  *  ', '  *  ', ' *** '),
+    '2': ('**** ', '    *', ' *** ', '*    ', '*****'),
+    '3': ('**** ', '    *', ' *** ', '    *', '**** '),
+    '4': ('*  * ', '*  * ', '*****', '   * ', '   * '),
+    '5': ('*****', '*    ', '**** ', '    *', '**** '),
+    '6': (' *** ', '*    ', '**** ', '*   *', ' *** '),
+    '7': ('*****', '    *', '   * ', '  *  ', ' *   '),
+    '8': (' *** ', '*   *', ' *** ', '*   *', ' *** '),
+    '9': (' *** ', '*   *', ' ****', '    *', ' *** '),
+}
+
+
+@lru_cache(maxsize=32)
+def banner_rows(text, width=MAX_WIDTH, height=MAX_HEIGHT):
+    """A tiny built-in font; narrow or short terminals keep readable text."""
+    rows = tuple('  '.join(LETTERS[char][row] for char in text) for row in range(5))
+    if len(rows[0]) > width or height < len(rows):
+        return (('U S A' if text == 'USA' else text)[:width],)
+    return rows
 
 
 class Canvas:
@@ -36,7 +61,7 @@ class Canvas:
         return [''.join(row) for row in self.rows]
 
 
-def fireworks_frame(width, height, frame, variation=0):
+def fireworks_frame(width, height, frame, variation=0, banner=''):
     canvas = Canvas(width, height)
     rockets = ((.17, .28, 0), (.73, .35, 6), (.45, .2, 14),
                (.85, .45, 22), (.28, .25, 28))
@@ -70,12 +95,21 @@ def fireworks_frame(width, height, frame, variation=0):
                            round(y + (radius - 1.4) * dy + fall), '.')
         if burst < 3:
             canvas.put(x, y, '+')
+    if banner and frame >= 8:
+        rows = banner_rows(banner, width, height)
+        text_width = max(map(len, rows))
+        left, top = (width - text_width) // 2, (height - len(rows)) // 2
+        # Keep sparks around the lettering; reveal it once and leave it legible.
+        for row in range(-1, len(rows) + 1):
+            canvas.put(left - 1, top + row, ' ' * (text_width + 2))
+        reveal = min(text_width, (frame - 7) * 2)
+        canvas.sprite(left, top, [row[:reveal] for row in rows])
     return canvas.lines()
 
 
-def scene_frame(identifier, art, width, height, frame, fireworks=False, variation=0):
+def scene_frame(identifier, art, width, height, frame, fireworks=False, variation=0, banner=''):
     if fireworks:
-        return fireworks_frame(width, height, frame, variation)
+        return fireworks_frame(width, height, frame, variation, banner)
 
     frame += variation
     canvas = Canvas(width, height)
