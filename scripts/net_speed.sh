@@ -18,16 +18,16 @@ human_rate() {
 # Get current bytes — works on macOS and Linux
 if [ -f /proc/net/dev ]; then
     # Linux
-    read rx tx <<< $(awk '/:/ && !/lo:/ {rx+=$2; tx+=$10} END {print rx, tx}' /proc/net/dev)
+    read -r rx tx <<< "$(awk '/:/ && !/lo:/ {rx+=$2; tx+=$10} END {print rx, tx}' /proc/net/dev)"
 else
     # macOS — sum all active interfaces
-    read rx tx <<< $(netstat -ib 2>/dev/null | awk '/Link/ && !/lo/ {rx+=$7; tx+=$10} END {print rx, tx}')
+    read -r rx tx <<< "$(netstat -ib 2>/dev/null | awk '/Link/ && !/lo/ {rx+=$7; tx+=$10} END {print rx, tx}')"
 fi
 
 now=$(date +%s)
 
 if [ -f "$CACHE" ]; then
-    read prev_time prev_rx prev_tx < "$CACHE"
+    read -r prev_time prev_rx prev_tx < "$CACHE"
     elapsed=$(( now - prev_time ))
     if [ "$elapsed" -gt 0 ] && [ "$elapsed" -lt 30 ]; then
         down=$(( (rx - prev_rx) / elapsed ))

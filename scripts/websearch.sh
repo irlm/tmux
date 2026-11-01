@@ -20,7 +20,7 @@ if [[ -z "$QUERY" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SITE_ARGS=""
+SITE_ARGS=()
 
 # Cross-platform browser opener
 if command -v xdg-open >/dev/null 2>&1; then
@@ -35,16 +35,16 @@ if $PICK; then
     ENGINE=$(printf 'All\nWikipedia\nGitHub\nStackOverflow\nMDN Web Docs\n' \
         | fzf --height=10 --prompt="Search scope: " --reverse) || exit 0
     case "$ENGINE" in
-        Wikipedia)      SITE_ARGS="--site wikipedia" ;;
-        GitHub)         SITE_ARGS="--site github" ;;
-        StackOverflow)  SITE_ARGS="--site stackoverflow" ;;
-        "MDN Web Docs") SITE_ARGS="--site mdn" ;;
+        Wikipedia)      SITE_ARGS=(--site wikipedia) ;;
+        GitHub)         SITE_ARGS=(--site github) ;;
+        StackOverflow)  SITE_ARGS=(--site stackoverflow) ;;
+        "MDN Web Docs") SITE_ARGS=(--site mdn) ;;
         All)            ;;
     esac
 fi
 
 # Fetch results
-RESULTS=$(python3 "$SCRIPT_DIR/websearch_fetch.py" "$QUERY" $SITE_ARGS 2>/dev/null)
+RESULTS=$(python3 "$SCRIPT_DIR/websearch_fetch.py" "$QUERY" "${SITE_ARGS[@]}" 2>/dev/null)
 
 if [[ -z "$RESULTS" ]]; then
     echo "No results found."
@@ -65,8 +65,8 @@ LINE=$(echo "$SELECTED" | tail -n +2)
 
 # Extract URL from selection or nearby lines
 URL=""
-if echo "$LINE" | grep -qE '^\s*https?://'; then
-    URL=$(echo "$LINE" | sed 's/^ *//')
+if [[ "$LINE" =~ ^[[:space:]]*(https?://[^[:space:]]+) ]]; then
+    URL="${BASH_REMATCH[1]}"
 else
     # Find the result block and extract URL
     LINE_NUM=$(echo "$RESULTS" | grep -nF "$LINE" | head -1 | cut -d: -f1)

@@ -4,22 +4,40 @@
 
 NOTES_DIR="$HOME/.local/share/tmux/notes"
 mkdir -p "$NOTES_DIR"
+export NOTES_DIR
+
+# Extract note name from a "  name  │  preview" line or selection.
+# Pure bash — no forks.
+note_name() {
+    local s="${1#  }"
+    echo "${s%% *}"
+}
+export -f note_name
 
 list_notes() {
     echo "  + New note"
-    for f in $(ls -t "$NOTES_DIR"/*.md 2>/dev/null); do
+    # Read newest-first; line-based loop handles spaces in filenames safely.
+    # shellcheck disable=SC2012  # filenames are sanitized at creation; ls -t needed for portable mtime sort
+    ls -t "$NOTES_DIR"/*.md 2>/dev/null | while IFS= read -r f; do
         name=$(basename "$f" .md)
         preview=$(head -1 "$f" | sed 's/^#* *//')
         echo "  $name  │  $preview"
     done
 }
 
+preview_note() {
+    local f
+    f="$NOTES_DIR/$(note_name "$1").md"
+    [ -f "$f" ] && cat "$f" || echo "New note"
+}
+export -f preview_note
+
 while true; do
     selected=$(
         list_notes | fzf --prompt="Notes > " \
             --header="Enter: edit  |  Ctrl-d: mark delete  |  Esc: quit" \
             --expect=ctrl-d \
-            --preview='f="$HOME/.local/share/tmux/notes/$(echo {} | sed "s/^  //" | cut -d" " -f1).md"; [ -f "$f" ] && cat "$f" || echo "New note"' \
+            --preview="preview_note {}" \
             --preview-window=right:50%:wrap
     )
 
@@ -33,7 +51,7 @@ while true; do
 
     if [ "$key" = "ctrl-d" ]; then
         # Delete with confirmation
-        name=$(echo "$choice" | sed 's/^  //' | cut -d' ' -f1)
+        name=$(note_name "$choice")
         file="$NOTES_DIR/$name.md"
         if [ -f "$file" ]; then
             printf "Delete '%s'? [y/N] " "$name"
@@ -61,7 +79,7 @@ while true; do
         echo "# $name" > "$file"
         echo "" >> "$file"
     else
-        name=$(echo "$choice" | sed 's/^  //' | cut -d' ' -f1)
+        name=$(note_name "$choice")
         file="$NOTES_DIR/$name.md"
     fi
 

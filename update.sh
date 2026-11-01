@@ -75,7 +75,6 @@ fi
 # Check language toolchain
 echo ""
 echo "── language toolchain ──"
-OS="$(uname -s)"
 missing=""
 command -v node &>/dev/null    || missing="$missing node"
 command -v go &>/dev/null      || missing="$missing go"

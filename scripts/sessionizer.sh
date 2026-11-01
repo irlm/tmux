@@ -6,14 +6,15 @@
 dirs=$(find ~/projects ~/.config -maxdepth 4 -type d -name .git \
     -not -path "*/plugins/*" 2>/dev/null | sed 's|/\.git$||')
 
-# Add existing tmux sessions
-sessions=$(tmux list-sessions -F "#{session_name}: #{session_path}" 2>/dev/null)
+# Add existing tmux session paths (so already-running sessions show up too)
+session_paths=$(tmux list-sessions -F "#{session_path}" 2>/dev/null)
 
 # Combine and pick with fzf
-selected=$(echo "$dirs" | sort -u | fzf --prompt="Project > " \
-    --header="Pick a project or session" \
-    --preview 'ls -la {} 2>/dev/null | head -20' \
-    --preview-window=right:40%)
+selected=$(printf '%s\n%s\n' "$dirs" "$session_paths" | sort -u | sed '/^$/d' \
+    | fzf --prompt="Project > " \
+        --header="Pick a project or session" \
+        --preview 'ls -la {} 2>/dev/null | head -20' \
+        --preview-window=right:40%)
 
 [ -z "$selected" ] && exit 0
 

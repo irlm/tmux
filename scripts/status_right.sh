@@ -3,7 +3,6 @@
 
 PLUGIN_DIR="$HOME/.config/tmux/plugins"
 CPU_DIR="$PLUGIN_DIR/tmux-cpu/scripts"
-BAT_DIR="$PLUGIN_DIR/tmux-battery/scripts"
 
 out=""
 sep=" | "
