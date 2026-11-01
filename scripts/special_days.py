@@ -180,14 +180,19 @@ def play(identifier, auto_close=False, plain=False, columns=None, day=None):
                     deadline = started + (frame + 1) / FPS
                     scene = scene_frame(identifier, event.art, scene_width, scene_height, frame,
                                         event.fireworks, variation, banner=banner)
-                    draw([title, '', *scene, '', playing_hint], colors[0])
+                    draw([event.name, '', *scene, '', playing_hint], colors[0])
                     action = wait_action(max(0, deadline - time.monotonic()))
                     if action:
                         break
                     # Skip late frames instead of extending playback or catching up.
                     frame = max(frame + 1, int((time.monotonic() - started) * FPS))
             if action is None:
-                draw([title, '', *celebration_art(identifier, day, scene_width, scene_height), '', hint], colors[0])
+                if event.fireworks and banner:
+                    ending = scene_frame(identifier, event.art, scene_width, scene_height,
+                                         FRAME_COUNT - 1, True, variation, banner=banner)
+                else:
+                    ending = celebration_art(identifier, day, scene_width, scene_height)
+                draw([title, '', *ending, '', hint], colors[0])
                 # No redraw timer or polling while the finished scene waits for input.
                 if auto_close:
                     wait_action(1.25)

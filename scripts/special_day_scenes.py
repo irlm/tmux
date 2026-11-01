@@ -41,6 +41,20 @@ def banner_rows(text, width=MAX_WIDTH, height=MAX_HEIGHT):
     return rows
 
 
+@lru_cache(maxsize=32)
+def letter_targets(text, width, height):
+    """Cache the spark destinations for each letter or digit."""
+    rows = banner_rows(text, width, height)
+    left = (width - len(rows[0])) // 2
+    top = (height - len(rows)) // 2
+    if len(rows) == 1:
+        return tuple(((left + x, top, char),) for x, char in enumerate(rows[0]) if char != ' ')
+    return tuple(tuple((left + index * 7 + x, top + y, char)
+                       for y, row in enumerate(LETTERS[letter])
+                       for x, char in enumerate(row) if char != ' ')
+                 for index, letter in enumerate(text))
+
+
 class Canvas:
     def __init__(self, width, height):
         self.width, self.height = width, height
@@ -61,7 +75,49 @@ class Canvas:
         return [''.join(row) for row in self.rows]
 
 
+def lettering_frame(width, height, frame, variation, text):
+    """Launch each glyph, burst its sparks, and settle them into the full word."""
+    canvas = Canvas(width, height)
+    for index, targets in enumerate(letter_targets(text, width, height)):
+        age = frame - index * 6
+        if age < 0:
+            continue
+        cx = (min(x for x, _, _ in targets) + max(x for x, _, _ in targets)) / 2
+        cy = (min(y for _, y, _ in targets) + max(y for _, y, _ in targets)) / 2
+        if age < 6:
+            launch_x = max(0, min(width - 1, cx + ((variation >> (index * 2)) % 9 - 4) * 2))
+            progress = age / 5
+            x = round(launch_x + (cx - launch_x) * progress)
+            y = round(height - 1 + (cy - height + 1) * progress)
+            canvas.put(x, y, '^')
+            canvas.put(x, y + 1, '|')
+            canvas.put(x, y + 2, ':')
+            continue
+        burst = age - 6
+        directions = BURSTS[(variation + index) % len(BURSTS)]
+        if burst < 3:
+            radius = 1 + burst * .9
+            for dx, dy in directions:
+                canvas.put(round(cx + dx * radius * 1.6), round(cy + dy * radius), '+')
+        elif burst < 12:
+            progress = (burst - 3) / 9
+            ease = progress * progress * (3 - 2 * progress)
+            for spark, (target_x, target_y, _) in enumerate(targets):
+                dx, dy = directions[(spark + variation) % len(directions)]
+                origin_x, origin_y = cx + dx * 4.5, cy + dy * 3
+                x = round(origin_x + (target_x - origin_x) * ease)
+                y = round(origin_y + (target_y - origin_y) * ease + 4 * progress * (1 - progress))
+                canvas.put(x, y + 1, '.')
+                canvas.put(x, y, '*')
+        else:
+            for x, y, char in targets:
+                canvas.put(x, y, char)
+    return canvas.lines()
+
+
 def fireworks_frame(width, height, frame, variation=0, banner=''):
+    if banner:
+        return lettering_frame(width, height, frame, variation, banner)
     canvas = Canvas(width, height)
     rockets = ((.17, .28, 0), (.73, .35, 6), (.45, .2, 14),
                (.85, .45, 22), (.28, .25, 28))
@@ -95,15 +151,6 @@ def fireworks_frame(width, height, frame, variation=0, banner=''):
                            round(y + (radius - 1.4) * dy + fall), '.')
         if burst < 3:
             canvas.put(x, y, '+')
-    if banner and frame >= 8:
-        rows = banner_rows(banner, width, height)
-        text_width = max(map(len, rows))
-        left, top = (width - text_width) // 2, (height - len(rows)) // 2
-        # Keep sparks around the lettering; reveal it once and leave it legible.
-        for row in range(-1, len(rows) + 1):
-            canvas.put(left - 1, top + row, ' ' * (text_width + 2))
-        reveal = min(text_width, (frame - 7) * 2)
-        canvas.sprite(left, top, [row[:reveal] for row in rows])
     return canvas.lines()
 
 

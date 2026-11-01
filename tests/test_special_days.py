@@ -77,10 +77,11 @@ class SpecialDayTests(unittest.TestCase):
 
     def test_fireworks_stay_within_the_terminal(self):
         for width, height in ((1, 3), (38, 8), (138, 12)):
-            for frame in range(scenes.FRAME_COUNT):
-                lines = scenes.fireworks_frame(width, height, frame)
-                self.assertEqual(len(lines), height)
-                self.assertTrue(all(len(line) <= width and line.isascii() for line in lines))
+            for banner in ('', 'USA', '2027'):
+                for frame in range(scenes.FRAME_COUNT):
+                    lines = scenes.fireworks_frame(width, height, frame, banner=banner)
+                    self.assertEqual(len(lines), height)
+                    self.assertTrue(all(len(line) <= width and line.isascii() for line in lines))
         self.assertIn('*', ''.join(scenes.fireworks_frame(60, 12, 9)))
 
     def test_every_celebration_moves_within_a_fixed_ascii_canvas(self):
@@ -112,20 +113,32 @@ class SpecialDayTests(unittest.TestCase):
                 self.assertTrue(all(len(line) <= 40 for line in result.stdout.splitlines()))
                 self.assertTrue(result.stdout.isascii())
 
-    def test_firework_letters_stay_clear_of_moving_sparks(self):
+    def test_firework_sparks_finish_in_the_complete_lettering(self):
         for label in ('USA', '2027', '2031'):
             letters = scenes.banner_rows(label, 60, 12)
             top, left = (12 - len(letters)) // 2, (60 - len(letters[0])) // 2
-            for frame, variation in ((30, 0), (40, 13), (47, 65535)):
+            for frame, variation in ((40, 0), (44, 13), (47, 65535)):
                 with self.subTest(text=label, frame=frame, variation=variation):
                     picture = scenes.fireworks_frame(60, 12, frame, variation, banner=label)
                     visible = tuple(row[left:left + len(letters[0])] for row in picture[top:top + len(letters)])
                     self.assertEqual(visible, letters)
                     self.assertTrue(any('*' in row for row in visible))
 
+    def test_letter_rockets_depend_on_the_word_and_finish_near_the_end(self):
+        usa = scenes.fireworks_frame(60, 12, 4, 7, banner='USA')
+        year = scenes.fireworks_frame(60, 12, 4, 7, banner='2027')
+        self.assertNotEqual(usa, year, 'Letter rockets used the same unrelated flight path')
+        self.assertIn('^', ''.join(usa))
+        letters = scenes.banner_rows('2027', 60, 12)
+        top, left = (12 - len(letters)) // 2, (60 - len(letters[0])) // 2
+        for frame in (0, 10, 20, 30):
+            picture = scenes.fireworks_frame(60, 12, frame, 7, banner='2027')
+            visible = tuple(row[left:left + len(letters[0])] for row in picture[top:top + len(letters)])
+            self.assertNotEqual(visible, letters)
+
     def test_short_firework_canvases_keep_readable_lettering(self):
         for label, expected in (('USA', 'U S A'), ('2027', '2027')):
-            picture = scenes.fireworks_frame(38, 3, 30, banner=label)
+            picture = scenes.fireworks_frame(38, 3, scenes.FRAME_COUNT - 1, banner=label)
             self.assertIn(expected, '\n'.join(picture))
             self.assertTrue(all(len(line) == 38 and line.isascii() for line in picture))
 

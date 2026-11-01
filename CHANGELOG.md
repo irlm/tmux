@@ -6,6 +6,8 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Special day ASCII art
 
+- Launch letters and digits as individual fireworks whose sparks settle into the complete word or year near the finale; hold the finished composition in place.
+
 - Reveal U S A inside July 4 fireworks and the celebration year inside New Year fireworks; use the upcoming year on New Year's Eve and preserve date context in previews and automatic greetings.
 
 - Show one dismissible greeting per local special day, with fireworks for New Year's Day, July 4 and New Year's Eve; include holiday motifs beside the date on wide terminals.
