@@ -1,23 +1,33 @@
 #!/usr/bin/env bash
-# Quick AI answer — ask a question, get a response, scroll, quit
-# Usage: ai-ask.sh [question]
-set -euo pipefail
-
-QUERY="${*:-}"
-
-if [[ -z "$QUERY" ]]; then
-    printf "Ask AI: "
-    read -r QUERY
-    [[ -z "$QUERY" ]] && exit 0
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
+QUERY="$*"
+if [ -z "$QUERY" ]; then
+    printf 'Ask AI: '
+    IFS= read -r QUERY || exit 0
+    [ -n "$QUERY" ] || exit 0
 fi
-
-if ! command -v claude >/dev/null 2>&1; then
-    echo "claude not found. Install Claude Code first."
-    read -rn1
-    exit 1
+provider="${TMUX_AI_COMMAND:-$(tmux_option @ai_command claude)}"
+if ! command -v "$provider" >/dev/null 2>&1; then
+    printf '%s is not installed. Set @ai_command to an installed CLI wrapper.\n' "$provider"
+    pause_close
+    exit 127
 fi
-
-claude -p "$QUERY" 2>/dev/null
-echo
-echo "[press any key to close]"
-read -rn1
+output=$(mktemp)
+trap 'rm -f "$output"' EXIT
+if [ "$provider" = claude ]; then
+    "$provider" -p "$QUERY" > "$output" 2>&1
+else
+    "$provider" "$QUERY" > "$output" 2>&1
+fi
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    printf 'AI request failed (exit %s).\n\n' "$rc"
+    cat "$output"
+    pause_close
+else
+    less -R -- "$output"
+fi
+exit "$rc"

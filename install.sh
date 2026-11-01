@@ -35,7 +35,7 @@ ensure_curl() {
 download() {
     local url="$1" dest="$2"
     if command -v curl &>/dev/null; then
-        curl -sL "$url" -o "$dest"
+        curl -fsSL --connect-timeout 10 "$url" -o "$dest"
     else
         wget -qO "$dest" "$url"
     fi
@@ -78,24 +78,19 @@ install_gh_binary() {
     rm -rf "$tmp"
 }
 
-# ─── Shell rc file ────────────────────────────────────────
-# Append to the file this machine's shells actually read: an existing .zshrc
-# first, then an existing .zprofile (common on macOS setups that never had a
-# .zshrc), and only create .zshrc when neither is there.
-shell_rc_file() {
-    local candidates
-    local os="${OS:-$(uname -s)}"
-    if [ "$os" = "Darwin" ] || [ "${SHELL##*/}" = "zsh" ]; then
-        candidates="$HOME/.zshrc $HOME/.zprofile"
-    else
-        candidates="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile"
-    fi
-    local f
-    for f in $candidates; do
-        [ -f "$f" ] && echo "$f" && return
-    done
-    echo "${candidates%% *}"
-}
+# Load shared assets locally, or bootstrap them for the curl one-liner.
+INSTALL_ASSETS="${TMUX_INSTALL_ASSETS:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/tools.tsv" ]; then
+    ensure_curl
+    INSTALL_ASSETS=$(mktemp -d)
+    trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT
+    mkdir -p "$INSTALL_ASSETS/scripts"
+    download "https://raw.githubusercontent.com/irlm/tmux/main/scripts/install-lib.sh" "$INSTALL_ASSETS/scripts/install-lib.sh"
+    download "https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv" "$INSTALL_ASSETS/tools.tsv"
+fi
+# shellcheck source=scripts/install-lib.sh
+source "$INSTALL_ASSETS/scripts/install-lib.sh"
+install_target_shell >/dev/null
 
 # ─── Full setup mode ─────────────────────────────────────
 if [ "$MODE" = "full" ]; then
@@ -103,9 +98,9 @@ if [ "$MODE" = "full" ]; then
     echo ""
     ensure_curl
     TMPSCRIPT=$(mktemp)
-    trap 'rm -f "$TMPSCRIPT"' EXIT
     download "https://raw.githubusercontent.com/irlm/tmux/main/setup.sh" "$TMPSCRIPT"
-    bash "$TMPSCRIPT"
+    TMUX_INSTALL_ASSETS="$INSTALL_ASSETS" bash "$TMPSCRIPT"
+    rm -f -- "$TMPSCRIPT"
     exit 0
 fi
 
@@ -119,7 +114,7 @@ if [ "$MODE" = "server" ]; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux htop jq build-essential w3m
+            sudo apt-get install -y -qq curl git tmux htop jq build-essential w3m python3 fd-find
             # neovim (apt version is too old for LazyVim on Ubuntu < 24.04)
             if ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; then
                 echo "  Installing neovim via appimage..."
@@ -130,11 +125,11 @@ if [ "$MODE" = "server" ]; then
                 sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
             fi
         elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl git tmux jq neovim gcc make w3m
+            sudo dnf install -y -q curl git tmux jq neovim gcc make w3m python3 fd-find
         elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm --needed curl git tmux jq neovim base-devel w3m
+            sudo pacman -S --noconfirm --needed curl git tmux jq neovim base-devel w3m python fd
         elif command -v zypper &>/dev/null; then
-            sudo zypper install -y curl git tmux jq neovim gcc make w3m
+            sudo zypper install -y curl git tmux jq neovim gcc make w3m python3
         fi
 
         # GitHub-first installs (latest versions, package manager fallback)
@@ -161,7 +156,12 @@ if [ "$MODE" = "server" ]; then
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
         fi
-        brew install tmux neovim fzf ripgrep bat btop fastfetch jq w3m lazygit 2>/dev/null
+        install_brew_tools server "$INSTALL_ASSETS"
+    fi
+
+    if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
     fi
 
     # zoxide (official install script)
@@ -169,81 +169,25 @@ if [ "$MODE" = "server" ]; then
         curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
     fi
 
-    # tlrc (Rust tldr client — GitHub release, x86_64 only; cargo fallback)
+    # tlrc (architecture-matched release; Homebrew on macOS)
     if ! command -v tldr &>/dev/null && ! command -v tlrc &>/dev/null; then
         ARCH=$(uname -m)
-        if [ "$ARCH" = "x86_64" ]; then
-            if [ "$OS" = "Darwin" ]; then
-                install_gh_binary "tldr-pages/tlrc" "tldr" "x86_64.*apple.*darwin.*\\.tar\\.gz" || true
-            else
-                install_gh_binary "tldr-pages/tlrc" "tldr" "x86_64.*linux.*musl.*\\.tar\\.gz" || true
-            fi
+        if [ "$OS" = Darwin ]; then
+            brew install tlrc
+        elif [ "$OS" = Linux ]; then
+            install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
         elif command -v cargo &>/dev/null; then
             echo "  Installing tlrc via cargo (no binary for $ARCH)..."
             cargo install tlrc 2>/dev/null || true
         fi
     fi
 
-    # Clone configs
-    REPO_BASE="https://github.com/irlm"
-    for pair in "tmux.git:$HOME/.config/tmux" "nvim.git:$HOME/.config/nvim"; do
-        repo="${pair%%:*}"
-        dest="${pair##*:}"
-        if [ -d "$dest/.git" ]; then
-            remote=$(cd "$dest" && git remote get-url origin 2>/dev/null || echo "")
-            if echo "$remote" | grep -q "irlm"; then
-                echo "Updating $repo..."
-                (cd "$dest" && git pull --ff-only) || true
-            fi
-        else
-            echo "Cloning $repo..."
-            mkdir -p "$(dirname "$dest")"
-            rm -rf "$dest"
-            git clone "$REPO_BASE/$repo" "$dest"
-        fi
-    done
+    clone_config tmux "$HOME/.config/tmux"
+    clone_config nvim "$HOME/.config/nvim"
 
-    # TPM
-    TPM_DIR="$HOME/.config/tmux/plugins/tpm"
-    if [ ! -d "$TPM_DIR" ]; then
-        git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
-    fi
-    "$TPM_DIR/bin/install_plugins" 2>/dev/null || true
-    "$TPM_DIR/bin/update_plugins" all 2>/dev/null || true
-    "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
+    install_tmux_plugins "$HOME/.config/tmux"
 
-    # Shell: add lightweight prompt + zoxide
-    RCFILE="$(shell_rc_file)"
-    if [ -f "$RCFILE" ]; then
-        # Lightweight prompt (pure shell, no external binaries)
-        if ! grep -q "prompt.sh\|prompt.zsh" "$RCFILE" 2>/dev/null; then
-            echo '' >> "$RCFILE"
-            echo '# ─── lightweight prompt (git branch, exit code, no oh-my-posh) ─' >> "$RCFILE"
-            if [ "$OS" = "Darwin" ]; then
-                echo '[ -f ~/.config/tmux/scripts/prompt.zsh ] && . ~/.config/tmux/scripts/prompt.zsh' >> "$RCFILE"
-            else
-                echo '[ -f ~/.config/tmux/scripts/prompt.sh ] && . ~/.config/tmux/scripts/prompt.sh' >> "$RCFILE"
-            fi
-        fi
-        # zoxide
-        if ! grep -q "zoxide" "$RCFILE" 2>/dev/null; then
-            echo '' >> "$RCFILE"
-            echo '# zoxide' >> "$RCFILE"
-            if [ "$OS" = "Darwin" ]; then
-                echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$RCFILE"
-            else
-                echo 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)"' >> "$RCFILE"
-            fi
-        fi
-        # sudo nvim: preserve user config + editor default
-        if ! grep -q "sudoedit\|EDITOR" "$RCFILE" 2>/dev/null; then
-            echo '' >> "$RCFILE"
-            echo '# ─── editor ─────────────────────────────────────────────' >> "$RCFILE"
-            echo 'export EDITOR=nvim' >> "$RCFILE"
-            echo 'export VISUAL=nvim' >> "$RCFILE"
-            echo 'alias svim="sudo -E nvim"  # sudo nvim with your config' >> "$RCFILE"
-        fi
-    fi
+    install_shell_integration server
 
     # Mark nvim as server mode (disables LSPs, heavy treesitter, Mason packages)
     touch "$HOME/.config/nvim/.server"
@@ -253,9 +197,10 @@ if [ "$MODE" = "server" ]; then
     export PATH="$HOME/.local/bin:$PATH"
 
     echo ""
+    check_install_tools server "$INSTALL_ASSETS"
     echo "=== Server install complete! ==="
     echo ""
-    echo "Installed: tmux, neovim, fzf, ripgrep, bat, btop, fastfetch, jq, zoxide"
+    echo "Config installed. Run ~/.config/tmux/update.sh --check to verify all tools."
     echo ""
     echo "Next steps:"
     echo "  1. Start tmux: tmux"
@@ -290,38 +235,6 @@ fi
 # ─── Backup existing configs ─────────────────────────────
 BACKUP_DIR="$HOME/.config/dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 
-backup_if_exists() {
-    local path="$1"
-    local name="$2"
-    if [ -d "$path" ] && [ ! -d "$path/.git" ]; then
-        echo "Found existing $name config (not a git repo)"
-        read -rp "  Back up $path before replacing? [Y/n] " answer
-        answer="${answer:-Y}"
-        if [[ "$answer" =~ ^[Yy] ]]; then
-            mkdir -p "$BACKUP_DIR"
-            cp -r "$path" "$BACKUP_DIR/$name"
-            echo "  Backed up to $BACKUP_DIR/$name"
-        fi
-    elif [ -d "$path/.git" ]; then
-        # Check if it's our repo or someone else's
-        local remote
-        remote=$(cd "$path" && git remote get-url origin 2>/dev/null || echo "")
-        if [ -n "$remote" ] && ! echo "$remote" | grep -q "irlm"; then
-            echo "Found existing $name config (git repo: $remote)"
-            read -rp "  Back up $path before replacing? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [[ "$answer" =~ ^[Yy] ]]; then
-                mkdir -p "$BACKUP_DIR"
-                cp -r "$path" "$BACKUP_DIR/$name"
-                echo "  Backed up to $BACKUP_DIR/$name"
-            fi
-        fi
-    fi
-}
-
-backup_if_exists "$HOME/.config/tmux" "tmux"
-backup_if_exists "$HOME/.config/nvim" "nvim"
-
 # Backup the shell config this run will append to, if it exists
 RC_TO_BACKUP="$(shell_rc_file)"
 if [ -f "$RC_TO_BACKUP" ]; then
@@ -340,7 +253,8 @@ if [ "$OS" = "Darwin" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
     fi
-    for pkg in tmux neovim lazygit lazydocker fzf zoxide bat gh fastfetch btop oh-my-posh node go w3m openjdk; do
+    install_brew_tools desktop "$INSTALL_ASSETS"
+    for pkg in node go openjdk; do
         if brew list "$pkg" &>/dev/null; then
             echo "  $pkg already installed"
         else
@@ -350,7 +264,7 @@ if [ "$OS" = "Darwin" ]; then
     done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux nodejs npm golang-go default-jdk python3 build-essential w3m
+    sudo apt-get install -y tmux nodejs npm golang-go default-jdk python3 build-essential w3m jq
     # neovim via appimage (apt version is too old for LazyVim, needs 0.10+)
     install_nvim=false
     if ! command -v nvim &>/dev/null; then
@@ -422,42 +336,15 @@ fi
 echo ""
 echo "Setting up configs..."
 
-REPO_BASE="https://github.com/irlm"
 
-clone_or_pull() {
-    local repo="$1"
-    local dest="$2"
-    local name="$3"
-    local remote
-
-    if [ -d "$dest/.git" ]; then
-        remote=$(cd "$dest" && git remote get-url origin 2>/dev/null || echo "")
-        if echo "$remote" | grep -q "irlm"; then
-            echo "$name config exists, pulling..."
-            cd "$dest" && git pull --ff-only
-            return
-        fi
-    fi
-
-    echo "Cloning $name config..."
-    rm -rf "$dest"
-    git clone "$REPO_BASE/$repo" "$dest"
-}
-
-clone_or_pull "tmux.git" "$HOME/.config/tmux" "tmux"
-clone_or_pull "nvim.git" "$HOME/.config/nvim" "nvim"
+clone_config tmux "$HOME/.config/tmux"
+clone_config nvim "$HOME/.config/nvim"
+rm -f -- "$HOME/.config/nvim/.server"
 
 # ─── TPM plugins ──────────────────────────────────────────
 echo ""
 echo "Installing tmux plugins..."
-TPM_DIR="$HOME/.config/tmux/plugins/tpm"
-if [ ! -d "$TPM_DIR" ]; then
-    git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"
-fi
-# Install new plugins, update existing, remove unused
-"$TPM_DIR/bin/install_plugins" 2>/dev/null || true
-"$TPM_DIR/bin/update_plugins" all 2>/dev/null || true
-"$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
+install_tmux_plugins "$HOME/.config/tmux"
 
 # ─── Neovim language toolchain ───────────────────────────
 echo ""
@@ -535,49 +422,7 @@ else
 fi
 
 # ─── Shell config ─────────────────────────────────────────
-echo ""
-RCFILE="$(shell_rc_file)"
-echo "Shell config: $RCFILE"
-if ! grep -q "oh-my-posh" "$RCFILE" 2>/dev/null; then
-    echo "  Adding oh-my-posh..."
-    cat >> "$RCFILE" << 'ZSHRC'
-
-# ─── oh-my-posh prompt ─────────────────────────────────
-eval "$(oh-my-posh init zsh --config ~/.config/tmux/nord.omp.json)"
-ZSHRC
-fi
-
-if ! grep -q "zoxide" "$RCFILE" 2>/dev/null; then
-    echo "  Adding zoxide..."
-    echo 'command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"' >> "$RCFILE"
-fi
-
-if ! grep "Coursier" "$RCFILE" >/dev/null 2>&1; then
-    echo "  Adding JDK + Coursier to PATH..."
-    cat >> "$RCFILE" << 'ZSHRC'
-
-# ─── Java + Coursier tools (metals, scalafmt) ──────────
-# Homebrew's openjdk is keg-only; Coursier installs outside any default PATH.
-for _jdk in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin; do
-  [ -d "$_jdk" ] && export PATH="$_jdk:$PATH" && break
-done
-unset _jdk
-for _cs_bin in "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
-  [ -d "$_cs_bin" ] && export PATH="$_cs_bin:$PATH" && break
-done
-unset _cs_bin
-ZSHRC
-fi
-
-if ! grep -q "dotup" "$RCFILE" 2>/dev/null; then
-    echo "  Adding update aliases..."
-    cat >> "$RCFILE" << 'ZSHRC'
-
-# ─── Dotfiles update ───────────────────────────────────
-alias dotup='~/.config/tmux/update.sh'             # update repos, plugins, tools
-alias dotcheck='~/.config/tmux/update.sh --check'  # report only, change nothing
-ZSHRC
-fi
+install_shell_integration desktop
 
 # ─── Create data dirs ─────────────────────────────────────
 mkdir -p "$HOME/.local/share/tmux"
@@ -585,6 +430,7 @@ mkdir -p "$HOME/.local/bin"
 
 # ─── Done ─────────────────────────────────────────────────
 echo ""
+check_install_tools desktop "$INSTALL_ASSETS"
 echo "=== Install complete! ==="
 echo ""
 echo "Next steps:"

@@ -22,9 +22,12 @@ pause_exit() {
 }
 
 if [ -z "$host" ]; then
-    echo "usage: ssh-remote.sh <host>"
-    pause_exit 1
+    printf "SSH host (alias or user@host): "
+    IFS= read -r host || exit 0
+    [ -n "$host" ] || exit 0
 fi
+
+case "$host" in -*|*[[:space:]]*) echo 'Enter a host alias or user@host; put SSH options in ~/.ssh/config.'; pause_exit 1 ;; esac
 
 # Share one connection between the probe, the install and the attach, so a
 # password or passphrase is asked for once instead of three times.

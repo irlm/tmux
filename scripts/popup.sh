@@ -12,7 +12,10 @@
 # for tools installed after the tmux server started.
 
 # Tools installed by these dotfiles, so "how to fix" can be specific.
-MANAGED="tmux nvim git fzf zoxide bat btop htop fastfetch lazygit lazydocker gh oh-my-posh rg fd jq w3m tldr curl"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
+MANAGED=$(managed_tools desktop | tr '\n' ' ')
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -40,7 +43,7 @@ fix_hint() {  # for a plain tool name
 
 mode="run"
 case "${1:-}" in
-    --any|--need|--gh-ext) mode="${1#--}"; shift ;;
+    --any|--need|--exec-need|--gh-ext) mode="${1#--}"; shift ;;
 esac
 
 case "$mode" in
@@ -64,6 +67,12 @@ case "$mode" in
         have "$tool" || retry_with_login_path
         have "$tool" || fail "'$tool' is not installed" "$(fix_hint "$tool")"
         exec sh -c "$*"
+        ;;
+    exec-need)
+        tool="${1:-}"; shift; [ "${1:-}" = "--" ] && shift
+        have "$tool" || retry_with_login_path
+        have "$tool" || fail "'$tool' is not installed" "$(fix_hint "$tool")"
+        exec "$@"
         ;;
     gh-ext)
         ext="${1:-}"; shift; [ "${1:-}" = "--" ] && shift

@@ -111,9 +111,9 @@ Server mode keeps things intentionally lean. It:
 
 The installers clone this repo into `~/.config/tmux` and the Neovim repo into `~/.config/nvim`.
 
-If the installer finds an existing config that is not already one of these repos, it may prompt to back it up first. The default backup location is under `~/.config/dotfiles-backup/`.
+All Unix install modes and the Windows installer stage a new clone before replacing custom configs. Existing configs move to a sibling `.backup.*` directory after the clone succeeds. Clone failures preserve the existing config in place.
 
-`install.sh` appends its shell settings to the file your shells already read: an existing `~/.zshrc` first, then an existing `~/.zprofile` (common on macOS setups that never had a `.zshrc`), and it only creates `~/.zshrc` when neither exists. It prints which file it chose and backs that file up before touching it. Every block it adds is guarded, so re-running the installer does not duplicate them. `setup.sh --full` is different: it owns the shell config and writes a complete `~/.zshrc` (or `~/.bashrc`) after backing up the old one, leaving any `~/.zprofile` alone.
+Shell integration uses the selected Bash or Zsh shell and preserves personal rc files. The installer adds a managed include after making a backup. Full setup sources its fuller defaults from separate managed shell files. Set `TMUX_TARGET_SHELL` to explicitly choose Bash or Zsh. See [Customization and diagnostics](customization.md) for local overrides and profile options.
 
 ## Post-Install Checklist
 
@@ -145,35 +145,26 @@ Flags go on the end of any form (`bash -s -- --fix` for the curl one):
 --fix      install anything missing without asking
 ```
 
-The `dotup` and `dotcheck` aliases exist only where the installer wrote the shell config; a server-mode install has the script but not the alias. A machine that does not have the config at all needs the install one-liner, or `C-a s` from a machine that does — not this.
+The `dotup` and `dotcheck` aliases exist only where the installer wrote the shell config; server-mode installs now include the managed aliases too. A machine that does not have the config at all needs the install one-liner, or `C-a s` from a machine that does — not this.
 
 **One run is always enough**, however far behind the machine is. The script pulls the repo first and, if `update.sh` itself changed, re-executes the freshly pulled copy in the same run. The curl form does the same by handing over to the installed copy after the pull: what `raw.githubusercontent.com` serves can lag a push by a few minutes, and a piped script cannot re-run itself, so without the hand-over it could pull the newest commit and still finish with the old logic.
 
 What the script does:
 
-- updates the tmux repo, then continues with the newest `update.sh` as above
-- installs TPM if missing, then installs, updates, and cleans tmux plugins
-- reloads the tmux config if tmux is running
-- updates the Neovim repo (discarding a `lazy-lock.json`-only local change, which Lazy rewrites on every sync) and runs Neovim plugin sync
-- upgrades the `gh-dash` extension, installing it when missing
-- upgrades the Homebrew formulae these installers manage (macOS)
-- checks for missing CLI tools and language toolchains — the server-mode set on a server install — and offers to run the installer to fill the gaps
+- updates the tmux repo, then continues with the newest installed `update.sh`
+- updates the Neovim repo while preserving local changes, including lock files
+- installs TPM if missing, then installs, updates and cleans tmux plugins
+- reloads tmux when running and syncs Neovim plugins, including in `--quick` mode
+- upgrades GitHub extensions and the managed Homebrew terminal tools
+- checks required capabilities and reports each failed component with a nonzero exit status
 
-### When an update reports a problem
+Full component transcripts are in `~/.local/share/tmux/update-logs/`. A failed pull requires resolving the local Git state in that repository. A missing `gh-dash` extension may require `gh auth login`. For a missing required tool, run `dotup --fix`; for config or plugin problems, follow the exact repair printed by the health check. Language toolchains and Docker remain optional workstation extras.
 
-| Message | What it means |
-|---------|---------------|
-| `cannot reach GitHub` | the fetch failed (offline, or credentials the helper could not supply); the update skips that repo and carries on |
-| `Blocked by local changes — these plugins could not update` | a Neovim plugin has uncommitted changes, usually a generated file such as `markdown-preview.nvim`'s `app/yarn.lock`. Run the `git -C <path> checkout .` line it prints, then update again |
-| `gh-dash missing, installing...` followed by a failure | the GitHub CLI is not authenticated yet — run `gh auth login`, then update again |
-| `Toolchains missing: ...` | language toolchains are absent; answer the prompt, or re-run with `dotup --fix` |
-| `Toolchains missing: java` or `metals` after installing them | on macOS both live off the default PATH (keg-only `openjdk`, and Coursier's `~/Library/Application Support/Coursier/bin`). The installers add them to the shell config they write — open a new shell, or re-run the installer if your shell config predates it |
-
-Neovim's plugin sync is verbose, so its full transcript goes to `~/.local/share/tmux/update-nvim.log` and only problems are printed.
-
-Homebrew upgrades are limited to the formulae these installers manage, so the rest of your Homebrew setup is left alone.
+Homebrew upgrades are limited to the terminal formulae in `tools.tsv`. See [Customization and diagnostics](customization.md) for profiles, personal settings and diagnostic coverage.
 
 ## Related Repos
 
 - [irlm/tmux](https://github.com/irlm/tmux): tmux config, scripts, and installers
 - [irlm/nvim](https://github.com/irlm/nvim): Neovim / LazyVim config
+
+Update failures now return a nonzero exit status and link to component logs. Local Neovim lock changes are preserved. `--quick` also updates Neovim plugins. See [Customization and diagnostics](customization.md#health-checks-and-updates) for the diagnostic commands and their limits.

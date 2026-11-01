@@ -257,7 +257,9 @@ if (Test-Path $WtSettingsPath) {
 
     # Set keybindings (use "actions" for newer WT versions)
     if ($settings.PSObject.Properties["actions"]) {
-        $settings.actions = $actions
+        $managedKeys = @($keybindings | ForEach-Object { $_.keys })
+        $existingActions = @($settings.actions | Where-Object { $_.keys -notin $managedKeys })
+        $settings.actions = $existingActions + $actions
     } else {
         $settings | Add-Member -NotePropertyName "actions" -NotePropertyValue $actions -Force
     }
@@ -352,7 +354,12 @@ if (Get-Command fastfetch -ErrorAction SilentlyContinue) {
 }
 '@
 
-Set-Content -Path $PROFILE -Value $ProfileContent -Encoding UTF8
+$ManagedProfile = Join-Path (Split-Path $PROFILE) "tmux-environment.ps1"
+Set-Content -Path $ManagedProfile -Value $ProfileContent -Encoding UTF8
+$ExistingProfile = if (Test-Path $PROFILE) { Get-Content $PROFILE -Raw } else { "" }
+if ($ExistingProfile -notmatch 'tmux-environment\.ps1') {
+    Add-Content -Path $PROFILE -Value "`n. (Join-Path (Split-Path `$PROFILE) 'tmux-environment.ps1')" -Encoding UTF8
+}
 Ok "PowerShell profile configured at $PROFILE"
 
 # ─── PSFzf module ─────────────────────────────────────

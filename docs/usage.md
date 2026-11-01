@@ -30,6 +30,7 @@ If you just installed the project, these are the commands and keys you will prob
 
 | Key | Action | Key | Action |
 |-----|--------|-----|--------|
+| `F` | searchable command palette | `?` | generated help |
 | `g` | `lazygit` | `n` | quick notes |
 | `G` | `gh dash` | `o` | sessionizer |
 | `d` | `lazydocker` | `?` | cheatsheet |
@@ -39,7 +40,7 @@ If you just installed the project, these are the commands and keys you will prob
 
 ## Search and Reference
 
-Quick lookups without leaving tmux. All results open in a popup — press `q` to close.
+Quick lookups without leaving tmux. Prompts read literal input inside the popup. Pager results close with `q`; picker results cancel with Esc.
 
 | Key | Action | Notes |
 |-----|--------|-------|
@@ -101,7 +102,7 @@ Install this config on a server and your local keys work there unchanged: while 
 
 `REMOTE` on the left means the local prefix is off and every key, `C-a` included, is going to the server. Below it you see the server's own status bar, since the remote tmux is drawing the pane — that is the quickest way to tell which machine `C-a t` will hit.
 
-Whenever the active pane holds an ssh session — remote tmux or not — a second status line appears underneath the first showing where it is connected: `SSH host as user:port`, taken from the running `ssh` command (works for `mosh`, `autossh` and the other remote clients too). It follows the active pane and disappears when the session ends.
+Whenever the active pane holds an ssh session — remote tmux or not — a second status line appears underneath the first showing where it is connected: `SSH host as user:port`, detected from the active pane’s process tree (best effort for `mosh`, `autossh` and other client wrappers). It follows the active pane and disappears when the session ends.
 
 ### How detection works
 
@@ -121,7 +122,7 @@ Nothing announces itself, so the local tmux keeps its prefix. Press `F12` in tha
 
 ### Keeping servers current
 
-The server gets the same `update.sh` as your workstation. Run `~/.config/tmux/update.sh` there — or from your own machine, `ssh host '~/.config/tmux/update.sh'`, or the curl one-liner in the [installation guide](installation.md#updating) — and it pulls this repo, updates plugins, and reloads its tmux config. One run is always enough, however old the server's copy is. The `dotup` alias is only there if the installer wrote the server's shell config; a server-mode install has the script but not the alias.
+The server gets the same `update.sh` as your workstation. Run `~/.config/tmux/update.sh` there — or from your own machine, `ssh host '~/.config/tmux/update.sh'`, or the curl one-liner in the [installation guide](installation.md#updating) — and it pulls this repo, updates plugins, and reloads its tmux config. One run is always enough, however old the server's copy is. The `dotup` alias is only there if the installer wrote the server's shell config; server mode now installs the same managed update aliases.
 
 ## Copy Mode
 
@@ -173,3 +174,5 @@ These are the aliases documented for the shell setup that ships with the project
 | `C-a C-u` | same update, in a tmux popup |
 | `C-a ?` | open the on-screen cheatsheet |
 | `nvim` | open the paired Neovim setup |
+
+Personal settings, project roots, profile options and diagnostics are documented in [Customization and diagnostics](customization.md).

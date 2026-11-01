@@ -156,6 +156,7 @@ install_from_github() {
   if [ -n "$found" ]; then
     chmod +x "$found"
     mkdir -p "$HOME/.local/bin"
+  export PATH="$HOME/.local/bin:$PATH"
     mv "$found" "$HOME/.local/bin/$binary"
     ok "$binary installed to ~/.local/bin"
   else
@@ -222,27 +223,25 @@ install_prerequisites() {
 
 install_prerequisites
 
+INSTALL_ASSETS="${TMUX_INSTALL_ASSETS:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/tools.tsv" ]; then
+  INSTALL_ASSETS=$(mktemp -d)
+  trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT
+  mkdir -p "$INSTALL_ASSETS/scripts"
+  curl -fsSL https://raw.githubusercontent.com/irlm/tmux/main/scripts/install-lib.sh -o "$INSTALL_ASSETS/scripts/install-lib.sh"
+  curl -fsSL https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv -o "$INSTALL_ASSETS/tools.tsv"
+fi
+# shellcheck source=scripts/install-lib.sh
+source "$INSTALL_ASSETS/scripts/install-lib.sh"
+SHELL_TYPE=$(install_target_shell)
+
 # ─── Tmux config ──────────────────────────────────────
 # Done early — so configs land even if later optional installs (Docker
 # cask, nerd font cask, etc.) fail for non-admin users.
 TMUX_DIR="$HOME/.config/tmux"
 mkdir -p "$TMUX_DIR"
 
-# Clone or update the tmux config repo (must happen before TPM)
-if [ -d "$TMUX_DIR/.git" ]; then
-  remote=$(cd "$TMUX_DIR" && git remote get-url origin 2>/dev/null || echo "")
-  if echo "$remote" | grep -q "irlm"; then
-    info "tmux config exists, pulling..."
-    (cd "$TMUX_DIR" && git pull --ff-only) && ok "tmux config updated" || warn "tmux config pull failed"
-  else
-    ok "tmux config exists (custom repo: $remote)"
-  fi
-else
-  info "Cloning tmux config..."
-  rm -rf "$TMUX_DIR"
-  git clone https://github.com/irlm/tmux.git "$TMUX_DIR"
-  ok "tmux config installed"
-fi
+clone_config tmux "$TMUX_DIR"
 
 # Symlink ~/.tmux.conf for older tmux versions (< 3.1) that don't read ~/.config/tmux/
 if [ ! -e "$HOME/.tmux.conf" ]; then
@@ -250,59 +249,13 @@ if [ ! -e "$HOME/.tmux.conf" ]; then
   ok "Symlinked ~/.tmux.conf -> ~/.config/tmux/tmux.conf"
 fi
 
-# ─── TPM (Tmux Plugin Manager) ────────────────────────
-TPM_DIR="$HOME/.config/tmux/plugins/tpm"
-mkdir -p "$HOME/.config/tmux/plugins"
-
-if [ -f "$TPM_DIR/tpm" ]; then
-  ok "TPM already installed"
-else
-  [ -d "$TPM_DIR" ] && rm -rf "$TPM_DIR"
-  info "Installing TPM..."
-  if git clone --depth 1 https://github.com/tmux-plugins/tpm "$TPM_DIR"; then
-    ok "TPM installed"
-  else
-    err "Failed to clone TPM — check your internet connection"
-  fi
-fi
-
-if [ -f "$TPM_DIR/tpm" ]; then
-  chmod +x "$TPM_DIR/tpm"
-  chmod +x "$TPM_DIR/bin/"* 2>/dev/null || true
-  chmod +x "$TPM_DIR/scripts/"* 2>/dev/null || true
-fi
-
 # ─── Neovim config ────────────────────────────────────
 # If an existing ~/.config/nvim is not our git repo, back it up and
 # clone fresh. Previous versions silently skipped, leaving the user
 # with the default nvim experience.
 NVIM_DIR="$HOME/.config/nvim"
-needs_nvim_clone=true
-if [ -d "$NVIM_DIR/.git" ]; then
-  remote=$(cd "$NVIM_DIR" && git remote get-url origin 2>/dev/null || echo "")
-  if echo "$remote" | grep -q "irlm"; then
-    info "nvim config exists, pulling..."
-    (cd "$NVIM_DIR" && git pull --ff-only) && ok "nvim config updated" || warn "nvim config pull failed"
-    needs_nvim_clone=false
-  else
-    nvim_backup="$NVIM_DIR.bak-$(date +%Y%m%d-%H%M%S)"
-    warn "nvim config has different remote ($remote) — backing up to $nvim_backup"
-    mv "$NVIM_DIR" "$nvim_backup"
-  fi
-elif [ -d "$NVIM_DIR" ]; then
-  nvim_backup="$NVIM_DIR.bak-$(date +%Y%m%d-%H%M%S)"
-  warn "nvim config exists but is not a git repo — backing up to $nvim_backup"
-  mv "$NVIM_DIR" "$nvim_backup"
-fi
-
-if $needs_nvim_clone; then
-  info "Cloning nvim config..."
-  if git clone https://github.com/irlm/nvim.git "$NVIM_DIR"; then
-    ok "nvim config installed"
-  else
-    err "nvim clone failed — check your network or git access"
-  fi
-fi
+clone_config nvim "$NVIM_DIR"
+rm -f -- "$NVIM_DIR/.server"
 
 # ─── Core Packages ─────────────────────────────────────
 install_core_packages() {
@@ -310,22 +263,7 @@ install_core_packages() {
 
   if [[ "$OS" == "macos" ]]; then
     # macOS: everything via Homebrew
-    local BREW_PACKAGES=(
-      tmux fzf lazygit lazydocker btop fastfetch gh
-      jq w3m
-    )
-    for pkg in "${BREW_PACKAGES[@]}"; do
-      if brew list "$pkg" &>/dev/null; then
-        ok "$pkg already installed"
-      else
-        info "Installing $pkg..."
-        if brew install "$pkg"; then
-          ok "$pkg installed"
-        else
-          warn "Failed to install $pkg (continuing)"
-        fi
-      fi
-    done
+    install_brew_tools desktop "$INSTALL_ASSETS"
     return
   fi
 
@@ -882,17 +820,12 @@ clone_if_missing() {
   fi
 }
 
-if [[ "$OS" == "macos" ]]; then
-  # macOS uses zsh (default shell)
-  SHELL_TYPE="zsh"
+if [[ "$SHELL_TYPE" == "zsh" ]]; then
   ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
   mkdir -p "$ZSH_PLUGIN_DIR"
   clone_if_missing "zsh-users/zsh-autosuggestions" "$ZSH_PLUGIN_DIR/zsh-autosuggestions"
   clone_if_missing "zsh-users/zsh-syntax-highlighting" "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting"
   clone_if_missing "zsh-users/zsh-completions" "$ZSH_PLUGIN_DIR/zsh-completions"
-else
-  # Linux uses bash (already default)
-  SHELL_TYPE="bash"
 fi
 
 # ─── fzf keybindings ──────────────────────────────────
@@ -908,235 +841,13 @@ elif [ -f /usr/share/fzf/key-bindings.bash ] || [ -f /usr/share/doc/fzf/examples
   ok "fzf keybindings available (sourced via shell rc)"
 fi
 
-# ─── Backup existing shell config ─────────────────────
-BACKUP_DIR="$HOME/.config/shell-backup/$(date +%Y%m%d-%H%M%S)"
-
-if [[ "$OS" == "macos" ]]; then
-  # macOS: backup zsh configs + Oh My Zsh migration
-  if [ -d "$HOME/.oh-my-zsh" ]; then
-    warn "Oh My Zsh detected — migrating..."
-    mkdir -p "$BACKUP_DIR"
-    [ -f "$HOME/.zshrc" ] && cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc" && ok "Backed up .zshrc"
-    [ -f "$HOME/.zprofile" ] && cp "$HOME/.zprofile" "$BACKUP_DIR/.zprofile" && ok "Backed up .zprofile"
-    [ -f "$HOME/.p10k.zsh" ] && cp "$HOME/.p10k.zsh" "$BACKUP_DIR/.p10k.zsh" && ok "Backed up .p10k.zsh"
-    mv "$HOME/.oh-my-zsh" "$BACKUP_DIR/.oh-my-zsh"
-    ok "Oh My Zsh moved to $BACKUP_DIR/.oh-my-zsh"
-  elif [ -f "$HOME/.zshrc" ]; then
-    mkdir -p "$BACKUP_DIR"
-    cp "$HOME/.zshrc" "$BACKUP_DIR/.zshrc"
-    warn "Backed up existing .zshrc to $BACKUP_DIR"
-  fi
-else
-  # Linux: backup .bashrc
-  if [ -f "$HOME/.bashrc" ]; then
-    mkdir -p "$BACKUP_DIR"
-    cp "$HOME/.bashrc" "$BACKUP_DIR/.bashrc"
-    warn "Backed up existing .bashrc to $BACKUP_DIR"
-  fi
-fi
-
-# ─── Write shell config ──────────────────────────────
-if [[ "$SHELL_TYPE" == "zsh" ]]; then
-  # ── macOS: .zshrc ──
-  RCFILE="$HOME/.zshrc"
-  info "Configuring .zshrc..."
-
-  cat > "$RCFILE" << 'ZSHRC_EOF'
-# ─── Path ────────────────────────────────────────────────
-export PATH="$HOME/.local/bin:$PATH"
-
-# Homebrew's openjdk is keg-only, so without this `java` resolves to the
-# macOS stub that has no runtime behind it.
-for _jdk in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin; do
-  [ -d "$_jdk" ] && export PATH="$_jdk:$PATH" && break
-done
-unset _jdk
-
-# Coursier installs metals and scalafmt here, outside any default PATH.
-for _cs_bin in "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
-  [ -d "$_cs_bin" ] && export PATH="$_cs_bin:$PATH" && break
-done
-unset _cs_bin
-
-# ─── Homebrew (macOS) ───────────────────────────────────
-if [ -d /opt/homebrew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [ -x /usr/local/bin/brew ]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
-
-# ─── Oh My Posh prompt ──────────────────────────────────
-if command -v oh-my-posh &>/dev/null; then
-  eval "$(oh-my-posh init zsh --config ~/.config/tmux/nord.omp.json)"
-fi
-
-# ─── Zsh options ─────────────────────────────────────────
-setopt AUTO_CD HIST_IGNORE_ALL_DUPS HIST_SAVE_NO_DUPS SHARE_HISTORY CORRECT
-HISTSIZE=50000
-SAVEHIST=50000
-HISTFILE=~/.zsh_history
-
-# ─── Completion ──────────────────────────────────────────
-autoload -Uz compinit
-compinit -C
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
-zstyle ':completion:*' menu select
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-
-# ─── Plugins ─────────────────────────────────────────────
-ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
-[ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
-[ -f "$ZSH_PLUGIN_DIR/zsh-completions/zsh-completions.plugin.zsh" ] && source "$ZSH_PLUGIN_DIR/zsh-completions/zsh-completions.plugin.zsh"
-[ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-
-# ─── fzf ─────────────────────────────────────────────────
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-export FZF_DEFAULT_OPTS="--color=fg:#d8dee9,bg:#2e3440,hl:#88c0d0 --color=fg+:#eceff4,bg+:#434c5e,hl+:#5e81ac --color=info:#ebcb8b,prompt:#81a1c1,pointer:#bf616a --color=marker:#a3be8c,spinner:#b48ead,header:#88c0d0"
-
-# ─── Modern CLI aliases ─────────────────────────────────
-command -v eza    &>/dev/null && alias ls='eza --icons' && alias ll='eza -la --icons --git' && alias tree='eza --tree --icons'
-command -v bat    &>/dev/null && alias cat='bat --style=plain'
-command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
-
-# ─── Useful aliases ──────────────────────────────────────
-alias ..='cd ..'
-alias ...='cd ../..'
-alias g='git'
-alias gs='git status'
-alias gl='git log --oneline --graph --decorate -20'
-alias gp='git push'
-alias gpl='git pull'
-alias lg='lazygit'
-alias t='tmux'
-alias ta='tmux attach || tmux new'
-alias dotup='~/.config/tmux/update.sh'          # update repos, plugins, tools
-alias dotcheck='~/.config/tmux/update.sh --check'  # report only, change nothing
-command -v tlrc &>/dev/null && alias help='tlrc'
-
-# ─── Fastfetch on new shell (only interactive, non-tmux) ─
-if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
-  fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
-fi
-
-# ─── Editor ─────────────────────────────────────────────
-export EDITOR=nvim
-export VISUAL=nvim
-alias svim="sudo -E nvim"  # sudo nvim with your config
-
-# ─── Source extras ───────────────────────────────────────
-[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-ZSHRC_EOF
-
-else
-  # ── Linux: .bashrc ──
-  RCFILE="$HOME/.bashrc"
-  info "Configuring .bashrc..."
-
-  cat > "$RCFILE" << 'BASHRC_EOF'
-# ─── Path ────────────────────────────────────────────────
-export PATH="$HOME/.local/bin:$PATH"
-
-# Homebrew's openjdk is keg-only, so without this `java` resolves to the
-# macOS stub that has no runtime behind it.
-for _jdk in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin; do
-  [ -d "$_jdk" ] && export PATH="$_jdk:$PATH" && break
-done
-unset _jdk
-
-# Coursier installs metals and scalafmt here, outside any default PATH.
-for _cs_bin in "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
-  [ -d "$_cs_bin" ] && export PATH="$_cs_bin:$PATH" && break
-done
-unset _cs_bin
-
-# ─── Oh My Posh prompt ──────────────────────────────────
-if command -v oh-my-posh &>/dev/null; then
-  eval "$(oh-my-posh init bash --config ~/.config/tmux/nord.omp.json)"
-fi
-
-# ─── History ─────────────────────────────────────────────
-HISTSIZE=50000
-HISTFILESIZE=50000
-HISTCONTROL=ignoreboth:erasedups
-shopt -s histappend
-
-# ─── Shell options ───────────────────────────────────────
-shopt -s autocd 2>/dev/null         # cd by typing directory name
-shopt -s cdspell                    # fix minor cd typos
-shopt -s checkwinsize               # update LINES/COLUMNS after resize
-shopt -s globstar 2>/dev/null       # ** recursive glob
-
-# ─── fzf ─────────────────────────────────────────────────
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
-[ -f /usr/share/fzf/key-bindings.bash ] && source /usr/share/fzf/key-bindings.bash
-[ -f /usr/share/fzf/completion.bash ] && source /usr/share/fzf/completion.bash
-[ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && source /usr/share/doc/fzf/examples/key-bindings.bash
-[ -f /usr/share/doc/fzf/examples/completion.bash ] && source /usr/share/doc/fzf/examples/completion.bash
-export FZF_DEFAULT_OPTS="--color=fg:#d8dee9,bg:#2e3440,hl:#88c0d0 --color=fg+:#eceff4,bg+:#434c5e,hl+:#5e81ac --color=info:#ebcb8b,prompt:#81a1c1,pointer:#bf616a --color=marker:#a3be8c,spinner:#b48ead,header:#88c0d0"
-
-# ─── Modern CLI aliases ─────────────────────────────────
-command -v eza    &>/dev/null && alias ls='eza --icons' && alias ll='eza -la --icons --git' && alias tree='eza --tree --icons'
-command -v bat    &>/dev/null && alias cat='bat --style=plain'
-command -v zoxide &>/dev/null && eval "$(zoxide init bash)"
-
-# ─── Useful aliases ──────────────────────────────────────
-alias ..='cd ..'
-alias ...='cd ../..'
-alias g='git'
-alias gs='git status'
-alias gl='git log --oneline --graph --decorate -20'
-alias gp='git push'
-alias gpl='git pull'
-alias lg='lazygit'
-alias t='tmux'
-alias ta='tmux attach || tmux new'
-alias dotup='~/.config/tmux/update.sh'          # update repos, plugins, tools
-alias dotcheck='~/.config/tmux/update.sh --check'  # report only, change nothing
-command -v tlrc &>/dev/null && alias help='tlrc'
-
-# ─── WSL browser ─────────────────────────────────────────
-if [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; then
-  command -v wslview &>/dev/null && export BROWSER="wslview"
-fi
-
-# ─── Fastfetch on new shell (only interactive, non-tmux) ─
-if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
-  fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
-fi
-
-# ─── Editor ─────────────────────────────────────────────
-export EDITOR=nvim
-export VISUAL=nvim
-alias svim="sudo -E nvim"  # sudo nvim with your config
-
-# ─── Source extras ───────────────────────────────────────
-[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-BASHRC_EOF
-
-fi
-
-ok "$RCFILE configured"
+# Preserve personal shell files; source a separately managed integration file.
+install_shell_integration full
 
 # ─── Install tmux plugins ─────────────────────────────
-info "Installing tmux plugins via TPM..."
-if [ -f "$TPM_DIR/bin/install_plugins" ]; then
-  # TPM install_plugins needs a running tmux server
-  # Start a detached server if none exists, install plugins, then kill it
-  if ! tmux list-sessions &>/dev/null; then
-    info "Starting temporary tmux server for plugin install..."
-    tmux new-session -d -s _tpm_install 2>/dev/null
-    "$TPM_DIR/bin/install_plugins" 2>/dev/null && ok "Plugins installed" || warn "Plugin install failed — press C-a I inside tmux"
-    "$TPM_DIR/bin/update_plugins" all 2>/dev/null && ok "Plugins updated" || true
-    "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
-    tmux kill-session -t _tpm_install 2>/dev/null
-  else
-    "$TPM_DIR/bin/install_plugins" 2>/dev/null && ok "Plugins installed" || warn "Plugin install failed — press C-a I inside tmux"
-    "$TPM_DIR/bin/update_plugins" all 2>/dev/null && ok "Plugins updated" || true
-    "$TPM_DIR/bin/clean_plugins" 2>/dev/null || true
-  fi
-else
-  warn "TPM not found — start tmux and press C-a I to install plugins"
-fi
+install_tmux_plugins "$TMUX_DIR"
+
+check_install_tools desktop "$INSTALL_ASSETS"
 
 # ─── Done ──────────────────────────────────────────────
 echo ""

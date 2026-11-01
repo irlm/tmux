@@ -44,22 +44,13 @@ scoop bucket add nerd-fonts 2>$null
 Write-Host ""
 Write-Host "Installing dependencies..."
 
-$packages = @(
-    "neovim",
-    "lazygit",
-    "lazydocker",
-    "fzf",
-    "zoxide",
-    "bat",
-    "gh",
-    "fastfetch",
-    "btop",
-    "oh-my-posh",
-    "nodejs",
-    "go",
-    "python",
-    "openjdk"
-)
+$manifestPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot "tools.tsv" } else { "" }
+if ($manifestPath -and (Test-Path $manifestPath)) {
+    $toolManifest = Import-Csv $manifestPath -Delimiter "`t"
+} else {
+    $toolManifest = (Invoke-RestMethod "https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
+}
+$packages = @($toolManifest | Where-Object { $_.scoop -ne "-" } | ForEach-Object { $_.scoop }) + @("nodejs", "go", "openjdk")
 
 foreach ($pkg in $packages) {
     # Check if already installed via scoop (more reliable than checking command name)
@@ -68,7 +59,8 @@ foreach ($pkg in $packages) {
         Write-Host "  $pkg already installed"
     } else {
         Write-Host "  Installing $pkg..."
-        try { scoop install $pkg 2>$null } catch { Write-Host "  Warning: $pkg install had issues, may need retry" -ForegroundColor Yellow }
+        scoop install $pkg
+        if ($LASTEXITCODE -ne 0) { throw "Failed to install $pkg. Re-run after resolving the error above." }
     }
 }
 
@@ -151,31 +143,6 @@ $backupDir = "$env:USERPROFILE\.config\dotfiles-backup\$(Get-Date -Format 'yyyyM
 $nvimPath = "$env:LOCALAPPDATA\nvim"
 $tmuxPath = "$env:USERPROFILE\.config\tmux"
 
-function Backup-IfExists {
-    param($Path, $Name)
-    if (Test-Path $Path) {
-        $isOurRepo = $false
-        if (Test-Path "$Path\.git") {
-            Push-Location $Path
-            $remote = git remote get-url origin 2>$null
-            Pop-Location
-            if ($remote -match "irlm") { $isOurRepo = $true }
-        }
-        if (-not $isOurRepo) {
-            Write-Host "Found existing $Name config at $Path"
-            $answer = Read-Host "  Back up before replacing? [Y/n]"
-            if ($answer -eq "" -or $answer -match "^[Yy]") {
-                New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-                Copy-Item -Path $Path -Destination "$backupDir\$Name" -Recurse
-                Write-Host "  Backed up to $backupDir\$Name" -ForegroundColor Green
-            }
-        }
-    }
-}
-
-Backup-IfExists -Path $nvimPath -Name "nvim"
-Backup-IfExists -Path $tmuxPath -Name "tmux"
-
 # Backup PowerShell profile
 if (Test-Path $PROFILE) {
     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
@@ -191,21 +158,33 @@ $repoBase = "https://github.com/irlm"
 
 function Clone-OrPull {
     param($Repo, $Dest, $Name)
+    $repoName = $Repo -replace '\.git$', ''
     if (Test-Path "$Dest\.git") {
-        Push-Location $Dest
-        $remote = git remote get-url origin 2>$null
-        Pop-Location
-        if ($remote -match "irlm") {
-            Write-Host "  $Name config exists, pulling..."
-            Push-Location $Dest
-            git pull --ff-only
-            Pop-Location
+        $remote = git -C $Dest remote get-url origin 2>$null
+        if ($remote -in @("https://github.com/irlm/$repoName", "https://github.com/irlm/$repoName.git", "git@github.com:irlm/$repoName.git", "ssh://git@github.com/irlm/$repoName.git")) {
+            git -C $Dest pull --ff-only
+            if ($LASTEXITCODE -ne 0) { throw "Failed to update $Name; existing config preserved." }
             return
         }
     }
-    Write-Host "  Cloning $Name config..."
-    if (Test-Path $Dest) { Remove-Item $Dest -Recurse -Force }
-    git clone "$repoBase/$Repo" $Dest
+    $stage = "$Dest.stage.$([guid]::NewGuid().ToString('N'))"
+    New-Item -ItemType Directory -Path (Split-Path $Dest) -Force | Out-Null
+    git clone "$repoBase/$Repo" $stage
+    if ($LASTEXITCODE -ne 0) {
+        if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+        throw "Failed to clone $Name; existing config preserved."
+    }
+    $backup = $null
+    if (Test-Path $Dest) {
+        $backup = "$Dest.backup.$([guid]::NewGuid().ToString('N'))"
+        Move-Item -LiteralPath $Dest -Destination $backup -ErrorAction Stop
+        Write-Host "  Previous config saved to $backup"
+    }
+    try { Move-Item -LiteralPath $stage -Destination $Dest -ErrorAction Stop }
+    catch {
+        if ($backup) { Move-Item -LiteralPath $backup -Destination $Dest -ErrorAction Stop }
+        throw
+    }
 }
 
 Clone-OrPull -Repo "nvim.git" -Dest $nvimPath -Name "nvim"
@@ -242,11 +221,19 @@ if ($profileContent -notmatch "zoxide") {
     Add-Content $PROFILE "Invoke-Expression (& { (zoxide init powershell | Out-String) })"
 }
 
-# fzf
-if ($profileContent -notmatch "FzfHistory") {
-    Write-Host "  Adding fzf..."
-    Add-Content $PROFILE "`n# ─── fzf integration ──────────────────────────────────"
-    Add-Content $PROFILE "Set-PSReadLineKeyHandler -Key Ctrl+r -ScriptBlock { Invoke-FzfHistory }"
+# fzf requires the PowerShell wrapper module, not just fzf.exe.
+if (-not (Get-Module -ListAvailable PSFzf)) {
+    Install-Module PSFzf -Scope CurrentUser -Force -ErrorAction Stop
+}
+if ($profileContent -notmatch "Set-PsFzfOption") {
+    Add-Content $PROFILE @'
+
+# fzf history and file selection
+if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvailable PSFzf)) {
+    Import-Module PSFzf
+    Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
+}
+'@
 }
 
 # aliases

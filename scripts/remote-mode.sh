@@ -50,14 +50,16 @@ SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 # dies abruptly would leave the prefix off at a local shell. It only polls
 # while remote mode is on; the script prints nothing, so the label is unchanged.
 apply_on() {
+    [ "$(tmux show -t "$session" -qv key-table)" != off ] || return 0
     tmux set -t "$session" prefix None \; \
          set -t "$session" key-table off \; \
-         set -t "$session" status-left "#[bg=colour1,fg=colour15,bold]  REMOTE #[default] #($SELF auto '#{session_id}')" \; \
+         set -t "$session" status-left "#[bg=#{@theme_red},fg=#{@theme_background},bold]  REMOTE #[default] #($SELF auto '#{session_id}')" \; \
          if -F -t "$session" '#{pane_in_mode}' 'send-keys -X cancel' \; \
          refresh-client -S >/dev/null 2>&1
 }
 
 apply_off() {
+    [ "$(tmux show -t "$session" -qv key-table)" = off ] || return 0
     tmux set -u -t "$session" prefix \; \
          set -u -t "$session" key-table \; \
          set -u -t "$session" status-left \; \
@@ -72,10 +74,10 @@ REMOTE_CLIENTS="${REMOTE_CLIENTS:-ssh slogin mosh mosh-client autossh sshpass et
 # title sequence to the pane's tty is how to retitle it without select-pane -T,
 # which would also move the focus.
 sweep_stale_markers() {
-    local line pane alt tty title
+    local line alt tty title
     tmux list-panes -s -t "$session" -F '#{pane_id}|#{alternate_on}|#{pane_tty}|#{pane_title}' 2>/dev/null |
     while IFS= read -r line; do
-        pane="${line%%|*}"; line="${line#*|}"
+        line="${line#*|}"
         alt="${line%%|*}";  line="${line#*|}"
         tty="${line%%|*}";  title="${line#*|}"
         case "$title" in

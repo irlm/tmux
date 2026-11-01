@@ -1,0 +1,38 @@
+{
+  "nord": {
+    "name": "Nord",
+    "description": "Existing Nord palette with brighter red and secondary text",
+    "prompt": "nord.omp.json",
+    "colors": {
+      "background": "#2e3440", "selection": "#3b4252",
+      "foreground": "#eceff4", "muted": "#b6c1d2",
+      "accent": "#88c0d0", "blue": "#8fb7e0", "cyan": "#8fbcbb",
+      "green": "#a3be8c", "yellow": "#ebcb8b", "red": "#f2a1a8",
+      "magenta": "#d4a9ca"
+    }
+  },
+  "catppuccin": {
+    "name": "Catppuccin Macchiato",
+    "description": "The existing Catppuccin palette with a neutral selection background",
+    "prompt": "catppuccin.omp.json",
+    "colors": {
+      "background": "#24273a", "selection": "#363a4f",
+      "foreground": "#cad3f5", "muted": "#b8c0e0",
+      "accent": "#8bd5ca", "blue": "#8aadf4", "cyan": "#91d7e3",
+      "green": "#a6da95", "yellow": "#eed49f", "red": "#ed8796",
+      "magenta": "#c6a0f6"
+    }
+  },
+  "contrast": {
+    "name": "High contrast",
+    "description": "Nord-based dark surfaces with brighter text and status colors",
+    "prompt": "nord.omp.json",
+    "colors": {
+      "background": "#20242e", "selection": "#303747",
+      "foreground": "#f5f7fc", "muted": "#d1d9e6",
+      "accent": "#9fdbeb", "blue": "#a8caff", "cyan": "#a1e6dc",
+      "green": "#b6e7a1", "yellow": "#ffe1a1", "red": "#ffb4b4",
+      "magenta": "#ddbbff"
+    }
+  }
+}

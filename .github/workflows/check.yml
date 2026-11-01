@@ -1,0 +1,37 @@
+name: Workflow checks
+on:
+  push:
+  pull_request:
+jobs:
+  unix:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install check tools
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            brew install tmux shellcheck zsh
+          else
+            sudo apt-get update
+            sudo apt-get install -y tmux shellcheck zsh
+          fi
+      - name: Shell syntax and static analysis
+        shell: bash
+        run: |
+          for file in install.sh setup.sh update.sh scripts/*.sh shell/full.bash shell/theme-env.sh; do bash -n "$file"; done
+          zsh -n scripts/prompt.zsh
+          zsh -n shell/full.zsh
+          shellcheck -S warning -x install.sh setup.sh update.sh scripts/*.sh shell/theme-env.sh
+      - name: Regression and isolated tmux tests
+        run: python3 -m unittest discover -s tests -v
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell syntax and config preservation
+        shell: pwsh
+        run: ./tests/test-windows.ps1

@@ -57,6 +57,8 @@ For tmux on Windows, use WSL: `wsl --install`
 | `C-a h j k l` | move between panes |
 | `C-a g` | open `lazygit` in a popup |
 | `C-a o` | open the sessionizer/project switcher |
+| `C-a F` | search commands and see missing dependencies |
+| `C-a C-t` | choose and preview Nord, Catppuccin, or High contrast |
 | `C-a ?` | open the built-in cheatsheet |
 | `C-a s` / `C-a P` | SSH to a server (new window / split pane), set it up if needed, attach its tmux |
 | `F12` | hand the keys to the remote tmux, or take them back |
@@ -69,6 +71,7 @@ For tmux on Windows, use WSL: `wsl --install`
 - [Installation guide](docs/installation.md)
 - [Usage and keybindings](docs/usage.md)
 - [Features and project layout](docs/features.md)
+- [Customization and diagnostics](docs/customization.md)
 
 ## Related Repo
 

@@ -69,8 +69,6 @@ The tmux config enables these plugins:
 - `tmux-plugins/tmux-resurrect`
 - `tmux-plugins/tmux-continuum`
 - `tmux-plugins/tmux-cpu`
-- `tmux-plugins/tmux-battery`
-- `tmux-plugins/tmux-net-speed`
 - `sainnhe/tmux-fzf`
 - `fcsonline/tmux-thumbs`
 - `arcticicestudio/nord-tmux`
@@ -117,3 +115,9 @@ The tmux config enables these plugins:
 |------|---------|
 | [irlm/tmux](https://github.com/irlm/tmux) | tmux config, scripts, and installers |
 | [irlm/nvim](https://github.com/irlm/nvim) | Neovim / LazyVim configuration |
+
+## Reliability and Customization
+
+See [Customization and diagnostics](customization.md) for local overrides, desktop/server/compact profiles, ASCII mode, the `C-a F` command palette, worktree-aware project selection, read-only diagnostics, and regression tests. `actions.tsv` drives popup bindings and generated action help; `tools.tsv` defines required tools by profile.
+
+Status sampling uses private atomic caches. Battery samples are reused for a minute; SSH status is session-scoped. Starting tmux does not clone plugins or require network access.

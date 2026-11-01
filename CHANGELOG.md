@@ -2,6 +2,32 @@
 
 All notable changes to this tmux configuration will be documented in this file.
 
+## [Unreleased]
+
+### Theme selection and readable colors
+
+- Add C-a C-t theme selection with previews, based on Nord, Catppuccin Macchiato and a Nord-based high-contrast palette. Save the choice outside the checkout.
+- Share colors across tmux, pane palettes where supported, popups, help, fzf and Oh My Posh prompts in new shells.
+- Use a lazygit appearance overlay and process-local diff colors while preserving its existing configuration and global Git settings. Brighten Nord red from 2.5:1 to 5.0:1 against the selected-row surface.
+- Verify palette contrast, persistence, config merging and actual lazygit rendering in isolated terminal tests.
+
+### Responsive help layout
+
+- Replace the stacked action list and fixed-width cheatsheet with one grouped reference sized to the actual popup interior.
+- Use one, two or three columns with aligned key fields, wrapped descriptions, and space between groups. Keep tool-specific references below the main shortcuts and retain pager search/scrolling.
+
+### Workflow reliability and usability
+
+- Prevent duplicate notes and installer replacement from destroying existing content; stage clones and retain backups on every platform.
+- Pass prompt text and paths as literal data; retain AI errors and page successful answers.
+- Include live sessions, recent projects, configured roots and Git worktrees in project selection; use canonical project identities.
+- Report failed update components and exit nonzero; preserve local lock changes; include Neovim plugins in quick updates.
+- Scope SSH status to sessions, share SSH discovery, cache status/battery samples, and use private atomic network caches.
+- Share tool requirements between checks, Homebrew/Scoop install paths and popup hints; install the Windows PSFzf module before binding it.
+- Preserve shell rc files and prompt hooks, select the actual Bash/Zsh target, and support user-owned local overrides and compact/ASCII profiles.
+- Add C-a F command search, generated action help, responsive popups, environment diagnostics, regression tests and Unix/Windows CI.
+- Start tmux offline without automatically cloning TPM; remove redundant battery/network plugins.
+
 ## [4.6.0] - 2026-09-22
 
 ### Added

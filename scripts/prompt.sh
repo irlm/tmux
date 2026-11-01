@@ -26,7 +26,7 @@ __prompt_cmd() {
 
     # user@host (green for normal, red for root)
     local user_color="$green"
-    [ "$(id -u)" -eq 0 ] && user_color="$red"
+    [ "$EUID" -eq 0 ] && user_color="$red"
 
     PS1=""
     # Exit code (only if non-zero)
@@ -41,4 +41,10 @@ __prompt_cmd() {
     PS1+=" ${dim}\$${reset} "
 }
 
-PROMPT_COMMAND=__prompt_cmd
+# Prepend our hook once, preserving other integrations and the previous status.
+if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == 'declare -a'* ]]; then
+    case " ${PROMPT_COMMAND[*]} " in *' __prompt_cmd '*) ;; *) PROMPT_COMMAND=(__prompt_cmd "${PROMPT_COMMAND[@]}") ;; esac
+else
+    # shellcheck disable=SC2178,SC2128 # This branch handles a scalar hook.
+    case ";${PROMPT_COMMAND:-};" in *';__prompt_cmd;'*) ;; *) PROMPT_COMMAND="__prompt_cmd${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;; esac
+fi

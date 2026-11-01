@@ -1,72 +1,40 @@
 #!/usr/bin/env bash
-# Second status line while the active pane holds an ssh session: where to.
-#
-#   status_ssh.sh toggle <pane_pid>   silent: turn the second line on or off
-#   status_ssh.sh line   <pane_pid>   print the line's content
-#
-# tmux only runs the #() commands of a line it is showing, so a hidden second
-# line can never switch itself on. The toggle therefore lives in status-right
-# (always shown) and the renderer in status-format[1]. Both get the active
-# pane's shell pid and look for an ssh among its children and grandchildren
-# — a hand-typed ssh is a child; ssh-remote.sh puts it one level down.
-mode="${1:-line}"
-pane_pid="${2:-}"
-[ -z "$pane_pid" ] && exit 0
-
-find_ssh() {
-    local child gchild cmd
-    for child in $(pgrep -P "$pane_pid" 2>/dev/null); do
-        cmd=$(ps -o command= -p "$child" 2>/dev/null)
-        case "$cmd" in ssh\ *|slogin\ *|mosh\ *|mosh-client\ *|autossh\ *|et\ *|tsh\ *) echo "$cmd"; return ;; esac
-        for gchild in $(pgrep -P "$child" 2>/dev/null); do
-            cmd=$(ps -o command= -p "$gchild" 2>/dev/null)
-            case "$cmd" in ssh\ *|slogin\ *|mosh\ *|mosh-client\ *|autossh\ *|et\ *|tsh\ *) echo "$cmd"; return ;; esac
-        done
-    done
-}
-
-ssh_cmd="$(find_ssh)"
-
-if [ "$mode" = "toggle" ]; then
-    current=$(tmux show -gqv status 2>/dev/null)
-    if [ -z "$ssh_cmd" ]; then
-        [ "$current" = "2" ] && tmux set -g status on 2>/dev/null
-    else
-        [ "$current" != "2" ] && tmux set -g status 2 2>/dev/null
+# update <pane_pid> <session_id>: discover once and set this session's height.
+# line <pane_pid>: render the cached discovery without another process scan.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
+mode=${1:-line}; pid=${2:-}; session=${3:-}
+case "$pid" in ''|*[!0-9]*) exit 0 ;; esac
+private_dir "$TMUX_CACHE_DIR" || exit 0
+cache="$TMUX_CACHE_DIR/ssh-$pid"
+if [ "$mode" = line ]; then
+    if [ -f "$cache" ]; then
+        line=$(tail -n +2 "$cache")
+        colors=$(tmux display-message -p '#{@theme_green}|#{@theme_blue}' 2>/dev/null) || colors=""
+        IFS='|' read -r green blue <<< "$colors"
+        green=${green:-colour2}; blue=${blue:-colour4}
+        line=${line//'#[fg=colour2'/'#[fg='"$green"}
+        line=${line//'#[fg=colour4'/'#[fg='"$blue"}
+        printf '%s\n' "$line"
     fi
     exit 0
 fi
-
-[ -z "$ssh_cmd" ] && exit 0
-
-# Walk the arguments: skip options (with their value where they take one)
-# until the first bare word, which is the destination. Anything after it is
-# the remote command.
-target=""; port=""
-# shellcheck disable=SC2206  # word-splitting the command line is the point
-args=($ssh_cmd); unset 'args[0]'
-skip=0
-for a in "${args[@]}"; do
-    if [ "$skip" = "1" ]; then skip=0; continue; fi
-    case "$a" in
-        -p)  skip=1; port_next=1; continue ;;
-        -p*) port="${a#-p}"; continue ;;
-        -[iopFJLRDwWeEbcSmBOP]) skip=1; continue ;;   # option with a value
-        -*)  continue ;;                               # bare flag(s)
-        *)   target="$a"; break ;;
-    esac
-done
-# the value after -p was skipped above; fetch it again
-if [ -n "${port_next:-}" ]; then
-    port=$(echo "$ssh_cmd" | grep -oE '(^| )-p ?[0-9]+' | grep -oE '[0-9]+$')
+case "$session" in \$[0-9]*) ;; *) exit 1 ;; esac
+now=$(date +%s); sampled=0; line=""
+if [ -f "$cache" ]; then
+    IFS= read -r sampled < "$cache"
 fi
-[ -z "$target" ] && exit 0
-
-case "$target" in
-    *@*) user="${target%%@*}"; host="${target#*@}" ;;
-    *)   user="";              host="$target" ;;
-esac
-out="#[fg=colour2,bold] 󰢹 SSH #[fg=colour4]${host}#[default]"
-[ -n "$user" ] && out="${out} #[fg=colour8]as#[default] #[fg=colour3]${user}#[default]"
-[ -n "$port" ] && out="${out}#[fg=colour8]:${port}#[default]"
-echo "$out"
+if [[ "$sampled" =~ ^[0-9]+$ ]] && [ "$((now - sampled))" -ge 0 ] && [ "$((now - sampled))" -lt 5 ]; then
+    line=$(tail -n +2 "$cache")
+else
+    line=$(python3 "$SCRIPT_DIR/ssh_info.py" "$pid") || line=""
+    tmp=$(mktemp "$TMUX_CACHE_DIR/ssh.XXXXXX") || exit 0
+    printf '%s\n%s\n' "$now" "$line" > "$tmp"
+    mv -f -- "$tmp" "$cache"
+fi
+current=$(tmux show-option -A -t "$session" -qv status 2>/dev/null) || exit 0
+desired=on
+[ -z "$line" ] || desired=2
+[ "$current" = "$desired" ] || tmux set-option -t "$session" status "$desired"

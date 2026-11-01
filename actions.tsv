@@ -1,0 +1,26 @@
+key	id	label	tool
+F	palette	Search commands	fzf
+g	git	Git: lazygit	lazygit
+G	github	GitHub dashboard	gh
+f	shell	Floating shell	-
+t	top	System monitor	btop|htop
+d	docker	Docker dashboard	lazydocker
+i	info	System information	-
+?	help	Tmux keybindings	python3&less
+!	nvim-help	Neovim keybindings	less
+n	notes	Notes	fzf
+o	projects	Projects and sessions	fzf
+/	history	Search pane history	fzf
+e	search	Web search	python3&fzf
+E	scoped-search	Web search: choose site	python3&fzf
+a	ai	Ask AI	@ai
+M	man	Manual page	man
+C	cheat	Cheat.sh reference	curl&python3
+V	tldr	tldr reference	tldr
+C-u	update	Update environment	-
+s	ssh	SSH in new window	ssh
+P	ssh-split	SSH in split pane	ssh
+N	new-session	New session	-
+.	rename-session	Rename session	-
+,	rename-window	Rename window	-
+C-t	themes	Choose theme	python3&fzf

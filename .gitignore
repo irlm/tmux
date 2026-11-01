@@ -1,1 +1,4 @@
 plugins/
+local.conf
+.lavish/
+__pycache__/
