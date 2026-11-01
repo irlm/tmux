@@ -207,7 +207,12 @@ class SpecialDayTerminalTests(unittest.TestCase):
                         self.assertEqual((root / ('calls-' + motion)).read_text(), '.',
                                          'Switching holidays relaunched a tmux helper')
                         os.write(master, b'q')
-                        process.wait(timeout=3)
+                        # Keep consuming terminal output while the child drains it
+                        # and restores its tty; wait() alone can block that drain.
+                        closing_deadline = time.monotonic() + 3
+                        while process.poll() is None and time.monotonic() < closing_deadline:
+                            collect(min(.05, max(0, closing_deadline - time.monotonic())))
+                        process.wait(timeout=max(0, closing_deadline - time.monotonic()))
                         collect(.1)
                         self.assertEqual(process.returncode, 0, output.decode(errors='replace'))
                         restored_mode = termios.tcgetattr(slave)
