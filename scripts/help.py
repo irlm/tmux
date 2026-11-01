@@ -21,7 +21,7 @@ REFERENCES = ('Lazygit (no prefix)', 'Btop (no prefix)', 'Git aliases (full setu
 ACTION_GROUPS = {
     **dict.fromkeys(('git', 'github', 'docker', 'top', 'info', 'shell', 'notes', 'projects'), 'Tools & projects'),
     **dict.fromkeys(('history', 'search', 'scoped-search', 'ai', 'man', 'cheat', 'tldr'), 'Search & reference'),
-    **dict.fromkeys(('palette', 'help', 'nvim-help', 'update', 'themes'), 'Help & plugins'),
+    **dict.fromkeys(('palette', 'help', 'nvim-help', 'update', 'themes', 'special-days'), 'Help & plugins'),
     **dict.fromkeys(('new-session', 'rename-session', 'rename-window'), 'Windows & sessions'),
     'ssh': 'Remote', 'ssh-split': 'Remote',
 }

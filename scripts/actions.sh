@@ -45,6 +45,7 @@ run_action() {
                      *) "$SCRIPT_DIR/actions.sh" run "$selected" ;; esac ;;
         help) python3 "$SCRIPT_DIR/help.py" | less -KR -P 'Help | Space/b: page | /: search | q: close' ;;
         themes) "$SCRIPT_DIR/themes.sh" ;;
+        special-days) python3 "$SCRIPT_DIR/special_days.py" --pick ;;
         nvim-help) less -KR "$SCRIPT_DIR/../cheatsheet-nvim.txt" ;;
         notes|projects) if [ "$id" = notes ]; then output=notes.sh; else output=sessionizer.sh; fi
                         if ! row_available fzf; then "$SCRIPT_DIR/popup.sh" fzf; return $?; fi

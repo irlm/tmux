@@ -9,19 +9,20 @@ width=${1:-160}
 case "$width" in ''|*[!0-9]*) width=160 ;; esac
 [ "$width" -ge 100 ] || exit 0
 private_dir "$TMUX_CACHE_DIR" || exit 0
-now=$(date +%s)
-info=$(tmux display-message -p '#{@ascii}|#{@theme}|#{@theme_magenta}|#{@theme_accent}|#{@theme_yellow}|#{@theme_green}|#{@theme_red}' 2>/dev/null) || info=""
-IFS='|' read -r ascii theme_id magenta accent yellow green red <<< "$info"
+read -r now today <<< "$(date '+%s %F')"
+info=$(tmux display-message -p '#{@ascii}|#{@theme}|#{@theme_magenta}|#{@theme_accent}|#{@theme_yellow}|#{@theme_green}|#{@theme_red}|#{@special_days}' 2>/dev/null) || info=""
+IFS='|' read -r ascii theme_id magenta accent yellow green red special_days <<< "$info"
 ascii=${ascii:-off}; theme_id=${theme_id:-nord}
 case "$theme_id" in *[!a-z0-9-]*|'') theme_id=nord ;; esac
 magenta=${magenta:-#d4a9ca}; accent=${accent:-#88c0d0}; yellow=${yellow:-#ebcb8b}
 green=${green:-#a3be8c}; red=${red:-#f2a1a8}
 case "$ascii" in on|off) ;; *) ascii=off ;; esac
 export TMUX_ASCII="$ascii"
-cache="$TMUX_CACHE_DIR/status-$theme_id-$ascii"
+case "$special_days" in off) ;; *) special_days=on ;; esac
+cache="$TMUX_CACHE_DIR/status-$theme_id-$ascii-$special_days"
 if [ -f "$cache" ]; then
-    IFS= read -r sampled < "$cache"
-    if [[ "$sampled" =~ ^[0-9]+$ ]] && [ "$((now - sampled))" -ge 0 ] && [ "$((now - sampled))" -lt 5 ]; then
+    read -r sampled sampled_day < "$cache"
+    if [ "$sampled_day" = "$today" ] && [[ "$sampled" =~ ^[0-9]+$ ]] && [ "$((now - sampled))" -ge 0 ] && [ "$((now - sampled))" -lt 5 ]; then
         tail -n +2 "$cache"
         exit 0
     fi
@@ -132,8 +133,14 @@ if $has_battery && [ -n "$batt_pct" ]; then
     out="${out}${sep}#[fg=${color}]${icon} ${batt_pct}%#[default]"
 fi
 
+# A small ASCII drawing sits next to the native clock on special days.
+if [ "$special_days" = on ]; then
+    holiday=$(python3 "$SCRIPT_DIR/special_days.py" --status --date "$today" 2>/dev/null)
+    [ -z "$holiday" ] || out="${out}${sep}#[fg=${accent}]${holiday}#[default]"
+fi
+
 # Date/time is rendered natively by tmux, outside this cached sample.
 tmp=$(mktemp "$TMUX_CACHE_DIR/status.XXXXXX")
-printf '%s\n%s\n' "$now" "$out" > "$tmp"
+printf '%s %s\n%s\n' "$now" "$today" "$out" > "$tmp"
 mv -f -- "$tmp" "$cache"
 printf '%s\n' "$out"

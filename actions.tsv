@@ -24,3 +24,4 @@ N	new-session	New session	-
 .	rename-session	Rename session	-
 ,	rename-window	Rename window	-
 C-t	themes	Choose theme	python3&fzf
+A	special-days	Special day art	python3&fzf

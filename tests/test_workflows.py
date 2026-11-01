@@ -236,6 +236,70 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         self.assertEqual(result.stdout, '')
         self.assertFalse((self.root / 'cache').exists())
 
+    def test_special_day_action_replays_the_selected_art(self):
+        listing = self.root / 'celebrations'
+        self.env['TEST_CELEBRATIONS'] = str(listing)
+        self.executable('fzf', 'cat > "$TEST_CELEBRATIONS"; printf "halloween\\tHappy Halloween!\\n"')
+        result = self.run_script('scripts/actions.sh', 'run', 'special-days')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Happy Halloween!', result.stdout)
+        self.assertIn('\\_/', result.stdout)
+        self.assertIn('july-4\tHappy 4th of July!', listing.read_text())
+        self.assertFalse((self.root / 'data/special-days').exists())
+
+    def test_canceling_special_day_picker_is_quiet(self):
+        self.executable('fzf', 'cat >/dev/null; exit 130')
+        result = self.run_script('scripts/actions.sh', 'run', 'special-days')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '')
+
+    def test_special_day_status_updates_at_midnight_and_respects_opt_out(self):
+        self.env.update(TEST_STATUS_TIME='1000', TEST_STATUS_DAY='2026-10-31', TEST_SPECIAL_DAYS='on')
+        self.executable('date', '''if [ "$1" = '+%s %F' ]; then
+    printf '%s %s\\n' "$TEST_STATUS_TIME" "$TEST_STATUS_DAY"
+else exec /bin/date "$@"; fi''')
+        self.executable('tmux', 'printf "off|nord||||||%s\\n" "$TEST_SPECIAL_DAYS"')
+        self.executable('memory_pressure', "echo 'free percentage: 50%'")
+        self.executable('pmset', "echo 'No battery'")
+        result = self.run_script('scripts/status_right.sh', '160')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('(^v^) Halloween', result.stdout)
+        self.env['TEST_SPECIAL_DAYS'] = 'off'
+        result = self.run_script('scripts/status_right.sh', '160')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('Halloween', result.stdout)
+        self.env.update(TEST_SPECIAL_DAYS='on', TEST_STATUS_TIME='1001', TEST_STATUS_DAY='2026-11-01')
+        result = self.run_script('scripts/status_right.sh', '160')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('Halloween', result.stdout)
+
+    def test_special_day_auto_can_opt_out_and_retry_failed_popups(self):
+        self.env.update(TEST_SPECIAL_DAYS='off', TEST_POPUP_FAIL='0')
+        self.executable('tmux', '''case "$1" in
+    show-option) printf '%s\\n' "$TEST_SPECIAL_DAYS" ;;
+    display-message) printf '80 24 0\\n' ;;
+    display-popup) [ "$TEST_POPUP_FAIL" = 0 ] ;;
+esac''')
+        import sys
+
+        def greet():
+            return subprocess.run([sys.executable, str(REPO / 'scripts/special_days.py'),
+                                   '--auto', '--client', '/dev/test', '--date', '2026-07-04'],
+                                  env=self.env, capture_output=True, text=True, timeout=10)
+
+        result = greet()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        stamps = self.root / 'data/special-days'
+        self.assertFalse(stamps.exists())
+        self.env.update(TEST_SPECIAL_DAYS='on', TEST_POPUP_FAIL='1')
+        result = greet()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(list(stamps.iterdir()), [])
+        self.env['TEST_POPUP_FAIL'] = '0'
+        result = greet()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([stamp.name for stamp in stamps.iterdir()], ['2026-07-04'])
+
     def test_server_brew_requirements_cover_picker_and_search(self):
         calls = self.root / 'brew-calls'
         self.env['TEST_BREW'] = str(calls)

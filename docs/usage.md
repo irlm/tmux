@@ -36,7 +36,11 @@ If you just installed the project, these are the commands and keys you will prob
 | `d` | `lazydocker` | `?` | cheatsheet |
 | `t` | `btop` or `htop` | `/` | search pane history |
 | `i` | system info | `f` | floating shell |
-| `C-u` | update everything | | |
+| `C-u` | update everything | `A` | choose and replay special day art |
+
+The first tmux attachment on a special day also shows a brief ASCII greeting,
+including fireworks for New Year and July 4. See [Special day art](customization.md#special-day-art)
+for dates and controls.
 
 ## Search and Reference
 

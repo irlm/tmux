@@ -43,6 +43,43 @@ Reload with `C-a r`. The compact profile keeps a smaller history and status area
 
 `@project_roots` also accepts an actual multiline quoted value. `TMUX_PROJECT_ROOTS` is a newline-separated environment alternative; `TMUX_PROJECT_DEPTH` sets its discovery depth. Without an override, projects are searched under `~/projects`, `~/Projects`, and `~/.config`. Project discovery includes `.git` directories and Git worktree `.git` files, and prunes plugin, vendor, build-cache and dependency directories. Recent projects appear first; live sessions are listed separately. Canonical paths identify projects, so two repositories named `api` remain distinct. Paths with tabs or newlines are excluded from this line-oriented picker.
 
+## Special day art
+
+The first tmux attachment on a special day opens a short, dismissible ASCII
+greeting. New Year's Day, July 4 and New Year's Eve include animated fireworks.
+Halloween, Valentine's Day, St. Patrick's Day, Thanksgiving and Christmas have
+their own moving scenes: flying bats, floating hearts, clover sparkles, a
+strutting turkey, and falling snow. Dates follow the machine's local calendar; Thanksgiving is
+the fourth Thursday in November. Ordinary days stay quiet.
+
+Press **`C-a A`**, or choose **Special day art** in `C-a F`, to preview and replay
+any celebration whenever you like. Press `r` to replay inside the art, or Enter,
+`q` or Esc to close it. Motion runs once for about four seconds at 12 frames per
+second, on a canvas capped at 96 by 16 characters. Only changed rows are written
+to the terminal. Finished manual scenes sleep until a key is pressed; animation
+uses no background process or timer after the popup closes.
+Automatic greetings close on their own and run once per date on each machine,
+even if tmux restarts. The date stamps live in `~/.local/share/tmux/special-days/`.
+Replaying an event does not change those stamps. Small terminals below 60 columns
+or 18 rows skip automatic greetings; the manual picker remains available.
+
+A small ASCII motif also appears beside the date in the status bar when the
+terminal is at least 100 columns wide. These options in your personal config
+control automatic greetings, status motifs, and animation:
+
+```tmux
+set -g @special_days off        # disable automatic greetings and status motifs
+set -g @special_days_motion off # use static drawings for all celebrations
+```
+
+Reload with `C-a r`. Manual replay still works when automatic greetings are off.
+To preview a date from the command line:
+
+```bash
+python3 ~/.config/tmux/scripts/special_days.py --date 2026-10-31 --plain
+python3 ~/.config/tmux/scripts/special_days.py --play july-4
+```
+
 ## Command discovery
 
 Press **`C-a F`** for a searchable command palette. It shows each action's key and dependency availability. **`C-a ?`** shows one grouped shortcut reference. It uses the popup’s actual interior width: one column below 96 cells, two columns from 96–143, and three columns from 144 upward. Keys and descriptions align within each column; long descriptions wrap with a hanging indent. Main tmux shortcuts come first, followed by tool-specific references. Scrolling and search remain available in `less`. Close and reopen after resizing the terminal.

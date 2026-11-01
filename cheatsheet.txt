@@ -36,18 +36,18 @@
                                                     !          Neovim keybindings
   Tools & projects                                  C-u        Update environment
                                                     C-t        Choose theme
-  g          Git: lazygit
+  g          Git: lazygit                           A          Special day art
   G          GitHub dashboard
-  f          Floating shell                         Shell (full setup)
-  t          System monitor
-  d          Docker dashboard                       z          Jump to a directory
-  i          System information                     C-r        Search shell history
-  n          Notes                                  C-t        Find files
-  o          Projects and sessions                  Alt-c      Find directories
+  f          Floating shell
+  t          System monitor                         Shell (full setup)
+  d          Docker dashboard
+  i          System information                     z          Jump to a directory
+  n          Notes                                  C-r        Search shell history
+  o          Projects and sessions                  C-t        Find files
+                                                    Alt-c      Find directories
                                                     dotup      Update environment
-                                                    dotcheck   Check environment
-  Search & reference                                ta         Attach or create tmux session
-
+  Search & reference                                dotcheck   Check environment
+                                                    ta         Attach or create tmux session
   /          Search pane history
   e          Web search
   E          Web search: choose site
