@@ -423,14 +423,27 @@ class TmuxIntegrationTests(unittest.TestCase):
         self.assertEqual(self.tm('show', '-gqv', '@theme').stdout.strip(), 'nord')
 
     def test_path_quoting_preserves_shell_characters(self):
+        import time
         literal = self.root / '$(printf EXPANDED)'; literal.mkdir(exist_ok=True)
-        marker = self.root / 'quoted-output'
-        self.tm('new-window', '-d', '-c', str(literal), '-n', 'literal', '/bin/sh')
-        expression = self.tm('display-message', '-p', '-t', 'review:literal', 'cd #{q:pane_current_path} && pwd').stdout.strip()
-        result = subprocess.run(['/bin/sh', '-c', expression], capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), str(literal))
-        self.assertFalse(marker.exists())
+        window = self.tm('new-window', '-d', '-P', '-F', '#{pane_id}', '-c', str(literal), '-n', 'literal', '/bin/sh')
+        self.assertEqual(window.returncode, 0, window.stderr)
+        pane = window.stdout.strip()
+        try:
+            # On Linux new-window can return before its child has changed directory.
+            deadline = time.monotonic() + 3
+            path = ''
+            while time.monotonic() < deadline:
+                path = self.tm('display-message', '-p', '-t', pane, '#{pane_current_path}').stdout.strip()
+                if path == str(literal):
+                    break
+                time.sleep(.02)
+            self.assertEqual(path, str(literal), 'new pane did not reach its requested directory')
+            expression = self.tm('display-message', '-p', '-t', pane, 'cd #{q:pane_current_path} && pwd').stdout.strip()
+            result = subprocess.run(['/bin/sh', '-c', expression], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), str(literal))
+        finally:
+            self.tm('kill-pane', '-t', pane)
 
     def test_ssh_status_is_scoped_to_session(self):
         self.tm('new-session', '-d', '-s', 'local', '/bin/sh')

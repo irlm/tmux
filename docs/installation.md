@@ -1,5 +1,9 @@
 # Installation Guide
 
+## Release source
+
+The public install commands below download **`main`**, and the updater pulls `origin main`. A commit pushed to a feature branch is available for review but is not yet distributed by these commands. Merge it into `main` after checks pass before rolling it out to other machines. Changing only the branch in the install script URL is insufficient: bootstrap assets and fresh config clones also use `main`.
+
 ## Install Modes
 
 | Mode | Best for | Entry point | Notes |
@@ -124,10 +128,12 @@ Shell integration uses the selected Bash or Zsh shell and preserves personal rc 
 5. Open Neovim with `nvim` and let the first-run setup finish.
 6. If Docker was installed, launch Docker Desktop on macOS or Windows, or re-log on Linux if Docker group membership changed.
 7. Run `gh auth login` so the `C-a G` GitHub dashboard popup can load your PRs and issues.
+8. Press `C-a C-t` (Ctrl-a, then Ctrl-t) to preview and save a theme. Reopen lazygit with `C-a g` to see it; open a new shell for the updated prompt.
+9. Run `~/.config/tmux/scripts/doctor.sh` to check the installed tools, tmux config, and plugins.
 
 ## Updating
 
-One command updates a machine, whatever state it is in — the only question is how to reach it:
+For an existing managed installation, use the updater; reinstalling is normally unnecessary:
 
 | Where you are | Command |
 |---------------|---------|
@@ -145,9 +151,18 @@ Flags go on the end of any form (`bash -s -- --fix` for the curl one):
 --fix      install anything missing without asking
 ```
 
+For a routine config/plugin update without package upgrades:
+
+```bash
+~/.config/tmux/update.sh --check
+~/.config/tmux/update.sh --quick
+```
+
+Use `dotup` (without `--quick`) when you also want managed Homebrew package upgrades. On Linux, system package upgrades remain the responsibility of your distro's package manager. The updater reloads running tmux; with managed shell integration, open a new shell for prompt changes. Your selected theme and personal settings under `~/.config/tmux-user/` persist across updates.
+
 The `dotup` and `dotcheck` aliases exist only where the installer wrote the shell config; server-mode installs now include the managed aliases too. A machine that does not have the config at all needs the install one-liner, or `C-a s` from a machine that does — not this.
 
-**One run is always enough**, however far behind the machine is. The script pulls the repo first and, if `update.sh` itself changed, re-executes the freshly pulled copy in the same run. The curl form does the same by handing over to the installed copy after the pull: what `raw.githubusercontent.com` serves can lag a push by a few minutes, and a piped script cannot re-run itself, so without the hand-over it could pull the newest commit and still finish with the old logic.
+The script pulls the repo first and, if `update.sh` itself changed, re-executes the freshly pulled copy in the same run. The curl form hands over to the installed copy after the pull too. This lets an older install continue with the new updater immediately. Local edits that conflict with incoming files, diverged Git history, missing tools, and network failures can still require repair before an update completes. The updater preserves local edits and reports failures instead of resetting files.
 
 What the script does:
 
@@ -161,6 +176,16 @@ What the script does:
 Full component transcripts are in `~/.local/share/tmux/update-logs/`. A failed pull requires resolving the local Git state in that repository. A missing `gh-dash` extension may require `gh auth login`. For a missing required tool, run `dotup --fix`; for config or plugin problems, follow the exact repair printed by the health check. Language toolchains and Docker remain optional workstation extras.
 
 Homebrew upgrades are limited to the terminal formulae in `tools.tsv`. See [Customization and diagnostics](customization.md) for profiles, personal settings and diagnostic coverage.
+
+### Older shell setups
+
+The updater refreshes the repository and tmux, but does not rewrite personal shell files. If an older installation still initializes its prompt directly from `nord.omp.json`, enable the managed shell integration once after updating:
+
+```bash
+bash -c 'source "$HOME/.config/tmux/scripts/install-lib.sh"; install_shell_integration desktop'
+```
+
+Use `desktop` for the default installer, `full` for a full install, or `server` for a lightweight server. This backs up the personal rc file before adding an include, writes the managed shell file under `~/.config/tmux-user/`, and installs no packages. Open a new terminal afterward. See [shell integration behavior](customization.md#installer-behavior) for Bash/Zsh selection and full-mode defaults.
 
 ## Related Repos
 

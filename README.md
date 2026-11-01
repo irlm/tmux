@@ -16,6 +16,8 @@ The root README is intentionally lean. Full documentation lives in [`docs/`](doc
 
 ## Install
 
+Install commands and `dotup` follow **`main`**. Changes pushed to another branch become available through these commands after they are merged into `main`.
+
 ### macOS / Linux
 
 ```bash
@@ -45,6 +47,16 @@ For tmux on Windows, use WSL: `wsl --install`
 2. Start tmux with `tmux`.
 3. Install tmux plugins with `C-a I`.
 4. Open Neovim with `nvim` and let plugins/LSPs finish installing on first launch.
+5. Press `C-a C-t` (Ctrl-a, then Ctrl-t) to preview and save a theme.
+
+## Update an Existing Install
+
+```bash
+~/.config/tmux/update.sh --check  # report versions and health; change nothing
+~/.config/tmux/update.sh --quick  # update configs and plugins; skip package upgrades
+```
+
+Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed Homebrew tools. The updater reloads running tmux; with managed shell integration, open a new shell for prompt changes. Your theme and personal settings in `~/.config/tmux-user/` persist across updates. See the [installation guide](docs/installation.md#updating) for older shell setups, repair options, and local Git changes.
 
 ## Basic Commands and Keys
 
