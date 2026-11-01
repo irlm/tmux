@@ -75,10 +75,10 @@ def play(identifier, auto_close=False, plain=False, columns=None):
     import tty
     import select
     import time
+    import random
     from appearance import current_theme
     from special_day_scenes import FPS, FRAME_COUNT, MAX_WIDTH, MAX_HEIGHT, scene_frame
 
-    event = CELEBRATIONS[identifier]
     palette = current_theme()[1]['colors']
     colors = []
     for role in ('accent', 'yellow', 'magenta'):
@@ -86,9 +86,13 @@ def play(identifier, auto_close=False, plain=False, columns=None):
         colors.append('' if 'NO_COLOR' in os.environ else '\033[38;2;' + rgb + 'm')
     old = termios.tcgetattr(sys.stdin)
     previous = [''] * max(1, height - 1)
-    hint = 'Enter / q / Esc: close' if auto_close else 'r: replay | Enter / q / Esc: close'
-    playing_hint = 'Enter / q / Esc: close' if auto_close else 'r: restart | Enter / q / Esc: close'
+    controls = 'n/p: holiday | Enter/q/Esc: close' if width >= 52 else 'n/p: art | q: close'
+    hint = 'Enter / q / Esc: close' if auto_close else 'r: replay | ' + controls
+    playing_hint = 'Enter / q / Esc: close' if auto_close else 'r: restart | ' + controls
     scene_width, scene_height = min(width, MAX_WIDTH), max(1, min(MAX_HEIGHT, height - 6))
+    identifiers = tuple(CELEBRATIONS)
+    randomizer = random.Random()
+    variation = 0
 
     def wait_action(seconds=None):
         deadline = None if seconds is None else time.monotonic() + seconds
@@ -100,8 +104,10 @@ def play(identifier, auto_close=False, plain=False, columns=None):
             keys = os.read(sys.stdin.fileno(), 32)
             if not keys or any(key in keys for key in (b'q', b'\x1b', b'\n', b'\r', b'\x03')):
                 return 'close'
-            if not auto_close and b'r' in keys.lower():
-                return 'replay'
+            if not auto_close:
+                for key, action in ((b'r', 'replay'), (b'n', 'next'), (b'p', 'previous')):
+                    if key in keys.lower():
+                        return action
 
     def draw(lines, color):
         visible = lines[:max(1, height - 1)]
@@ -137,30 +143,33 @@ def play(identifier, auto_close=False, plain=False, columns=None):
         sys.stdout.write('\033[?25l\033[2J')
         animated = tmux('show-option', '-gqv', '@special_days_motion').stdout.strip() != 'off'
         while True:
+            event = CELEBRATIONS[identifier]
+            variation = (variation + randomizer.randrange(1, 65536)) % 65536
             action = None
             if animated:
                 started = time.monotonic()
                 frame = 0
                 while frame < FRAME_COUNT:
                     deadline = started + (frame + 1) / FPS
-                    scene = scene_frame(identifier, event.art, scene_width, scene_height, frame, event.fireworks)
+                    scene = scene_frame(identifier, event.art, scene_width, scene_height, frame, event.fireworks, variation)
                     draw([event.name, '', *scene, '', playing_hint], colors[0])
                     action = wait_action(max(0, deadline - time.monotonic()))
                     if action:
                         break
                     # Skip late frames instead of extending playback or catching up.
                     frame = max(frame + 1, int((time.monotonic() - started) * FPS))
-                if action == 'close':
+            if action is None:
+                draw([event.name, '', *event.art.splitlines(), '', hint], colors[0])
+                # No redraw timer or polling while the finished scene waits for input.
+                if auto_close:
+                    wait_action(1.25)
                     return
-                if action == 'replay':
-                    continue
-            draw([event.name, '', *event.art.splitlines(), '', hint], colors[0])
-            # No redraw timer or polling while the finished scene waits for input.
-            if auto_close:
-                wait_action(1.25)
+                action = wait_action()
+            if action == 'close':
                 return
-            if wait_action() != 'replay':
-                return
+            if action in ('next', 'previous'):
+                direction = 1 if action == 'next' else -1
+                identifier = identifiers[(identifiers.index(identifier) + direction) % len(identifiers)]
     finally:
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old)
         sys.stdout.write('\033[0m\033[?25h')

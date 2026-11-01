@@ -54,7 +54,12 @@ the fourth Thursday in November. Ordinary days stay quiet.
 
 Press **`C-a A`**, or choose **Special day art** in `C-a F`, to preview and replay
 any celebration whenever you like. Press `r` to replay inside the art, or Enter,
-`q` or Esc to close it. Motion runs once for about four seconds at 12 frames per
+`q` or Esc to close it. Each replay gets a fresh arrangement. Press `n` or `p`
+to move to the next or previous holiday inside the same popup. Fireworks mix
+round bursts, cascading willow sparks and hearts; Halloween includes a floating
+ghost and Christmas has a shooting star.
+
+Motion runs once for about four seconds at 12 frames per
 second, on a canvas capped at 96 by 16 characters. Only changed rows are written
 to the terminal. Finished manual scenes sleep until a key is pressed; animation
 uses no background process or timer after the popup closes.

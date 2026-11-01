@@ -7,6 +7,12 @@ MAX_WIDTH = 96
 MAX_HEIGHT = 16
 DIRECTIONS = tuple((math.cos(n * math.pi / 8), math.sin(n * math.pi / 8))
                    for n in range(16))
+WILLOW = tuple((math.cos(n * math.pi / 15), -math.sin(n * math.pi / 15))
+               for n in range(16))
+HEART = tuple((math.sin(t) ** 3,
+               -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)) / 16)
+              for t in (n * math.pi / 12 for n in range(24)))
+BURSTS = (DIRECTIONS, WILLOW, HEART)
 SWAY = (0, 0, 1, 1, 0, 0, -1, -1)
 
 
@@ -30,15 +36,19 @@ class Canvas:
         return [''.join(row) for row in self.rows]
 
 
-def fireworks_frame(width, height, frame):
+def fireworks_frame(width, height, frame, variation=0):
     canvas = Canvas(width, height)
     rockets = ((.17, .28, 0), (.73, .35, 6), (.45, .2, 14),
                (.85, .45, 22), (.28, .25, 28))
-    for fx, fy, launch in rockets:
+    for index, (fx, fy, launch) in enumerate(rockets):
         age = frame - launch
         if not 0 <= age < 25:
             continue
+        fx = max(.08, min(.92, fx + ((variation >> (index * 2)) % 7 - 3) * .012))
         x, y = round((width - 1) * fx), round((height - 1) * fy)
+        style = (variation + index) % len(BURSTS)
+        if style == 2:
+            y = max(y, round((height - 1) * .42))
         if age < 6:
             rocket_y = height - 1 - round((height - 1 - y) * age / 5)
             canvas.put(x, rocket_y, '^')
@@ -47,9 +57,13 @@ def fireworks_frame(width, height, frame):
             continue
         burst = age - 6
         radius = 1 + burst * .62
-        fall = round(burst * burst * .018)
+        if style == 2:
+            radius = min(radius, max(1, height * .35))
+        fall = round(burst * burst * (.035 if style == 1 else .018))
+        if style == 2:
+            fall = 0
         glyph = '*' if burst < 8 else '+' if burst < 13 else '.'
-        for dx, dy in DIRECTIONS:
+        for dx, dy in BURSTS[style]:
             canvas.put(round(x + radius * 1.8 * dx), round(y + radius * dy + fall), glyph)
             if 3 <= burst < 13:
                 canvas.put(round(x + (radius - 1.4) * 1.8 * dx),
@@ -59,10 +73,11 @@ def fireworks_frame(width, height, frame):
     return canvas.lines()
 
 
-def scene_frame(identifier, art, width, height, frame, fireworks=False):
+def scene_frame(identifier, art, width, height, frame, fireworks=False, variation=0):
     if fireworks:
-        return fireworks_frame(width, height, frame)
+        return fireworks_frame(width, height, frame, variation)
 
+    frame += variation
     canvas = Canvas(width, height)
     sprite = art.splitlines()
     x = (width - max(map(len, sprite))) // 2
@@ -70,7 +85,11 @@ def scene_frame(identifier, art, width, height, frame, fireworks=False):
     sway = SWAY[(frame // 3) % len(SWAY)]
 
     if identifier == 'halloween':
-        # A candle flicker and two bats crossing above the pumpkin.
+        # A candle, crossing bats, and a little ghost that floats beside them.
+        if width >= 42:
+            ghost_x = x + 14 if variation % 2 else x - 12
+            ghost_x = max(0, min(width - 5, ghost_x))
+            canvas.sprite(ghost_x, max(0, y + sway), [' .-. ', '(o o)', '| O |', "'~~~'"])
         if frame % 14 in (8, 9):
             sprite = [line.replace('^', 'o') for line in sprite]
         canvas.sprite(x, min(y + 1, max(0, height - len(sprite))), sprite)
@@ -86,6 +105,9 @@ def scene_frame(identifier, art, width, height, frame, fireworks=False):
         if frame % 12 < 6:
             canvas.put(x + 3, y + 2, 'o')
             canvas.put(x + 4, y + 3, 'o')
+        star = frame % 36
+        if star < 14:
+            canvas.put(round((width + 5) * star / 13) - 5, 0, '--*')
     elif identifier == 'valentine':
         for heart in range(5):
             canvas.put((heart * 17 + sway) % width,

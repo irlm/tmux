@@ -99,6 +99,19 @@ class SpecialDayTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn('invalid', result.stderr)
 
+    def test_replay_variations_change_the_scene_and_remain_reproducible(self):
+        for identifier, event in special_days.CELEBRATIONS.items():
+            with self.subTest(event=identifier):
+                def movie(variation):
+                    return [scenes.scene_frame(identifier, event.art, 60, 12, frame,
+                                               event.fireworks, variation)
+                            for frame in range(scenes.FRAME_COUNT)]
+                original = movie(0)
+                self.assertEqual(original, movie(0))
+                self.assertNotEqual(original, movie(1))
+                alternate = movie(65535)
+                self.assertTrue(all(len(line) == 60 and line.isascii() for frame in alternate for line in frame))
+
     def test_ordinary_attachment_does_not_create_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp) / 'state'
@@ -114,7 +127,7 @@ class SpecialDayTerminalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='tmux-art-playback-') as tmp:
             root = Path(tmp)
             wrapper = root / 'tmux'
-            wrapper.write_text('#!/bin/sh\nprintf "%s\\n" "$TEST_MOTION"\n')
+            wrapper.write_text('#!/bin/sh\nprintf "." >> "$TEST_CALLS"\nprintf "%s\\n" "$TEST_MOTION"\n')
             wrapper.chmod(0o755)
             for motion in ('on', 'off'):
                 with self.subTest(motion=motion):
@@ -123,6 +136,7 @@ class SpecialDayTerminalTests(unittest.TestCase):
                     original_mode = termios.tcgetattr(slave)
                     env = dict(os.environ, PATH=str(root) + ':' + os.environ['PATH'],
                                TEST_MOTION=motion, TMUX_THEME_DIR=str(root / 'theme'),
+                               TEST_CALLS=str(root / ('calls-' + motion)),
                                COLUMNS='300', LINES='100')
                     env.pop('FZF_PREVIEW_COLUMNS', None)
                     process = subprocess.Popen([sys.executable, str(SCRIPT), '--play', 'halloween'],
@@ -154,6 +168,14 @@ class SpecialDayTerminalTests(unittest.TestCase):
                             os.write(master, b'r')
                             collect(2, b'r: restart')
                             self.assertIn(b'r: restart', output)
+                        for key, title in ((b'n', b'Happy Thanksgiving!'), (b'p', b'Happy Halloween!')):
+                            output.clear()
+                            os.write(master, key)
+                            collect(2, title)
+                            self.assertIn(title, output)
+                            self.assertIsNone(process.poll())
+                        self.assertEqual((root / ('calls-' + motion)).read_text(), '.',
+                                         'Switching holidays relaunched a tmux helper')
                         os.write(master, b'q')
                         process.wait(timeout=3)
                         collect(.1)
