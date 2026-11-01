@@ -6,6 +6,8 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Special day ASCII art
 
+- Spread letter and year fireworks across the sky alongside ordinary bursts, then gather them quickly into the final word. Shorten these shows to three seconds while preserving the frame-rate and canvas limits.
+
 - Launch letters and digits as individual fireworks whose sparks settle into the complete word or year near the finale; hold the finished composition in place.
 
 - Reveal U S A inside July 4 fireworks and the celebration year inside New Year fireworks; use the upcoming year on New Year's Eve and preserve date context in previews and automatic greetings.

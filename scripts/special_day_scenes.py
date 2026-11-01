@@ -4,6 +4,9 @@ from functools import lru_cache
 
 FPS = 12
 FRAME_COUNT = 48
+LETTER_FRAME_COUNT = 36
+GATHER_START = 24
+GATHER_END = 30
 MAX_WIDTH = 96
 MAX_HEIGHT = 16
 DIRECTIONS = tuple((math.cos(n * math.pi / 8), math.sin(n * math.pi / 8))
@@ -55,6 +58,23 @@ def letter_targets(text, width, height):
                  for index, letter in enumerate(text))
 
 
+@lru_cache(maxsize=32)
+def letter_placements(text, width, height, variation):
+    """Spread glyphs across the sky, keeping their final destinations cached."""
+    groups = letter_targets(text, width, height)
+    placements = []
+    for index, targets in enumerate(groups):
+        left, right = min(x for x, _, _ in targets), max(x for x, _, _ in targets)
+        top, bottom = min(y for _, y, _ in targets), max(y for _, y, _ in targets)
+        jitter = ((variation >> (index * 2)) % 3 - 1) * .015
+        fx = .5 if len(groups) == 1 else .08 + .84 * index / (len(groups) - 1)
+        fy = (0, .85, .15, .65, .35)[index % 5]
+        spread_x = round((width - right + left - 1) * max(0, min(1, fx + jitter)))
+        spread_y = round((height - bottom + top - 1) * max(0, min(1, fy + jitter)))
+        placements.append((targets, (left, top, right, bottom), (spread_x - left, spread_y - top)))
+    return tuple(placements)
+
+
 class Canvas:
     def __init__(self, width, height):
         self.width, self.height = width, height
@@ -76,51 +96,68 @@ class Canvas:
 
 
 def lettering_frame(width, height, frame, variation, text):
-    """Launch each glyph, burst its sparks, and settle them into the full word."""
+    """Separate letter fireworks join quickly for the finale, amid sky bursts."""
     canvas = Canvas(width, height)
-    for index, targets in enumerate(letter_targets(text, width, height)):
-        age = frame - index * 6
+    if frame < GATHER_END:
+        draw_sky_fireworks(canvas, frame, variation,
+                           rockets=((.35, .25, 0), (.78, .2, 7), (.22, .7, 13)),
+                           dim=frame >= GATHER_START)
+    placements = letter_placements(text, width, height, variation)
+    launch_step = min(5, 14 // max(1, len(placements) - 1))
+    settled = []
+    for index, (targets, bounds, offset) in enumerate(placements):
+        age = frame - index * launch_step
         if age < 0:
             continue
-        cx = (min(x for x, _, _ in targets) + max(x for x, _, _ in targets)) / 2
-        cy = (min(y for _, y, _ in targets) + max(y for _, y, _ in targets)) / 2
-        if age < 6:
+        left, top, right, bottom = bounds
+        dx, dy = offset
+        cx, cy = (left + right) / 2 + dx, (top + bottom) / 2 + dy
+        if frame >= GATHER_START:
+            progress = min(1, (frame - GATHER_START) / (GATHER_END - GATHER_START))
+            ease = progress * progress * (3 - 2 * progress)
+            settled.append((targets, bounds, round(dx * (1 - ease)), round(dy * (1 - ease))))
+            continue
+        if age < 4:
             launch_x = max(0, min(width - 1, cx + ((variation >> (index * 2)) % 9 - 4) * 2))
-            progress = age / 5
+            progress = age / 3
             x = round(launch_x + (cx - launch_x) * progress)
             y = round(height - 1 + (cy - height + 1) * progress)
             canvas.put(x, y, '^')
             canvas.put(x, y + 1, '|')
             canvas.put(x, y + 2, ':')
             continue
-        burst = age - 6
+        burst = age - 4
         directions = BURSTS[(variation + index) % len(BURSTS)]
-        if burst < 3:
+        if burst < 2:
             radius = 1 + burst * .9
             for dx, dy in directions:
                 canvas.put(round(cx + dx * radius * 1.6), round(cy + dy * radius), '+')
-        elif burst < 12:
-            progress = (burst - 3) / 9
+        elif burst < 6:
+            progress = (burst - 2) / 4
             ease = progress * progress * (3 - 2 * progress)
             for spark, (target_x, target_y, _) in enumerate(targets):
-                dx, dy = directions[(spark + variation) % len(directions)]
-                origin_x, origin_y = cx + dx * 4.5, cy + dy * 3
-                x = round(origin_x + (target_x - origin_x) * ease)
-                y = round(origin_y + (target_y - origin_y) * ease + 4 * progress * (1 - progress))
+                vx, vy = directions[(spark + variation) % len(directions)]
+                origin_x, origin_y = cx + vx * 4.5, cy + vy * 3
+                x = round(origin_x + (target_x + dx - origin_x) * ease)
+                y = round(origin_y + (target_y + dy - origin_y) * ease + 4 * progress * (1 - progress))
                 canvas.put(x, y + 1, '.')
                 canvas.put(x, y, '*')
         else:
-            for x, y, char in targets:
-                canvas.put(x, y, char)
+            settled.append((targets, bounds, dx, dy))
+    # Keep formed letters readable while other bursts continue behind them.
+    for targets, (left, top, right, bottom), dx, dy in settled:
+        for y in range(top, bottom + 1):
+            canvas.put(left + dx, y + dy, ' ' * (right - left + 1))
+        for x, y, char in targets:
+            canvas.put(x + dx, y + dy, char)
     return canvas.lines()
 
 
-def fireworks_frame(width, height, frame, variation=0, banner=''):
-    if banner:
-        return lettering_frame(width, height, frame, variation, banner)
-    canvas = Canvas(width, height)
-    rockets = ((.17, .28, 0), (.73, .35, 6), (.45, .2, 14),
-               (.85, .45, 22), (.28, .25, 28))
+def draw_sky_fireworks(canvas, frame, variation, rockets=None, dim=False):
+    width, height = canvas.width, canvas.height
+    if rockets is None:
+        rockets = ((.17, .28, 0), (.73, .35, 6), (.45, .2, 14),
+                   (.85, .45, 22), (.28, .25, 28))
     for index, (fx, fy, launch) in enumerate(rockets):
         age = frame - launch
         if not 0 <= age < 25:
@@ -143,7 +180,7 @@ def fireworks_frame(width, height, frame, variation=0, banner=''):
         fall = round(burst * burst * (.035 if style == 1 else .018))
         if style == 2:
             fall = 0
-        glyph = '*' if burst < 8 else '+' if burst < 13 else '.'
+        glyph = '.' if dim else '*' if burst < 8 else '+' if burst < 13 else '.'
         for dx, dy in BURSTS[style]:
             canvas.put(round(x + radius * 1.8 * dx), round(y + radius * dy + fall), glyph)
             if 3 <= burst < 13:
@@ -151,6 +188,13 @@ def fireworks_frame(width, height, frame, variation=0, banner=''):
                            round(y + (radius - 1.4) * dy + fall), '.')
         if burst < 3:
             canvas.put(x, y, '+')
+
+
+def fireworks_frame(width, height, frame, variation=0, banner=''):
+    if banner:
+        return lettering_frame(width, height, frame, variation, banner)
+    canvas = Canvas(width, height)
+    draw_sky_fireworks(canvas, frame, variation)
     return canvas.lines()
 
 

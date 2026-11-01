@@ -59,16 +59,17 @@ to move to the next or previous holiday inside the same popup. Fireworks mix
 round bursts, cascading willow sparks and hearts; Halloween includes a floating
 ghost and Christmas has a shooting star.
 
-July 4 fireworks build a large **U S A** from their sparks. Each letter or digit
-launches as its own rocket, bursts, and settles into its final strokes. The
-complete word or year forms near the end and remains in place after playback.
+July 4 fireworks build a large **U S A** from their sparks. **U... S... A...**
+burst in different places across the sky, with other fireworks alongside them.
+The letters then gather quickly into **USA** for the finale. Year digits follow
+the same sequence. The complete word or year remains in place after playback.
 New Year fireworks form the celebration year: December 31, 2026 welcomes **2027**, and January 1, 2027
 shows **2027**. Manual New Year replays on other dates look ahead to the next
 January 1. Date previews and the picker use the same calendar rules. Smaller
 terminals fall back to readable single-line lettering.
 
-Motion runs once for about four seconds at 12 frames per
-second, on a canvas capped at 96 by 16 characters. Only changed rows are written
+Letter fireworks run once for about three seconds; other scenes use four seconds.
+Both use 12 frames per second, on a canvas capped at 96 by 16 characters. Only changed rows are written
 to the terminal. Finished manual scenes sleep until a key is pressed; animation
 uses no background process or timer after the popup closes.
 Automatic greetings close on their own and run once per date on each machine,

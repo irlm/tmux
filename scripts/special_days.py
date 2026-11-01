@@ -102,7 +102,7 @@ def play(identifier, auto_close=False, plain=False, columns=None, day=None):
     import time
     import random
     from appearance import current_theme
-    from special_day_scenes import FPS, FRAME_COUNT, MAX_WIDTH, MAX_HEIGHT, scene_frame
+    from special_day_scenes import FPS, FRAME_COUNT, LETTER_FRAME_COUNT, MAX_WIDTH, MAX_HEIGHT, scene_frame
 
     palette = current_theme()[1]['colors']
     colors = []
@@ -171,12 +171,13 @@ def play(identifier, auto_close=False, plain=False, columns=None, day=None):
             event = CELEBRATIONS[identifier]
             title = celebration_title(identifier, day)
             banner = fireworks_banner(identifier, day)
+            playback_frames = LETTER_FRAME_COUNT if event.fireworks and banner else FRAME_COUNT
             variation = (variation + randomizer.randrange(1, 65536)) % 65536
             action = None
             if animated:
                 started = time.monotonic()
                 frame = 0
-                while frame < FRAME_COUNT:
+                while frame < playback_frames:
                     deadline = started + (frame + 1) / FPS
                     scene = scene_frame(identifier, event.art, scene_width, scene_height, frame,
                                         event.fireworks, variation, banner=banner)
@@ -189,7 +190,7 @@ def play(identifier, auto_close=False, plain=False, columns=None, day=None):
             if action is None:
                 if event.fireworks and banner:
                     ending = scene_frame(identifier, event.art, scene_width, scene_height,
-                                         FRAME_COUNT - 1, True, variation, banner=banner)
+                                         playback_frames - 1, True, variation, banner=banner)
                 else:
                     ending = celebration_art(identifier, day, scene_width, scene_height)
                 draw([title, '', *ending, '', hint], colors[0])

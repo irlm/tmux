@@ -117,7 +117,7 @@ class SpecialDayTests(unittest.TestCase):
         for label in ('USA', '2027', '2031'):
             letters = scenes.banner_rows(label, 60, 12)
             top, left = (12 - len(letters)) // 2, (60 - len(letters[0])) // 2
-            for frame, variation in ((40, 0), (44, 13), (47, 65535)):
+            for frame, variation in ((32, 0), (35, 13), (47, 65535)):
                 with self.subTest(text=label, frame=frame, variation=variation):
                     picture = scenes.fireworks_frame(60, 12, frame, variation, banner=label)
                     visible = tuple(row[left:left + len(letters[0])] for row in picture[top:top + len(letters)])
@@ -131,10 +131,30 @@ class SpecialDayTests(unittest.TestCase):
         self.assertIn('^', ''.join(usa))
         letters = scenes.banner_rows('2027', 60, 12)
         top, left = (12 - len(letters)) // 2, (60 - len(letters[0])) // 2
-        for frame in (0, 10, 20, 30):
+        for frame in (0, 10, 20, 25):
             picture = scenes.fireworks_frame(60, 12, frame, 7, banner='2027')
             visible = tuple(row[left:left + len(letters[0])] for row in picture[top:top + len(letters)])
             self.assertNotEqual(visible, letters)
+
+    def test_letters_and_year_digits_form_in_separate_sky_positions(self):
+        for label, arrivals in (('USA', (10, 15, 20)), ('2027', (10, 14, 18, 22))):
+            positions = []
+            for index, (char, frame) in enumerate(zip(label, arrivals)):
+                picture = scenes.fireworks_frame(96, 16, frame, 0, banner=label)
+                glyph = scenes.LETTERS[char]
+                matches = [(x, y) for y in range(12) for x in range(92)
+                           if tuple(row[x:x + 5] for row in picture[y:y + 5]) == glyph
+                           and index * 96 / len(label) <= x < (index + 1) * 96 / len(label)]
+                self.assertTrue(matches, f'{label}: {char} did not form separately at frame {frame}')
+                positions.append(matches[0])
+            self.assertEqual(len(set(positions)), len(label))
+            self.assertGreater(len({y for _, y in positions}), 1)
+
+    def test_ordinary_fireworks_remain_visible_alongside_letter_rockets(self):
+        picture = scenes.fireworks_frame(96, 16, 8, 0, banner='USA')
+        # This upper-middle area is away from the U and the next letter's rocket.
+        other_burst = ''.join(row[24:40] for row in picture[:8])
+        self.assertTrue(any(char in '*+.' for char in other_burst))
 
     def test_short_firework_canvases_keep_readable_lettering(self):
         for label, expected in (('USA', 'U S A'), ('2027', '2027')):
