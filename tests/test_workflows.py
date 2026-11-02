@@ -244,7 +244,8 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         self.executable('fzf', 'cat > "$TEST_PALETTE"; exit 130')
         pid, fd = pty.fork()
         if pid == 0:  # pragma: no cover - child
-            os.execve(BASH, [BASH, str(REPO / 'scripts/actions.sh'), 'run', 'help'], self.env)
+            os.execve(BASH, [BASH, str(REPO / 'scripts/actions.sh'), 'run', 'help'],
+                      dict(self.env, TERM='xterm-256color'))
         fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, 0, 0))
         screen = b''
         deadline = time.monotonic() + 10
