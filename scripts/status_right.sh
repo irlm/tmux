@@ -45,10 +45,18 @@ fi
 
 # RAM (actual usage, not file cache — matches btop/Activity Monitor)
 ram=""
-if command -v memory_pressure &>/dev/null; then
-    # macOS: use memory_pressure to get system-wide free %, invert to used
-    pct_free=$(memory_pressure 2>/dev/null | awk '/free percentage/ {gsub(/%/,""); print $NF}')
-    [ -n "$pct_free" ] && ram=$(awk "BEGIN {printf \"%.0f%%\", 100 - $pct_free}")
+if command -v vm_stat &>/dev/null; then
+    # macOS: Activity Monitor's "Memory Used" is app memory (anonymous pages
+    # minus purgeable) plus wired and compressed pages. memory_pressure's
+    # "free percentage" counts file cache and inactive pages as free, so it
+    # showed 7% while btop showed 45%.
+    ram=$(vm_stat 2>/dev/null | awk -v total="$(sysctl -n hw.memsize 2>/dev/null)" '
+        /page size of/ { page = $8 }
+        /^Anonymous pages:/ { anon = $3 }
+        /^Pages purgeable:/ { purgeable = $3 }
+        /^Pages wired down:/ { wired = $4 }
+        /^Pages occupied by compressor:/ { compressed = $5 }
+        END { if (page > 0 && total > 0) printf "%.0f%%", 100 * (anon - purgeable + wired + compressed) * page / total }')
 elif command -v free &>/dev/null; then
     # Linux: use "available" column (free + reclaimable cache)
     # Falls back to used/total if "available" column is missing (older kernels)

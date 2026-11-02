@@ -316,7 +316,7 @@ esac''')
     printf '%s %s\\n' "$TEST_STATUS_TIME" "$TEST_STATUS_DAY"
 else exec /bin/date "$@"; fi''')
         self.executable('tmux', 'printf "off|nord||||||%s\\n" "$TEST_SPECIAL_DAYS"')
-        self.executable('memory_pressure', "echo 'free percentage: 50%'")
+        self.executable('vm_stat', "printf 'Mach Virtual Memory Statistics: (page size of 16384 bytes)\\nPages wired down: 10.\\nPages purgeable: 0.\\nAnonymous pages: 90.\\nPages occupied by compressor: 0.\\n'")
         self.executable('pmset', "echo 'No battery'")
         result = self.run_script('scripts/status_right.sh', '160')
         self.assertEqual(result.returncode, 0, result.stderr)
