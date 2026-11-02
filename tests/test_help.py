@@ -62,6 +62,19 @@ class HelpLayoutTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, help_layout.render(66))
 
+    def test_fill_pads_to_the_input_terminal_height(self):
+        master, slave = pty.openpty()
+        try:
+            fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 200, 66, 0, 0))
+            result = subprocess.run([sys.executable, str(ROOT / 'scripts/help.py'), '--plain', '--fill'],
+                                    stdin=slave, capture_output=True, text=True, timeout=10)
+        finally:
+            os.close(master)
+            os.close(slave)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith(help_layout.render(66)))
+        self.assertEqual(result.stdout.count('\n'), 199)  # one pager row is the prompt
+
     def test_long_and_wide_characters_are_wrapped_without_loss(self):
         text = '界' * 19 + ' unbroken_token_' * 5
         wrapped = help_layout.wrap(text, 18)

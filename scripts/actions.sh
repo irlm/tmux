@@ -51,14 +51,16 @@ run_action() {
             # fd 2, or it sits in "Waiting for data" when the text fits one
             # screen. Without lesskey support (less < 582) F would start
             # follow mode, so the hint is dropped. ':' is escaped: it is a
-            # prompt directive in less.
+            # prompt directive in less. --fill gives less a full screen: a
+            # shorter file is drawn at the bottom, G scrolls "~" rows in above
+            # it, and only g brings the title back to the top.
             output=$(mktemp -d) || return 1
             if less --lesskey-src=/dev/null </dev/null >/dev/null 2>&1; then
                 printf '#command\nF shell touch %s/palette; kill $PPID\\n\n' "$output" > "$output/lesskey"
-                ( python3 "$SCRIPT_DIR/help.py" 2>&3 | less --lesskey-src="$output/lesskey" -KR 2>&3 \
+                ( python3 "$SCRIPT_DIR/help.py" --fill 2>&3 | less --lesskey-src="$output/lesskey" -KR 2>&3 \
                     -P 'Help | F\: search commands | Space/b\: page | /\: search | q\: close' ) 3>&2 2>/dev/null
             else
-                python3 "$SCRIPT_DIR/help.py" --no-palette | less -KR -P 'Help | Space/b\: page | /\: search | q\: close'
+                python3 "$SCRIPT_DIR/help.py" --no-palette --fill | less -KR -P 'Help | Space/b\: page | /\: search | q\: close'
             fi
             if [ -e "$output/palette" ]; then rm -rf -- "$output"; run_action palette; else rm -rf -- "$output"; fi ;;
         themes) "$SCRIPT_DIR/themes.sh" ;;

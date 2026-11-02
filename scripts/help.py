@@ -148,14 +148,18 @@ def render(width, color=False, root=ROOT, palette=True):
     return '\n'.join(' ' * padding + line if line else '' for line in lines) + '\n'
 
 
-def terminal_width():
+def terminal_size():
     # stdout is piped into less, so read the popup's input terminal instead.
     for fd in (0, 2, 1):
         try:
-            return os.get_terminal_size(fd).columns
+            return os.get_terminal_size(fd)
         except OSError:
             pass
-    return 80
+    return os.terminal_size((80, 24))
+
+
+def terminal_width():
+    return terminal_size().columns
 
 
 def main(argv=None):
@@ -164,6 +168,9 @@ def main(argv=None):
     parser.add_argument('--plain', action='store_true', help='omit terminal colors')
     parser.add_argument('--no-palette', action='store_true',
                         help='omit the F hint when the pager cannot hand over to the palette')
+    parser.add_argument('--fill', action='store_true',
+                        help='pad to the input terminal height: less draws a shorter file at the '
+                             'bottom of the screen and G scrolls "~" rows in above it')
     args = parser.parse_args(argv)
     colored = not args.plain and sys.stdin.isatty()
     if colored:
@@ -176,7 +183,10 @@ def main(argv=None):
         HEADING = ansi(palette['accent'], True)
         KEY = ansi(palette['foreground'], True)
         MUTED = ansi(palette['muted'])
-    sys.stdout.write(render(args.width or terminal_width(), color=colored, palette=not args.no_palette))
+    text = render(args.width or terminal_width(), color=colored, palette=not args.no_palette)
+    if args.fill:
+        text += '\n' * max(0, terminal_size().lines - 1 - text.count('\n'))
+    sys.stdout.write(text)
     return 0
 
 
