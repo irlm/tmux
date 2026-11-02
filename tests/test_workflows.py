@@ -231,19 +231,32 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         self.assertEqual(cache.stat().st_mode & 0o777, 0o700)
 
     def test_help_pager_hands_over_to_the_palette_on_f(self):
+        # 40x120 needs paging; 62x238 (an 85% popup on a 280x73 client) fits
+        # on one screen, where a pager without its terminal on stderr used to
+        # sit in "Waiting for data".
+        for rows, cols in ((40, 120), (62, 238)):
+            with self.subTest(size=(rows, cols)):
+                self.help_hands_over(rows, cols)
+
+    def help_hands_over(self, rows, cols):
         import fcntl, pty, select, struct, termios, time
-        self.env['TEST_PALETTE'] = str(self.root / 'palette')
+        self.env['TEST_PALETTE'] = str(self.root / f'palette-{rows}')
         self.executable('fzf', 'cat > "$TEST_PALETTE"; exit 130')
         pid, fd = pty.fork()
         if pid == 0:  # pragma: no cover - child
             os.execve(BASH, [BASH, str(REPO / 'scripts/actions.sh'), 'run', 'help'], self.env)
-        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 120, 0, 0))
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, 0, 0))
         screen = b''
         deadline = time.monotonic() + 10
-        while b'TMUX SHORTCUTS' not in screen and time.monotonic() < deadline:
+        while b'q: close' not in screen.split(b'TMUX SHORTCUTS')[-1] and time.monotonic() < deadline:
             if select.select([fd], [], [], 0.2)[0]:
                 screen += os.read(fd, 65536)
+        time.sleep(0.5)
+        while select.select([fd], [], [], 0.1)[0]:
+            screen += os.read(fd, 65536)
         self.assertIn(b'F: search commands', screen)
+        self.assertIn(b'Help | F: search commands | Space/b: page | /: search | q: close', screen)
+        self.assertNotIn(b'Waiting for data', screen)
         os.write(fd, b'F')
         while time.monotonic() < deadline:
             if select.select([fd], [], [], 0.2)[0]:

@@ -7,6 +7,7 @@ All notable changes to this tmux configuration will be documented in this file.
 ### Help popup
 
 - Pressing `F` in the help popup now opens the command palette, as its hint says. It used to switch `less` into follow mode and show "Waiting for data..." until interrupted. Older `less` versions without lesskey support drop the hint instead.
+- Keep the pager's terminal on stderr, so the help no longer sits in "Waiting for data" when it fits on one screen, and escape `:` in the footer, which `less` read as a prompt directive and cut the text short.
 
 ### Status bar
 
