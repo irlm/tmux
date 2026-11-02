@@ -44,25 +44,26 @@ run_action() {
                  case "$selected" in ssh|ssh-split) "$SCRIPT_DIR/actions.sh" open "$selected" ;;
                      *) "$SCRIPT_DIR/actions.sh" run "$selected" ;; esac ;;
         help)
-            # F hands over to the palette. less cannot bind a key to "quit and
-            # tell the caller", so a lesskey shell action leaves a marker and
-            # stops the pager. Only the subshell's own stderr is silenced, for
-            # its "Terminated" notice: less itself must keep the terminal on
-            # fd 2, or it sits in "Waiting for data" when the text fits one
-            # screen. Without lesskey support (less < 582) F would start
+            # F quits less with status 70 (ASCII F), then opens the palette.
+            # Keep less's stderr on the terminal so short help can display
+            # without getting stuck in "Waiting for data".
+            # Without lesskey support (less < 582) F would start
             # follow mode, so the hint is dropped. ':' is escaped: it is a
             # prompt directive in less. --fill gives less a full screen: a
             # shorter file is drawn at the bottom, G scrolls "~" rows in above
             # it, and only g brings the title back to the top.
             output=$(mktemp -d) || return 1
             if less --lesskey-src=/dev/null </dev/null >/dev/null 2>&1; then
-                printf '#command\nF shell touch %s/palette; kill $PPID\\n\n' "$output" > "$output/lesskey"
-                ( python3 "$SCRIPT_DIR/help.py" --fill 2>&3 | less --lesskey-src="$output/lesskey" -KR 2>&3 \
-                    -P 'Help | F\: search commands | Space/b\: page | /\: search | q\: close' ) 3>&2 2>/dev/null
+                printf '#command\nF quit F\n' > "$output/lesskey"
+                python3 "$SCRIPT_DIR/help.py" --fill | less --lesskey-src="$output/lesskey" -KR \
+                    -P 'Help | F\: search commands | Space/b\: page | /\: search | q\: close'
+                rc=$?
             else
                 python3 "$SCRIPT_DIR/help.py" --no-palette --fill | less -KR -P 'Help | Space/b\: page | /\: search | q\: close'
+                rc=$?
             fi
-            if [ -e "$output/palette" ]; then rm -rf -- "$output"; run_action palette; else rm -rf -- "$output"; fi ;;
+            rm -rf -- "$output"
+            if [ "$rc" -eq 70 ]; then run_action palette; else return "$rc"; fi ;;
         themes) "$SCRIPT_DIR/themes.sh" ;;
         special-days) python3 "$SCRIPT_DIR/special_days.py" --pick ;;
         nvim-help) less -KR "$SCRIPT_DIR/../cheatsheet-nvim.txt" ;;
