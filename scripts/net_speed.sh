@@ -15,7 +15,7 @@ human_rate() {
 if [ -f /proc/net/dev ]; then
     read -r rx tx < <(awk '/:/ && !/lo:/ {rx+=$2; tx+=$10} END {printf "%.0f %.0f\n", rx, tx}' /proc/net/dev)
 else
-    read -r rx tx < <(netstat -ib 2>/dev/null | awk '/Link/ && !/lo/ {rx+=$7; tx+=$10} END {printf "%.0f %.0f\n", rx, tx}')
+    read -r rx tx < <(netstat -ibn 2>/dev/null | awk '/Link/ && !/lo/ {rx+=$7; tx+=$10} END {printf "%.0f %.0f\n", rx, tx}')
 fi
 now=$(date +%s)
 down=0; up=0

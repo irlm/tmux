@@ -134,8 +134,22 @@ if $has_battery && [ -n "$batt_pct" ]; then
 fi
 
 # A small ASCII drawing sits next to the native clock on special days.
+# The motif only changes with the date, so the lookup runs once per day.
 if [ "$special_days" = on ]; then
-    holiday=$(python3 "$SCRIPT_DIR/special_days.py" --status --date "$today" 2>/dev/null)
+    holiday_cache="$TMUX_CACHE_DIR/holiday"
+    holiday_day=""; holiday=""
+    if [ -f "$holiday_cache" ]; then
+        { IFS= read -r holiday_day; IFS= read -r holiday; } < "$holiday_cache" || true
+    fi
+    if [ "$holiday_day" != "$today" ]; then
+        if holiday=$(python3 "$SCRIPT_DIR/special_days.py" --status --date "$today" 2>/dev/null); then
+            tmp=$(mktemp "$TMUX_CACHE_DIR/holiday.XXXXXX")
+            printf '%s\n%s\n' "$today" "$holiday" > "$tmp"
+            mv -f -- "$tmp" "$holiday_cache"
+        else
+            holiday=""
+        fi
+    fi
     [ -z "$holiday" ] || out="${out}${sep}#[fg=${accent}]${holiday}#[default]"
 fi
 

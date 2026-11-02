@@ -4,6 +4,12 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Lower idle cost
+
+- Read network counters with `netstat -n` on macOS; without it each status refresh waited about five seconds on reverse DNS, so the status cache never hit and a `netstat` was always running.
+- Look the special-day motif up once per day instead of starting Python on every status sample.
+- Run the remote-mode check on window renames only while remote mode is on; every command renamed the window and spawned a shell plus several tmux calls for nothing.
+
 ### Special day ASCII art
 
 - Spread letter and year fireworks across the sky alongside ordinary bursts, then gather them quickly into the final word. Shorten these shows to three seconds while preserving the frame-rate and canvas limits.
