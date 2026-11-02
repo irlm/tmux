@@ -121,7 +121,7 @@ def columns(groups, width, count, color):
     return rows
 
 
-def render(width, color=False, root=ROOT):
+def render(width, color=False, root=ROOT, palette=True):
     width = max(20, width)
     padding = 2 if width >= 40 else 1
     usable = width - 2 * padding
@@ -135,7 +135,7 @@ def render(width, color=False, root=ROOT):
         lines = [heading]
     else:
         lines = [style(title, HEADING, color), style(prefix, KEY, color)]
-    hint = 'F: search commands   |   Space/b: page   |   /: search   |   q: close'
+    hint = ('F: search commands   |   ' if palette else '') + 'Space/b: page   |   /: search   |   q: close'
     for line in ([hint] if cells(hint) <= usable else wrap(hint, usable)):
         lines.append(style(line, MUTED, color))
     lines.extend(['', ''])
@@ -162,6 +162,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--width', type=int, help='output width in terminal cells')
     parser.add_argument('--plain', action='store_true', help='omit terminal colors')
+    parser.add_argument('--no-palette', action='store_true',
+                        help='omit the F hint when the pager cannot hand over to the palette')
     args = parser.parse_args(argv)
     colored = not args.plain and sys.stdin.isatty()
     if colored:
@@ -174,7 +176,7 @@ def main(argv=None):
         HEADING = ansi(palette['accent'], True)
         KEY = ansi(palette['foreground'], True)
         MUTED = ansi(palette['muted'])
-    sys.stdout.write(render(args.width or terminal_width(), color=colored))
+    sys.stdout.write(render(args.width or terminal_width(), color=colored, palette=not args.no_palette))
     return 0
 
 

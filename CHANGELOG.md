@@ -4,6 +4,10 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Help popup
+
+- Pressing `F` in the help popup now opens the command palette, as its hint says. It used to switch `less` into follow mode and show "Waiting for data..." until interrupted. Older `less` versions without lesskey support drop the hint instead.
+
 ### Lower idle cost
 
 - Read network counters with `netstat -n` on macOS; without it each status refresh waited about five seconds on reverse DNS, so the status cache never hit and a `netstat` was always running.

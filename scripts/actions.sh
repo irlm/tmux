@@ -43,7 +43,21 @@ run_action() {
                  selected=${selected%%$'\t'*}
                  case "$selected" in ssh|ssh-split) "$SCRIPT_DIR/actions.sh" open "$selected" ;;
                      *) "$SCRIPT_DIR/actions.sh" run "$selected" ;; esac ;;
-        help) python3 "$SCRIPT_DIR/help.py" | less -KR -P 'Help | Space/b: page | /: search | q: close' ;;
+        help)
+            # F hands over to the palette. less cannot bind a key to "quit and
+            # tell the caller", so a lesskey shell action leaves a marker and
+            # stops the pager; the shell's "Terminated" notice stays off screen
+            # (fd 3 keeps help.py's own errors visible). Without lesskey support
+            # (less < 582) F would start follow mode, so the hint is dropped.
+            output=$(mktemp -d) || return 1
+            if less --lesskey-src=/dev/null </dev/null >/dev/null 2>&1; then
+                printf '#command\nF shell touch %s/palette; kill $PPID\\n\n' "$output" > "$output/lesskey"
+                ( python3 "$SCRIPT_DIR/help.py" 2>&3 | less --lesskey-src="$output/lesskey" -KR \
+                    -P 'Help | F: search commands | Space/b: page | /: search | q: close' ) 3>&2 2>/dev/null
+            else
+                python3 "$SCRIPT_DIR/help.py" --no-palette | less -KR -P 'Help | Space/b: page | /: search | q: close'
+            fi
+            if [ -e "$output/palette" ]; then rm -rf -- "$output"; run_action palette; else rm -rf -- "$output"; fi ;;
         themes) "$SCRIPT_DIR/themes.sh" ;;
         special-days) python3 "$SCRIPT_DIR/special_days.py" --pick ;;
         nvim-help) less -KR "$SCRIPT_DIR/../cheatsheet-nvim.txt" ;;

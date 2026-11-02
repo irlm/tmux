@@ -230,6 +230,37 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         self.assertTrue(all(field.isdigit() for field in fields))
         self.assertEqual(cache.stat().st_mode & 0o777, 0o700)
 
+    def test_help_pager_hands_over_to_the_palette_on_f(self):
+        import fcntl, pty, select, struct, termios, time
+        self.env['TEST_PALETTE'] = str(self.root / 'palette')
+        self.executable('fzf', 'cat > "$TEST_PALETTE"; exit 130')
+        pid, fd = pty.fork()
+        if pid == 0:  # pragma: no cover - child
+            os.execve(BASH, [BASH, str(REPO / 'scripts/actions.sh'), 'run', 'help'], self.env)
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 120, 0, 0))
+        screen = b''
+        deadline = time.monotonic() + 10
+        while b'TMUX SHORTCUTS' not in screen and time.monotonic() < deadline:
+            if select.select([fd], [], [], 0.2)[0]:
+                screen += os.read(fd, 65536)
+        self.assertIn(b'F: search commands', screen)
+        os.write(fd, b'F')
+        while time.monotonic() < deadline:
+            if select.select([fd], [], [], 0.2)[0]:
+                try:
+                    screen += os.read(fd, 65536)
+                except OSError:
+                    break
+            if os.waitpid(pid, os.WNOHANG)[0]:
+                break
+        else:
+            os.kill(pid, 9)
+            self.fail('help did not exit after F:\n' + screen.decode(errors='replace')[-800:])
+        os.close(fd)
+        self.assertNotIn(b'Waiting for data', screen)
+        self.assertNotIn(b'Terminated', screen)
+        self.assertIn('Search commands', Path(self.env['TEST_PALETTE']).read_text())
+
     def test_compact_status_skips_collectors(self):
         result = self.run_script('scripts/status_right.sh', '80')
         self.assertEqual(result.returncode, 0)
