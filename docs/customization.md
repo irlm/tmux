@@ -111,7 +111,10 @@ Notes with an existing name open that note without rewriting it. Cancel a new-no
 - `dotup --quick`: update repositories, tmux and Neovim plugins, and GitHub extensions; skip package upgrades.
 - `dotup --fix`: update, then offer no-prompt repair for missing required tools.
 
-Each failed update component is reported in the final summary. Full transcripts are in `~/.local/share/tmux/update-logs/`. Local Git edits, including Neovim lock files, are preserved; resolve a blocked pull in that repository and rerun. Clipboard support is reported when the attached terminal advertises it; copying text and pasting it back remains the end-to-end check.
+Each failed update component is reported in the final summary. Full transcripts are in `~/.local/share/tmux/update-logs/`. Custom Git edits retain normal merge protection; resolve a blocked pull in that repository and rerun. When Neovim's only local change is its generated `lazy-lock.json`, the updater saves both its staged and working versions in a Git stash before pulling upstream's lockfile. Lazy sync can then regenerate it. Inspect these backups with `git -C ~/.config/nvim stash list`; they are retained rather than automatically reapplied or dropped. `--check` never creates a stash or changes files. Clipboard support is reported when the attached terminal advertises it; copying text and pasting it back remains the end-to-end check.
+
+If the Neovim repository update or lockfile backup fails, plugin synchronization
+is skipped so it cannot rewrite that repository's local state.
 
 Hardware samples and network counters use a private `~/.cache/tmux/` directory and atomic writes. Battery readings are sampled at most once per minute. Repeated status renders share five-second samples, and SSH status detection shares one process snapshot per active pane. SSH status height belongs to its session; clients attached to that same session share its height.
 

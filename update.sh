@@ -24,7 +24,7 @@ done
 failures=0
 failed() { printf '  FAILED: %s\n' "$*" >&2; failures=$((failures + 1)); }
 update_repo() {
-    local name=$1 dir=$2 remote head
+    local name=$1 dir=$2 remote head changes
     printf '\n── %s ──\n' "$name"
     if [ ! -d "$dir/.git" ] && [ ! -f "$dir/.git" ]; then failed "$name repo missing — run install.sh"; return; fi
     remote=$(git -C "$dir" remote get-url origin 2>/dev/null) || { failed "$name has no origin remote"; return; }
@@ -41,7 +41,22 @@ update_repo() {
         elif [ "$(git -C "$dir" rev-parse HEAD)" = "$head" ]; then echo '  Up to date.';
         else printf '  Update available or local history differs; run dotup in %s.\n' "$dir"; fi
     else
-        # Preserve local edits, including lock files; no implicit checkout/reset.
+        if [ "$name" = nvim ]; then
+            changes=$(git -C "$dir" status --porcelain --untracked-files=normal) || {
+                failed "$name status; existing files preserved"; return;
+            }
+            case "$changes" in
+                ' M lazy-lock.json'|'M  lazy-lock.json'|'MM lazy-lock.json')
+                    # Lazy sync rewrites this generated file. Keep both its index
+                    # and working versions in Git before taking upstream's lock.
+                    if ! git -C "$dir" stash push -m "dotup: generated Neovim lock $(date -u +%Y%m%dT%H%M%SZ)" -- lazy-lock.json; then
+                        failed "$name lock backup; existing files preserved"; return
+                    fi
+                    printf '  Backed up generated Neovim lock in its Git stash.\n'
+                    ;;
+            esac
+        fi
+        # All other local edits retain normal Git merge protection.
         git -C "$dir" -c http.lowSpeedLimit=100 -c http.lowSpeedTime=15 pull --ff-only origin main || failed "$name pull; resolve local changes in $dir"
     fi
 }
@@ -71,7 +86,10 @@ done
 export PATH
 profile=desktop
 [ ! -f "$NVIM_DIR/.server" ] || profile=server
+before_nvim=$failures
 update_repo nvim "$NVIM_DIR"
+nvim_repo_ready=1
+[ "$failures" -eq "$before_nvim" ] || nvim_repo_ready=0
 if [ "$MODE" = check ]; then
     "$ASSET_DIR/scripts/doctor.sh" || failed 'environment health check'
     [ "$failures" -eq 0 ] || exit 1
@@ -101,9 +119,13 @@ if tmux list-sessions >/dev/null 2>&1; then
     run_logged tmux-reload tmux source-file "$TMUX_DIR/tmux.conf"
 fi
 if [ -f "$NVIM_DIR/init.lua" ] && command -v nvim >/dev/null 2>&1; then
-    run_logged nvim-plugins nvim --headless '+Lazy! sync' +qa
-    if grep -F 'You have local changes' "$LOG_DIR/nvim-plugins.log" >/dev/null; then
-        failed "Neovim plugins have local changes (log: $LOG_DIR/nvim-plugins.log)"
+    if [ "$nvim_repo_ready" -eq 1 ]; then
+        run_logged nvim-plugins nvim --headless '+Lazy! sync' +qa
+        if grep -F 'You have local changes' "$LOG_DIR/nvim-plugins.log" >/dev/null; then
+            failed "Neovim plugins have local changes (log: $LOG_DIR/nvim-plugins.log)"
+        fi
+    else
+        printf '  SKIP: nvim-plugins (repository update failed)\n'
     fi
 fi
 if [ "$profile" != server ] && command -v gh >/dev/null 2>&1; then

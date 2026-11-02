@@ -4,6 +4,10 @@
 
 The public install commands below download **`main`**, and the updater pulls `origin main`. A commit pushed to a feature branch is available for review but is not yet distributed by these commands. Merge it into `main` after checks pass before rolling it out to other machines. Changing only the branch in the install script URL is insufficient: bootstrap assets and fresh config clones also use `main`.
 
+Deploy live previews through committed Git states. Copying files directly into
+`~/.config/tmux` leaves local changes that can block the next update; keep the
+installed checkout clean and put personal settings in `~/.config/tmux-user/local.conf`.
+
 ## Install Modes
 
 | Mode | Best for | Entry point | Notes |
@@ -162,7 +166,7 @@ Use `dotup` (without `--quick`) when you also want managed Homebrew package upgr
 
 The `dotup` and `dotcheck` aliases exist only where the installer wrote the shell config; server-mode installs now include the managed aliases too. A machine that does not have the config at all needs the install one-liner, or `C-a s` from a machine that does — not this.
 
-The script pulls the repo first and, if `update.sh` itself changed, re-executes the freshly pulled copy in the same run. The curl form hands over to the installed copy after the pull too. This lets an older install continue with the new updater immediately. Local edits that conflict with incoming files, diverged Git history, missing tools, and network failures can still require repair before an update completes. The updater preserves local edits and reports failures instead of resetting files.
+The script pulls the repo first and, if `update.sh` itself changed, re-executes the freshly pulled copy in the same run. The curl form hands over to the installed copy after the pull too. This lets an older install continue with the new updater immediately. Local edits that conflict with incoming files, diverged Git history, missing tools, and network failures can still require repair before an update completes. The updater preserves custom edits and reports failures instead of resetting files. If Neovim's only local change is the generated `lazy-lock.json`, it is backed up in that repository's Git stash before pulling; both staged and working versions remain recoverable with `git -C ~/.config/nvim stash list`.
 
 What the script does:
 

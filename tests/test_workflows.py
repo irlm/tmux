@@ -423,6 +423,115 @@ exit 0''')
         self.assertTrue((self.root / 'nvim-called').exists())
         self.assertIn('simulated failure', (self.root / 'data/update-logs/tmux-install_plugins.log').read_text())
 
+    def updater_git_fixture(self):
+        real_git = shutil.which('git')
+        self.env.update(GIT_CONFIG_GLOBAL='/dev/null', GIT_CONFIG_NOSYSTEM='1', GIT_TERMINAL_PROMPT='0')
+
+        def git(directory, *args):
+            return subprocess.run([real_git, '-C', str(directory), *args], env=self.env,
+                                  capture_output=True, text=True, check=True, timeout=10).stdout
+
+        installed = {}
+        for name in ('tmux', 'nvim'):
+            seed = self.root / ('seed-' + name); seed.mkdir()
+            git(seed, 'init', '-b', 'main')
+            git(seed, 'config', 'user.name', 'Update Test')
+            git(seed, 'config', 'user.email', 'update@example.invalid')
+            if name == 'tmux':
+                (seed / '.gitignore').write_text('plugins/\n')
+                (seed / 'tools.tsv').write_text('command\tbrew\tscoop\tprofile\n')
+                (seed / 'tmux.conf').write_text('# isolated updater fixture\n')
+            else:
+                (seed / 'init.lua').write_text('return {}\n')
+                (seed / 'lazy-lock.json').write_text('{"plugin": "old upstream"}\n')
+            git(seed, 'add', '.')
+            git(seed, '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'initial')
+            remote = self.root / ('remote-' + name + '.git')
+            git(self.root, 'clone', '--bare', str(seed), str(remote))
+            checkout = self.root / name
+            git(self.root, 'clone', str(remote), str(checkout))
+            git(checkout, 'config', 'user.name', 'Update Test')
+            git(checkout, 'config', 'user.email', 'update@example.invalid')
+            installed[name] = checkout
+            if name == 'nvim':
+                (seed / 'lazy-lock.json').write_text('{"plugin": "new upstream"}\n')
+                git(seed, 'add', 'lazy-lock.json')
+                git(seed, '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'update lock')
+                git(seed, 'push', str(remote), 'main')
+
+        self.env.update(TMUX_CONFIG_DIR=str(installed['tmux']), NVIM_CONFIG_DIR=str(installed['nvim']),
+                        TEST_NVIM=str(self.root / 'nvim-called'))
+        plugins = installed['tmux'] / 'plugins/tpm/bin'; plugins.mkdir(parents=True)
+        for path in [plugins.parent / 'tpm', *(plugins / name for name in ('install_plugins', 'update_plugins', 'clean_plugins'))]:
+            path.write_text('#!/bin/sh\nexit 0\n'); path.chmod(0o755)
+        self.executable('git', '''if [ "${TEST_FAIL_STASH:-0}" = 1 ] && [ "$3" = stash ]; then exit 1; fi
+if [ "$3" = remote ] && [ "$4" = get-url ]; then
+    case "$2" in */nvim) echo https://github.com/irlm/nvim.git ;; *) echo https://github.com/irlm/tmux.git ;; esac
+else exec ''' + shlex_quote(real_git) + ''' "$@"; fi''')
+        self.executable('tmux', 'if [ "$1" = -V ]; then echo "tmux 3.8"; elif [ "$1" = list-sessions ]; then exit 1; fi')
+        self.executable('nvim', 'echo called > "$TEST_NVIM"')
+        self.executable('gh', 'echo dlvhdr/gh-dash')
+        self.executable('infocmp', 'exit 0')
+        return installed['nvim'], git
+
+    def test_updater_backs_up_generated_nvim_lock_before_pull(self):
+        nvim, git = self.updater_git_fixture()
+        generated = '{"plugin": "generated local"}\n'
+        (nvim / 'lazy-lock.json').write_text(generated)
+        result = self.run_script('update.sh', '--quick')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((nvim / 'lazy-lock.json').read_text(), '{"plugin": "new upstream"}\n')
+        self.assertEqual(git(nvim, 'show', 'stash@{0}:lazy-lock.json'), generated)
+        self.assertEqual(git(nvim, 'status', '--porcelain'), '')
+        self.assertTrue((self.root / 'nvim-called').exists())
+
+    def test_updater_preserves_staged_and_working_nvim_lock_versions(self):
+        nvim, git = self.updater_git_fixture()
+        staged = '{"plugin": "staged local"}\n'
+        working = '{"plugin": "working local"}\n'
+        (nvim / 'lazy-lock.json').write_text(staged)
+        git(nvim, 'add', 'lazy-lock.json')
+        (nvim / 'lazy-lock.json').write_text(working)
+        result = self.run_script('update.sh', '--quick')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(git(nvim, 'show', 'stash@{0}:lazy-lock.json'), working)
+        self.assertEqual(git(nvim, 'show', 'stash@{0}^2:lazy-lock.json'), staged)
+        self.assertEqual((nvim / 'lazy-lock.json').read_text(), '{"plugin": "new upstream"}\n')
+
+    def test_updater_keeps_custom_nvim_edits_under_normal_git_protection(self):
+        nvim, git = self.updater_git_fixture()
+        (nvim / 'lazy-lock.json').write_text('{"plugin": "local"}\n')
+        (nvim / 'init.lua').write_text('return { custom = true }\n')
+        result = self.run_script('update.sh', '--quick')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual((nvim / 'lazy-lock.json').read_text(), '{"plugin": "local"}\n')
+        self.assertEqual((nvim / 'init.lua').read_text(), 'return { custom = true }\n')
+        self.assertEqual(git(nvim, 'stash', 'list'), '')
+        self.assertFalse((self.root / 'nvim-called').exists())
+
+    def test_updater_stops_nvim_changes_if_lock_backup_fails(self):
+        nvim, git = self.updater_git_fixture()
+        original_head = git(nvim, 'rev-parse', 'HEAD')
+        generated = '{"plugin": "generated local"}\n'
+        (nvim / 'lazy-lock.json').write_text(generated)
+        self.env['TEST_FAIL_STASH'] = '1'
+        result = self.run_script('update.sh', '--quick')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('nvim lock backup', result.stderr)
+        self.assertEqual((nvim / 'lazy-lock.json').read_text(), generated)
+        self.assertEqual(git(nvim, 'rev-parse', 'HEAD'), original_head)
+        self.assertEqual(git(nvim, 'stash', 'list'), '')
+        self.assertFalse((self.root / 'nvim-called').exists())
+
+    def test_updater_check_leaves_generated_nvim_lock_untouched(self):
+        nvim, git = self.updater_git_fixture()
+        generated = '{"plugin": "generated local"}\n'
+        (nvim / 'lazy-lock.json').write_text(generated)
+        result = self.run_script('update.sh', '--check')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((nvim / 'lazy-lock.json').read_text(), generated)
+        self.assertEqual(git(nvim, 'stash', 'list'), '')
+
 
 class TmuxIntegrationTests(unittest.TestCase):
     @classmethod

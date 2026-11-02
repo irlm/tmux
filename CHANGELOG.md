@@ -4,6 +4,11 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Installed update recovery
+
+- Back up a generated Neovim lockfile-only change in Git stash before pulling, preserving staged and working versions while allowing plugin updates to proceed. Keep custom edits under normal Git protection and leave read-only checks untouched.
+- Skip Neovim plugin synchronization when its repository update or lockfile backup fails.
+
 ### Help popup
 
 - Pressing `F` in the help popup now opens the command palette, as its hint says. It used to switch `less` into follow mode and show "Waiting for data..." until interrupted. Older `less` versions without lesskey support drop the hint instead.
