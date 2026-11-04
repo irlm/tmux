@@ -140,8 +140,10 @@ popups being Bash scripts:
   git, which `install.ps1` installs); `HERDR_BASH` names another bash. Without
   Git Bash, WSL is used with this repo installed inside the distribution;
   without either, the popups are left out and the native Herdr keys remain.
-- The tab bar shows the hostname and the clock; the hardware readings need
-  Unix tools.
+- The tab bar readings come from `scripts\status_right.ps1` every ten
+  seconds: network rate, CPU, memory and battery from CIM and the adapter
+  counters, and the busiest process beside a high CPU reading from the
+  change in each process's CPU time since the last sample.
 - `ctrl+hjkl` navigation works the same way through Git Bash.
 - Tools the popups call (fzf, lazygit, bat, fastfetch, python) come from Scoop
   through `install.ps1`; `python3` resolves to Scoop's `python`.

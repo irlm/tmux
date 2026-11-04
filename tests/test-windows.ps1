@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path $PSScriptRoot
-foreach ($file in @('install.ps1', 'setup-windows.ps1', 'scripts\herdr-config.ps1')) {
+foreach ($file in @('install.ps1', 'setup-windows.ps1', 'scripts\herdr-config.ps1', 'scripts\status_right.ps1')) {
     $tokens = $null; $errors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $RepoRoot $file), [ref]$tokens, [ref]$errors)
     if ($errors.Count) { throw ($errors | Out-String) }
@@ -58,12 +58,19 @@ try {
     $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
     foreach ($expected in @('prefix = "ctrl+a"', 'split_vertical = "prefix+|"', 'name = "catppuccin"', 'overlay1 = "#cad3f5"',
                             'key = "prefix+g"', 'bash.exe\" \"', 'actions.sh\" run git', 'width = "70%"', '{ type = "hostname" }',
-                            'herdr-navigate.sh\" left', '[theme.custom.light]')) {
+                            'herdr-navigate.sh\" left', '[theme.custom.light]', 'status_right.ps1', 'interval_seconds = 10')) {
         if ($rendered -notmatch [regex]::Escape($expected)) { throw "Windows Herdr render is missing: $expected" }
     }
     # Line endings are the platform's: CRLF when rendered on Windows.
     if ($rendered -notmatch 'run info"\r?\nwidth = 100\r?\nheight = 36') { throw 'Windows Herdr render did not size the info popup.' }
     if ($rendered -match 'run new-session' -or $rendered -match '@@') { throw 'Windows Herdr render kept a native prompt or a placeholder.' }
+    if ($rendered -match 'type = "hostname"') { throw 'Windows Herdr render still uses the hostname entry instead of the readings.' }
+    # On Windows the readings script must answer with a CPU and memory figure.
+    if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+        $line = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\status_right.ps1') -Ascii | Out-String
+        if ($line -notmatch 'CPU \d+(\.\d+)?%' -or $line -notmatch 'RAM \d+%') { throw "Windows status line is incomplete: $line" }
+        Write-Output 'Windows status line passed'
+    }
     $plugin = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -PrintPlugin | Out-String
     if ($plugin -notmatch 'id = "palette"' -or $plugin -notmatch '"windows"') { throw 'Windows Herdr plugin manifest is incomplete.' }
     Write-Output 'Windows Herdr render passed'

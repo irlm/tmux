@@ -143,8 +143,24 @@ function Render-Config {
     [void]$out.AppendLine("$Mark on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss'). Do not edit: personal settings belong in $UserToml")
     [void]$out.AppendLine('')
     $theme = Render-Theme
-    # Windows: hostname and clock only; the status script needs Unix tools.
-    $status = '  { type = "hostname" },'
+    # The readings come from status_right.ps1, every ten seconds: a PowerShell
+    # start costs more than the Unix script, so the interval is longer.
+    $psExe = 'powershell.exe'
+    if ($env:SystemRoot) { $psExe = ShortPath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') }
+    $statusScript = ShortPath (Join-Path $Root 'scripts\status_right.ps1')
+    $statusCommand = "$psExe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $statusScript"
+    if ((Get-Option 'herdr_status_colors' 'off') -eq 'on') {
+        $themes = Get-Content (Join-Path $Root 'themes.json') -Raw | ConvertFrom-Json
+        $identifier = 'nord'; $saved = Join-Path $UserDir 'theme'
+        if (Test-Path $saved) { $identifier = (Get-Content $saved -Raw).Trim() }
+        if (-not $themes.PSObject.Properties[$identifier]) { $identifier = 'nord' }
+        $colors = $themes.$identifier.colors
+        $status = (@(@('net', 'magenta'), @('cpu', 'accent'), @('ram', 'yellow'), @('battery', 'green')) | ForEach-Object {
+            "  { type = `"command`", command = $(TomlString "$statusCommand -Part $($_[0])"), interval_seconds = 10, timeout_seconds = 5, color = `"$($colors.($_[1]))`" },"
+        }) -join "`n"
+    } else {
+        $status = "  { type = `"command`", command = $(TomlString $statusCommand), interval_seconds = 10, timeout_seconds = 5 },"
+    }
     foreach ($line in Get-Content $Template) {
         if ($line -match '@@THEME@@') { [void]$out.AppendLine($theme); continue }
         if ($line -match '@@STATUS_ENTRIES@@') { [void]$out.AppendLine($status); continue }
