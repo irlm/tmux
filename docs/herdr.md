@@ -147,7 +147,10 @@ popups being Bash scripts:
   through `install.ps1`; `python3` resolves to Scoop's `python`.
 
 Rerunning `install.ps1` updates the checkout and re-renders the Herdr config,
-the way `dotup` does on Unix.
+the way `dotup` does on Unix; `C-a C-u` runs it from Herdr. Verified on a
+Windows 11 ARM virtual machine from a clean install: every package through
+Scoop, Herdr itself, the rendered config, the plugin, the popups through Git
+Bash, and `ctrl+hjkl` navigation.
 
 ## What is different from tmux
 

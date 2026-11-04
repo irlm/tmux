@@ -113,7 +113,13 @@ run_action() {
                 rename-session) tmux rename-session -- "$query" ;;
                 rename-window) tmux rename-window -- "$query" ;;
             esac ;;
-        update) "$SCRIPT_DIR/../update.sh"; rc=$?; pause_close; return "$rc" ;;
+        update)
+            # Windows (Git Bash under Herdr): the PowerShell installer is the updater.
+            case "$(uname -s)" in
+                MINGW*|MSYS*|CYGWIN*) powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$SCRIPT_DIR/../install.ps1")"; rc=$? ;;
+                *) "$SCRIPT_DIR/../update.sh"; rc=$? ;;
+            esac
+            pause_close; return "$rc" ;;
         ssh|ssh-split)
             # Under Herdr a saved machine (herdr machine add) puts the server's
             # agents in the sidebar; this is the quick plain-ssh path.
