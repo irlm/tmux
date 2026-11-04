@@ -444,7 +444,7 @@ class Screen:
             return
         if width is not None:
             text = text[:width]
-        text = text[:max(0, columns - x - 1)]
+        text = text[:max(0, columns - x)]  # the bottom-right cell raises in curses; put() swallows it
         attr = self.pairs.get(style, 0) | (curses.A_BOLD if bold else 0)
         try:
             self.stdscr.addstr(y, x, text, attr)
@@ -460,13 +460,12 @@ class Screen:
         import curses
         self.stdscr.erase()
         rows, columns = self.stdscr.getmaxyx()
-        width = min(columns - 2, 72)
-        left = max(0, (columns - width) // 2)
+        # The card fills the popup, so C-a $ is the same size as every other popup.
+        width = columns
+        left = 0
+        height = rows
         inner = width - 4
         title, totals, limit_rows, note = self.providers[self.tab]
-        # the card is as tall as its content, like a panel, not the whole popup
-        content = 9 + (3 * len(limit_rows) if limit_rows else 1) + 3 + self.days + 3 + max(1, len(totals['models'])) + 1
-        height = min(rows, content + 2)
         # frame
         self.put(0, left, '╭' + '─' * (width - 2) + '╮', 'accent')
         for y in range(1, height - 1):
