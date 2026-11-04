@@ -121,7 +121,7 @@ and the theme from `scripts/appearance.py`. Nothing needs compiling.
 
 | Repo | Purpose |
 |------|---------|
-| [irlm/tmux](https://github.com/irlm/tmux) | tmux config, scripts, and installers |
+| [irlm/workbench](https://github.com/irlm/workbench) | tmux and Herdr config, Helix config, scripts, and installers (checked out at `~/.config/tmux`) |
 | [irlm/nvim](https://github.com/irlm/nvim) | optional Neovim / LazyVim configuration |
 
 ## Reliability and Customization

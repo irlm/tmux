@@ -1,4 +1,4 @@
-# Herdr configuration template for the irlm/tmux workbench.
+# Herdr configuration template for irlm/workbench.
 #
 # scripts/herdr-config.sh renders this file plus the popup bindings generated
 # from actions.tsv into ~/.config/herdr/config.toml, then appends your own

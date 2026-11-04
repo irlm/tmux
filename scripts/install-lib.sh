@@ -206,7 +206,7 @@ install_helix_config() {
     mkdir -p "$(dirname "$dest")"
     if [ -L "$dest" ]; then
         [ "$(readlink "$dest")" = "$source" ] && return 0
-    elif [ -f "$dest" ] && ! head -3 "$dest" | grep -qF 'Managed by irlm/tmux'; then
+    elif [ -f "$dest" ] && ! head -3 "$dest" | grep -qE 'Managed by irlm/(workbench|tmux)'; then
         mv -- "$dest" "$dest.backup.$(date +%Y%m%d-%H%M%S)"
         printf 'Previous Helix config saved beside it as a .backup file\n'
     fi

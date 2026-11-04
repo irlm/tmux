@@ -414,7 +414,7 @@ esac''')
         self.env.update(TMUX_CONFIG_DIR=str(installed), NVIM_CONFIG_DIR=str(nvim), TEST_NVIM=str(self.root / 'nvim-called'))
         self.executable('nvim', 'echo called > "$TEST_NVIM"')
         self.executable('git', '''if [ "$3" = remote ]; then
-    case "$2" in */nvim) echo https://github.com/irlm/nvim.git ;; *) echo https://github.com/irlm/tmux.git ;; esac
+    case "$2" in */nvim) echo https://github.com/irlm/nvim.git ;; *) echo https://github.com/irlm/workbench.git ;; esac
 fi
 exit 0''')
         self.executable('tmux', 'if [ "$1" = -V ]; then echo "tmux 3.8"; elif [ "$1" = list-sessions ]; then exit 1; fi')

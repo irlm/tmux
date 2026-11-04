@@ -4,6 +4,10 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Name
+
+- The repository is `irlm/workbench`. GitHub redirects the old `irlm/tmux` URLs, the updater and installers accept checkouts made under either name, and the checkout stays in `~/.config/tmux` because tmux reads its config there. Generated files now say `irlm/workbench`; the older marker is still recognised.
+
 ### Plugins
 
 - Seven tmux plugins are gone, replaced by this repo's own lines: copy mode copies through `scripts/clipboard.sh` (tmux-yank), `ctrl+hjkl` navigation is in `tmux.conf` and still hands the key to Neovim (vim-tmux-navigator), `C-a Space` and `C-a u` run `scripts/pick.sh` under tmux as well as Herdr (tmux-thumbs, which needed a Rust build, and the URL binding that had no plugin behind it), and the unused tmux-sensible, tmux-cpu, tmux-fzf and nord-tmux. Only tpm, tmux-resurrect and tmux-continuum remain; `dotup` removes the rest.

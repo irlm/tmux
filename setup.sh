@@ -228,8 +228,8 @@ if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/
   INSTALL_ASSETS=$(mktemp -d)
   trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT
   mkdir -p "$INSTALL_ASSETS/scripts"
-  curl -fsSL https://raw.githubusercontent.com/irlm/tmux/main/scripts/install-lib.sh -o "$INSTALL_ASSETS/scripts/install-lib.sh"
-  curl -fsSL https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv -o "$INSTALL_ASSETS/tools.tsv"
+  curl -fsSL https://raw.githubusercontent.com/irlm/workbench/main/scripts/install-lib.sh -o "$INSTALL_ASSETS/scripts/install-lib.sh"
+  curl -fsSL https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv -o "$INSTALL_ASSETS/tools.tsv"
 fi
 # shellcheck source=scripts/install-lib.sh
 source "$INSTALL_ASSETS/scripts/install-lib.sh"

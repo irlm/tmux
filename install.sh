@@ -95,8 +95,8 @@ if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/
     INSTALL_ASSETS=$(mktemp -d)
     trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT
     mkdir -p "$INSTALL_ASSETS/scripts"
-    download "https://raw.githubusercontent.com/irlm/tmux/main/scripts/install-lib.sh" "$INSTALL_ASSETS/scripts/install-lib.sh"
-    download "https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv" "$INSTALL_ASSETS/tools.tsv"
+    download "https://raw.githubusercontent.com/irlm/workbench/main/scripts/install-lib.sh" "$INSTALL_ASSETS/scripts/install-lib.sh"
+    download "https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv" "$INSTALL_ASSETS/tools.tsv"
 fi
 # shellcheck source=scripts/install-lib.sh
 source "$INSTALL_ASSETS/scripts/install-lib.sh"
@@ -108,7 +108,7 @@ if [ "$MODE" = "full" ]; then
     echo ""
     ensure_curl
     TMPSCRIPT=$(mktemp)
-    download "https://raw.githubusercontent.com/irlm/tmux/main/setup.sh" "$TMPSCRIPT"
+    download "https://raw.githubusercontent.com/irlm/workbench/main/setup.sh" "$TMPSCRIPT"
     TMUX_INSTALL_ASSETS="$INSTALL_ASSETS" bash "$TMPSCRIPT"
     rm -f -- "$TMPSCRIPT"
     exit 0
@@ -196,7 +196,7 @@ if [ "$MODE" = "server" ]; then
         fi
     fi
 
-    clone_config tmux "$HOME/.config/tmux"
+    clone_config workbench "$HOME/.config/tmux"
     install_helix_config "$HOME/.config/tmux/helix/config.toml"
     # The profile marker keeps tmux, the updater and the doctor in server mode.
     mkdir -p "$HOME/.config/tmux-user"
@@ -364,7 +364,7 @@ echo ""
 echo "Setting up configs..."
 
 
-clone_config tmux "$HOME/.config/tmux"
+clone_config workbench "$HOME/.config/tmux"
 install_helix_config "$HOME/.config/tmux/helix/config.toml"
 rm -f -- "$HOME/.config/tmux-user/profile"
 if [ "$WANT_NVIM" = 1 ]; then

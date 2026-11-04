@@ -22,7 +22,7 @@ scripts/herdr-config.sh          # Herdr already installed: render and link
 Windows (PowerShell):
 
 ```powershell
-$env:INSTALL_HERDR = "1"; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+$env:INSTALL_HERDR = "1"; irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 pwsh ~\.config\tmux\scripts\herdr-config.ps1   # Herdr already installed: render and link
 ```
 

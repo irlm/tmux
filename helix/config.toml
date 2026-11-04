@@ -1,4 +1,4 @@
-# Managed by irlm/tmux (helix/config.toml); linked to ~/.config/helix/config.toml.
+# Managed by irlm/workbench (helix/config.toml); linked to ~/.config/helix/config.toml.
 # Helix for the review desk: the Nord palette, relative numbers, and a few keys
 # for working beside coding agents. ctrl+h/j/k/l are left to Herdr and tmux,
 # which move between panes; Helix's own windows use C-w as usual. On Windows

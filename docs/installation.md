@@ -22,7 +22,7 @@ installed checkout clean and put personal settings in `~/.config/tmux-user/local
 ### Default install
 
 ```bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash
 ```
 
 Use this when you want the fastest path to a working local setup. On macOS it uses Homebrew. On Linux it is aimed at apt-based systems.
@@ -30,7 +30,7 @@ Use this when you want the fastest path to a working local setup. On macOS it us
 ### Full install
 
 ```bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
+curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 ```
 
 Use this when you want broader distro coverage and more opinionated shell setup. The full installer supports:
@@ -45,7 +45,7 @@ Use this when you want broader distro coverage and more opinionated shell setup.
 ### Server install
 
 ```bash
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --server
+curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash -s -- --server
 ```
 
 Use this when you want:
@@ -81,7 +81,7 @@ installed Herdr is configured without asking, and `dotup` keeps it current.
 Run PowerShell as Administrator:
 
 ```powershell
-irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 ```
 
 The Windows installer uses Scoop plus winget to set up:
@@ -162,7 +162,7 @@ For an existing managed installation, use the updater; reinstalling is normally 
 | A shell on the machine, no alias (servers, bash) | `~/.config/tmux/update.sh` |
 | Inside tmux | `C-a C-u` (same update, in a popup) |
 | From another machine, over SSH | `ssh host '~/.config/tmux/update.sh'` |
-| Anywhere, straight from GitHub | `curl -sL https://raw.githubusercontent.com/irlm/tmux/main/update.sh \| bash` |
+| Anywhere, straight from GitHub | `curl -sL https://raw.githubusercontent.com/irlm/workbench/main/update.sh \| bash` |
 
 Flags go on the end of any form (`bash -s -- --fix` for the curl one):
 
@@ -210,7 +210,7 @@ Use `desktop` for the default installer, `full` for a full install, or `server` 
 
 ## Related Repos
 
-- [irlm/tmux](https://github.com/irlm/tmux): tmux config, scripts, and installers
+- [irlm/workbench](https://github.com/irlm/workbench): tmux and Herdr config, Helix config, scripts, and installers (checked out at `~/.config/tmux`)
 - [irlm/nvim](https://github.com/irlm/nvim): the optional Neovim / LazyVim config
 
 Update failures now return a nonzero exit status and link to component logs. Local Neovim lock changes are preserved. `--quick` also updates Neovim plugins. See [Customization and diagnostics](customization.md#health-checks-and-updates) for the diagnostic commands and their limits.

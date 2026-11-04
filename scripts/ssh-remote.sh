@@ -79,7 +79,7 @@ case "$state" in
                 fi
             else
                 ssh -t "${SSH_OPTS[@]}" "$host" \
-                    'curl -fsSL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --server' \
+                    'curl -fsSL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash -s -- --server' \
                     || echo "Installer reported errors — see output above."
             fi
             state="$(probe)"

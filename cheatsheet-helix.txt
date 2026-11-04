@@ -1,4 +1,4 @@
-HELIX CHEATSHEET (irlm/tmux config)   select first, then act   leader = -
+HELIX CHEATSHEET (irlm/workbench)      select first, then act   leader = -
 ────────────────────────────────────────────────────────────────────────────────
 MOVEMENT                    SELECT (then act)           CHANGE
  h j k l   char/line         x        line (repeat: more)  d      delete selection

@@ -1,4 +1,6 @@
-# Tmux + Herdr Dev Environment
+# Workbench
+
+One terminal setup for tmux, Herdr and Helix: the same keys, popups and pickers everywhere, built for working beside coding agents. The repository was `irlm/tmux` until November 2026; the old URLs redirect, and the checkout still lives in `~/.config/tmux` because tmux reads it there.
 
 Cross-platform terminal setup for a consistent development environment on macOS, Linux, and Windows.
 
@@ -23,13 +25,13 @@ Install commands and `dotup` follow **`main`**. Changes pushed to another branch
 
 ```bash
 # Default install
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash
 
 # Full install
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
+curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 
 # Lightweight server install
-curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -- --server
+curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash -s -- --server
 ```
 
 ### Windows (PowerShell)
@@ -37,7 +39,7 @@ curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -
 Run PowerShell as Administrator:
 
 ```powershell
-irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 ```
 
 For tmux on Windows, use WSL: `wsl --install`

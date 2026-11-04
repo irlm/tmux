@@ -1,5 +1,5 @@
 ﻿# dotfiles installer for Windows (PowerShell)
-# Run as Administrator:  irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+# Run as Administrator:  irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Continue"
@@ -58,7 +58,7 @@ $manifestPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot "tools.tsv" } else 
 if ($manifestPath -and (Test-Path $manifestPath)) {
     $toolManifest = Import-Csv $manifestPath -Delimiter "`t"
 } else {
-    $toolManifest = (Invoke-RestMethod "https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
+    $toolManifest = (Invoke-RestMethod "https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
 }
 # Neovim is the optional second editor (Helix is the managed one): set
 # INSTALL_NVIM=1, or keep an existing %LOCALAPPDATA%\nvim checkout, to get it.
@@ -270,7 +270,7 @@ function Clone-OrPull {
 if ($wantNvim) { Clone-OrPull -Repo "nvim.git" -Dest $nvimPath -Name "nvim" }
 
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.config" -Force | Out-Null
-Clone-OrPull -Repo "tmux.git" -Dest $tmuxPath -Name "tmux"
+Clone-OrPull -Repo "workbench.git" -Dest $tmuxPath -Name "workbench"
 
 # ─── Helix config ────────────────────────────────────────
 # The repo's Helix config, with its commands handed to Git Bash so the review
@@ -281,7 +281,7 @@ $helixSource = Join-Path $tmuxPath "helix\config.toml"
 if (Test-Path $helixSource) {
     New-Item -ItemType Directory -Path $helixDir -Force | Out-Null
     $existing = if (Test-Path $helixConfig) { Get-Content $helixConfig -Raw } else { "" }
-    if ($existing -and $existing -notmatch "Managed by irlm/tmux") {
+    if ($existing -and $existing -notmatch "Managed by irlm/(workbench|tmux)") {
         New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
         Copy-Item $helixConfig "$backupDir\helix-config.toml"
         Write-Host "  Backed up your Helix config to $backupDir\"
