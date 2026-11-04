@@ -73,12 +73,26 @@ function Find-Bash {
     return $null
 }
 
+# Herdr runs key commands through cmd.exe /d /c, whose quote rules break a
+# command that starts with a quoted path containing spaces (the popup dies
+# at once with exit 1). Short 8.3 names have no spaces and need no quotes.
+function ShortPath($path) {
+    try {
+        $fso = New-Object -ComObject Scripting.FileSystemObject
+        if (Test-Path $path -PathType Leaf) { return $fso.GetFile($path).ShortPath }
+        if (Test-Path $path -PathType Container) { return $fso.GetFolder($path).ShortPath }
+    } catch {}
+    return $path
+}
+
 # The command string Herdr runs (cmd.exe /d /c) for a script in this repo.
 function ScriptCommand($bash, $script, $arguments) {
     if (-not $bash) { return $null }
     if ($bash.kind -eq 'gitbash') {
-        $path = (Join-Path $Root "scripts\$script")
-        return "`"$($bash.path)`" `"$path`" $arguments"
+        $path = ShortPath (Join-Path $Root "scripts\$script")
+        $exe = ShortPath $bash.path
+        if ($exe -match ' ' -or $path -match ' ') { return "`"$exe`" `"$path`" $arguments" }
+        return "$exe $path $arguments"
     }
     # WSL: the repo installed inside the distribution at the usual place.
     return "wsl.exe -e bash -lc `"~/.config/tmux/scripts/$script $arguments`""
@@ -102,7 +116,7 @@ function Render-Theme {
     $installed = ''
     if (Test-Path $Target) {
         $text = Get-Content $Target -Raw
-        if ($text.StartsWith($Mark) -and $text -match '(?m)^\[theme\]\s*\r?\n(?:[^\[\r\n]*\r?\n)*?name\s*=\s*"([^"]*)"') { $installed = $Matches[1] }
+        if ($text.Substring(0, [Math]::Min(400, $text.Length)).Contains($Mark) -and $text -match '(?m)^\[theme\]\s*\r?\n(?:[^\[\r\n]*\r?\n)*?name\s*=\s*"([^"]*)"') { $installed = $Matches[1] }
     }
     $chosen = $recorded
     if ($installed -and $installed -ne $derived -and $installed -ne $recorded -and $native.ContainsKey($installed)) { $chosen = $installed }
@@ -202,7 +216,7 @@ try {
     if ($report -match 'issues found') { Write-Output $report }
     if ($Check) { Write-Output 'Herdr config renders and validates.'; exit 0 }
     New-Item -ItemType Directory -Path (Split-Path $Target) -Force | Out-Null
-    if ((Test-Path $Target) -and -not ((Get-Content $Target -First 1) -like "$Mark*")) {
+    if ((Test-Path $Target) -and -not ((Get-Content $Target -First 3 | Out-String).Contains($Mark))) {
         $backup = "$Target.backup.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
         Copy-Item $Target $backup
         Write-Output "Previous Herdr config saved to $backup"

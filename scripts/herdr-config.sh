@@ -88,7 +88,7 @@ installed = ''
 try:
     with open(target, encoding='utf-8') as stream:
         text = stream.read()
-    if text.startswith(mark):
+    if mark in text[:400]:
         match = re.search(r'^\[theme\]\s*\n(?:[^\[\n]*\n)*?name\s*=\s*"([^"]*)"', text, re.M)
         installed = match.group(1) if match else ''
 except OSError:
@@ -242,7 +242,7 @@ fi
 case "$report" in *"issues found"*) printf '%s\n' "$report" ;; esac
 [ "$mode" != --check ] || { echo 'Herdr config renders and validates.'; exit 0; }
 mkdir -p "$(dirname "$TARGET")" || exit 1
-if [ -f "$TARGET" ] && ! head -1 "$TARGET" | grep -qF "$MARK"; then
+if [ -f "$TARGET" ] && ! head -3 "$TARGET" | grep -qF "$MARK"; then
     backup="$TARGET.backup.$(date +%Y%m%d-%H%M%S)"
     cp -p -- "$TARGET" "$backup" && printf 'Previous Herdr config saved to %s\n' "$backup"
 fi

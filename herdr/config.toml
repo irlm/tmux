@@ -9,6 +9,10 @@
 # copy mode, 1-9 for tabs, Backspace for the previous workspace. Every
 # conflict with a Herdr default was moved to a ctrl chord under the prefix.
 
+# Herdr writes this itself after its first-run screen; carrying it here keeps
+# the rendered file untouched (and the first line stays our marker).
+onboarding = false
+
 # The theme follows C-a C-t: the base Herdr theme plus the chosen palette's
 # text and status colours, so the tab bar reads as well as the tmux status
 # line does (Herdr's own secondary text token is too dim for that).
