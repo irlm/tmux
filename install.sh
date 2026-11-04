@@ -6,24 +6,28 @@
 #
 # --full:   multi-distro, shell config, nerd font, zsh plugins, dev toolchain, Docker
 # --server: minimal — tmux, Helix, fzf, bat, btop, ripgrep
-# --herdr:  also install Herdr (herdr.dev) with this repo's keys, popups and plugin;
-#           an already installed Herdr is configured without the flag
+# Desktops get Herdr (herdr.dev) with this repo's keys, popups and plugin;
+# --no-herdr skips it, --herdr adds it to a server install. An already
+# installed Herdr is configured either way.
 # --nvim:   also install Neovim with the irlm/nvim config (optional second editor;
 #           an existing ~/.config/nvim checkout keeps being updated without the flag)
 set -euo pipefail
 
 MODE="default"
-WANT_HERDR=0
+WANT_HERDR=""
 WANT_NVIM=0
 [ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/init.lua" ] || WANT_NVIM=1
 for arg in "$@"; do
     case "$arg" in
         --full|-f)   MODE="full" ;;
         --server|-s) MODE="server" ;;
-        --herdr)     WANT_HERDR=1 ;;   # also install Herdr and configure it from this repo
+        --herdr)     WANT_HERDR=1 ;;   # install Herdr even on a server
+        --no-herdr)  WANT_HERDR=0 ;;   # desktop without Herdr (tmux only)
         --nvim)      WANT_NVIM=1 ;;    # also install Neovim and its config
     esac
 done
+# Herdr is the desktop multiplexer; servers keep tmux unless --herdr says otherwise.
+if [ -z "$WANT_HERDR" ]; then [ "$MODE" = server ] && WANT_HERDR=0 || WANT_HERDR=1; fi
 export WANT_NVIM
 
 # ─── Helper: bootstrap curl ──────────────────────────────
@@ -237,7 +241,7 @@ fi
 echo "=== dotfiles installer ==="
 echo "    --full    multi-distro setup with shell config, nerd font, dev toolchain"
 echo "    --server  lightweight server install (tmux, hx, fzf, bat, btop)"
-echo "    --herdr   also install Herdr and configure it from this repo"
+echo "    --no-herdr  tmux only; by default Herdr is installed and configured too"
 echo "    --nvim    also install Neovim with the irlm/nvim config"
 echo ""
 
@@ -463,7 +467,7 @@ configure_terminal_font
 install_shell_integration desktop
 
 # ─── Herdr (optional) ────────────────────────────────────
-install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || echo "  Herdr setup incomplete; rerun: bash install.sh --herdr"
+install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || echo "  Herdr setup incomplete; rerun: bash install.sh"
 
 # ─── Create data dirs ─────────────────────────────────────
 mkdir -p "$HOME/.local/share/tmux"
@@ -480,7 +484,7 @@ echo "  2. Run: tmux"
 echo "  3. Press C-a I to install tmux plugins"
 echo "  4. Edit with hx (Helix, configured from this repo; hx --tutor teaches the keys)"
 [ "$WANT_NVIM" != 1 ] || echo "     Or nvim (plugins + LSPs auto-install on first launch)"
-if command -v herdr >/dev/null 2>&1; then echo "  5. Or run: herdr (same keys, agent sidebar; see docs/herdr.md)"; fi
+if command -v herdr >/dev/null 2>&1; then echo "  5. Run: herdr (the desktop multiplexer: same keys, agent sidebar; see docs/herdr.md)"; fi
 echo ""
 echo "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
 echo ""

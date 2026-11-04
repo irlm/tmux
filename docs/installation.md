@@ -12,7 +12,7 @@ installed checkout clean and put personal settings in `~/.config/tmux-user/local
 
 | Mode | Best for | Entry point | Notes |
 |------|----------|-------------|-------|
-| Default | quick workstation setup on macOS or Debian/Ubuntu-style Linux | `install.sh` | installs the core environment and Helix with this repo's config, and sets up a full local dev machine; add `--nvim` for Neovim too |
+| Default | quick workstation setup on macOS or Debian/Ubuntu-style Linux | `install.sh` | installs Herdr, tmux, Helix with this repo's config and the tools, and sets up a full local dev machine; `--no-herdr` for tmux only, `--nvim` for Neovim too |
 | Full (`--full`) | broader Linux distro support and a more complete shell setup | `install.sh --full` | delegates to `setup.sh` for multi-distro support, shell config, extra polish, and WSL-aware behavior |
 | Server (`--server`) | remote hosts, minimal systems, or lightweight personal boxes | `install.sh --server` | keeps tmux + Helix light, skips Docker and oh-my-posh, and avoids heavy language-server setup; `--nvim` adds a light Neovim |
 | Windows | PowerShell workstation setup | `install.ps1` | installs Helix, CLI tools, fonts, and Docker Desktop (`INSTALL_NVIM=1` adds Neovim); for tmux itself, use WSL |
@@ -71,10 +71,13 @@ With Neovim requested on an ARM64 Windows machine, the installer takes the x86_6
 
 ## Herdr
 
-Every mode can also configure [Herdr](herdr.md), the multiplexer with an agent
-sidebar, with the same prefix, keys and popups: `install.sh --herdr` on macOS
-and Linux, `INSTALL_HERDR=1` with `install.ps1` on Windows. An already
-installed Herdr is configured without asking, and `dotup` keeps it current.
+[Herdr](herdr.md), the multiplexer with an agent sidebar, is the desktop
+multiplexer: the default and full installs on macOS and Linux and the Windows
+installer install it and configure it with the same prefix, keys, popups and
+theme as tmux. `--no-herdr` (Windows: `INSTALL_HERDR=0`) leaves it out;
+`--server --herdr` adds it to a server. An already installed Herdr is
+configured without asking, and `dotup` keeps it current. tmux is installed on
+desktops as well, for plain sessions and because the SSH flow uses it.
 
 ## Windows
 

@@ -214,7 +214,7 @@ install_helix_config() {
 }
 
 # Herdr: render this repo's config and plugin for it and wire the agent
-# integrations. Installs Herdr itself only when asked (install.sh --herdr).
+# integrations. Installs Herdr itself when wanted (desktops by default).
 install_herdr_workbench() {
     local assets=$1 want=${2:-0} agent
     if ! command -v herdr >/dev/null 2>&1; then

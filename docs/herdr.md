@@ -2,29 +2,33 @@
 
 [Herdr](https://herdr.dev) is a terminal workspace manager built for coding
 agents: a sidebar shows which Claude Code or Codex pane is working, blocked or
-done, and agent conversations come back after the server restarts. This repo
-configures Herdr with the same prefix, keys, popups, theme and status readings
-as its tmux setup, so one set of habits works on macOS, Linux and the machines
-where tmux was never an option.
+done, and agent conversations come back after the server restarts. Herdr is the
+desktop multiplexer of this setup; the installer configures it with the same
+prefix, keys, popups, theme and status readings as the tmux side, so one set
+of habits works on macOS, Linux and Windows, and on the servers where tmux
+remains.
 
-tmux stays as it was. The two share the scripts and the action registry; only
-the glue differs.
+tmux and Herdr share the scripts and the action registry; only the glue
+differs.
 
 ## Install
 
-macOS and Linux:
+The default install does it: `install.sh` on macOS and Linux, `install.ps1`
+on Windows (see the [installation guide](installation.md)). Herdr is
+installed from herdr.dev when missing and configured from this repo either
+way. To render the configuration again by hand, after editing
+`~/.config/tmux-user/herdr.toml` for example:
 
 ```bash
-bash install.sh --herdr          # installs Herdr too, then configures it
-scripts/herdr-config.sh          # Herdr already installed: render and link
+~/.config/tmux/scripts/herdr-config.sh          # macOS, Linux
 ```
-
-Windows (PowerShell):
 
 ```powershell
-$env:INSTALL_HERDR = "1"; irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
-pwsh ~\.config\tmux\scripts\herdr-config.ps1   # Herdr already installed: render and link
+pwsh ~\.config\tmux\scripts\herdr-config.ps1   # Windows
 ```
+
+`install.sh --no-herdr` (Windows: `INSTALL_HERDR=0`) gives a tmux-only
+desktop; `install.sh --server --herdr` adds Herdr to a server.
 
 `herdr-config.sh` renders `herdr/config.toml`, one popup binding per row of
 `actions.tsv`, and your `~/.config/tmux-user/herdr.toml`, validates the result

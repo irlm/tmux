@@ -4,6 +4,10 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Herdr by default
+
+- Desktop installs on macOS, Linux and Windows install and configure Herdr without a flag; `--no-herdr` (Windows `INSTALL_HERDR=0`) skips it, and `--server --herdr` adds it to a server. The README and docs lead with Herdr on the desktop and tmux on servers.
+
 ### Name
 
 - The repository is `irlm/workbench`. GitHub redirects the old `irlm/tmux` URLs, the updater and installers accept checkouts made under either name, and the checkout stays in `~/.config/tmux` because tmux reads its config there. Generated files now say `irlm/workbench`; the older marker is still recognised.

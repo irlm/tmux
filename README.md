@@ -1,19 +1,15 @@
 # Workbench
 
-One terminal setup for tmux, Herdr and Helix: the same keys, popups and pickers everywhere, built for working beside coding agents. The repository was `irlm/tmux` until November 2026; the old URLs redirect, and the checkout still lives in `~/.config/tmux` because tmux reads it there.
-
-Cross-platform terminal setup for a consistent development environment on macOS, Linux, and Windows.
+One terminal setup for working beside coding agents, on macOS, Linux and Windows: [Herdr](https://herdr.dev) on the desktop, tmux on servers, Helix as the editor, and one set of keys, popups and pickers across all of them.
 
 ## What This Project Is
 
-This repo is the tmux and terminal side of the setup. It gives you:
+- **Herdr on the desktop.** The multiplexer with an agent sidebar: it shows which Claude Code or Codex pane is working, blocked or done, and conversations come back after a restart. The installer sets it up with the `C-a` prefix, the popups and the theme; see the [Herdr guide](docs/herdr.md).
+- **tmux on servers.** The same prefix and popups where Herdr is not an option. `C-a s` installs the config over SSH and, while a remote tmux is in front, your keys act there. tmux is installed on desktops too, for those sessions.
+- **Helix as the editor**, configured for reviewing agent-written code: send a selection to the agent, open the `file:line` it mentions, lazygit a key away. The separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config stays available with `--nvim`.
+- **Popups and pickers** for `lazygit`, `lazydocker`, notes, projects, search, LLM usage and limits, plus the shell prompt and CLI tooling bootstrap.
 
-- a tmux workflow built around the `C-a` prefix
-- helper popups for tools like `lazygit`, `lazydocker`, notes, and project switching
-- the same keys on your servers: `C-a s` installs the config over SSH and, while a remote tmux is in front, your bindings act there
-- shell prompt and CLI tooling bootstrap scripts
-- Helix as the editor, configured for reviewing beside coding agents; the separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config stays available with `--nvim`
-- the same keys, popups and theme in [Herdr](docs/herdr.md), the multiplexer that shows which coding agent needs you
+The repository was `irlm/tmux` until November 2026; the old URLs redirect. The checkout lives in `~/.config/tmux` because tmux reads its config there.
 
 The root README is intentionally lean. Full documentation lives in [`docs/`](docs/README.md).
 
@@ -24,15 +20,17 @@ Install commands and `dotup` follow **`main`**. Changes pushed to another branch
 ### macOS / Linux
 
 ```bash
-# Default install
+# Desktop: Herdr, tmux, Helix, the tools and the popups
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash
 
-# Full install
+# Full desktop: also shell config, zsh plugins, dev toolchains, Docker
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 
-# Lightweight server install
+# Server: tmux, Helix and the light tool set (add --herdr for Herdr there too)
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash -s -- --server
 ```
+
+Flags: `--no-herdr` for a tmux-only desktop, `--nvim` for Neovim as a second editor.
 
 ### Windows (PowerShell)
 
@@ -42,15 +40,14 @@ Run PowerShell as Administrator:
 irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 ```
 
-For tmux on Windows, use WSL: `wsl --install`
+Windows gets Herdr, Helix and the tools; set `INSTALL_HERDR=0` first to skip Herdr. For tmux itself on Windows, use WSL: `wsl --install`.
 
 ## First Run
 
 1. The installer installs `JetBrainsMono Nerd Font` and points Ghostty or Windows Terminal at it; any other terminal, pick that font in its settings.
-2. Start tmux with `tmux`.
-3. Install tmux plugins with `C-a I`.
-4. Edit with `hx` (Helix, configured from this repo; `hx --tutor` teaches the keys).
-5. Press `C-a C-t` (Ctrl-a, then Ctrl-t) to preview and save a theme.
+2. Start Herdr with `herdr` (on a server: `tmux`, then `C-a I` once for its session plugins).
+3. Edit with `hx` (Helix, configured from this repo; `hx --tutor` teaches the keys).
+4. Press `C-a C-t` (Ctrl-a, then Ctrl-t) to preview and save a theme; under Herdr, `C-a r` applies it.
 
 ## Update an Existing Install
 
@@ -65,9 +62,10 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 
 | Command / Key | What it does |
 |---------------|--------------|
-| `tmux` | start tmux |
+| `herdr` | start Herdr, the desktop multiplexer with the agent sidebar |
+| `tmux` | start tmux (servers, or a plain session on the desktop) |
 | `hx` | open Helix |
-| `C-a c` | create a new tmux window |
+| `C-a c` | create a new window (a tab in Herdr) |
 | `C-a \|` / `C-a -` | split the current pane |
 | `C-a h j k l` | move between panes |
 | `C-a g` | open `lazygit` in a popup |
@@ -78,8 +76,9 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 | `C-a s` / `C-a P` | SSH to a server (new window / split pane), set it up if needed, attach its tmux |
 | `F12` | hand the keys to the remote tmux, or take them back |
 | `C-a C-u` | update everything in a popup |
-| `C-a $` | LLM usage and limits for Claude Code and Codex |
-| `herdr` | the same setup in Herdr, with the agent sidebar (`install.sh --herdr`; Windows: `INSTALL_HERDR=1` with `install.ps1`) |
+| `C-a $` | LLM usage and limits for Claude Code, Codex and the others |
+| `C-a C-f` | open a `file:line` the pane mentions in Helix |
+| `C-a C-n` / `C-a C-o` | Herdr: next agent, jump to the agent that just notified |
 | `dotup` | update repos, plugins, gh extensions, and CLI tools (on a server: `~/.config/tmux/update.sh`, or the curl one-liner in the [installation guide](docs/installation.md#updating)) |
 
 ## Full Documentation
@@ -88,8 +87,8 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 - [Installation guide](docs/installation.md)
 - [Usage and keybindings](docs/usage.md)
 - [Features and project layout](docs/features.md)
-- [Customization and diagnostics](docs/customization.md)
 - [Herdr](docs/herdr.md)
+- [Customization and diagnostics](docs/customization.md)
 
 ## Related Repo
 

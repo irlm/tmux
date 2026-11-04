@@ -2,8 +2,9 @@
 
 ## What This Repo Owns
 
-This repository is the tmux and terminal side of the environment. It includes:
+This repository is the terminal side of the environment: Herdr on the desktop, tmux on servers, one set of keys. It includes:
 
+- the Herdr configuration template in `herdr/config.toml`, rendered with the popups by `scripts/herdr-config.sh` and `.ps1`
 - tmux configuration in `tmux.conf`
 - installer scripts for macOS, Linux, and Windows
 - helper scripts for popups, search, notes, prompts, and status bar segments
@@ -13,9 +14,9 @@ Helix is the managed editor (`helix/config.toml`); the optional Neovim configura
 
 ## Main Features
 
-### Tmux Workflow
+### Shared Workflow (Herdr and tmux)
 
-- `C-a` prefix instead of `C-b`
+- `C-a` prefix in both; the agent sidebar, session resume and agent jumps are Herdr's own
 - vim-style pane movement with `h j k l`
 - popup-driven workflow for `lazygit`, `lazydocker`, system info, notes, and search
 - session and window helpers for switching, renaming, detaching, and remote work
@@ -26,7 +27,6 @@ Helix is the managed editor (`helix/config.toml`); the optional Neovim configura
 - `C-a C-f` picks any `file:line` the pane mentions and opens it in `$EDITOR`
 - lazygit diffs through `delta` when installed (syntax colours, line numbers)
 - optional Neovim (`--nvim`); `ctrl+hjkl` reach into it from tmux and Herdr alike
-- installer scripts clone both repos together
 - markdown preview: inline rendering (`Space mr`) and live browser preview (`Space mp`)
 
 ### Status Bar

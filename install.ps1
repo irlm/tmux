@@ -367,12 +367,12 @@ if ($profileContent -notmatch 'env:EDITOR') {
     Add-Content $PROFILE 'if (-not $env:EDITOR) { $env:EDITOR = "hx" }'
 }
 
-# ─── Herdr (optional) ────────────────────────────────────
-# Set INSTALL_HERDR=1 to install Herdr (herdr.dev) as well; an already
-# installed Herdr is configured from this repo either way: same prefix and
-# keys as tmux, the popups through Git Bash, the Claude and Codex integrations.
+# ─── Herdr ───────────────────────────────────────────────
+# Herdr (herdr.dev) is the desktop multiplexer: installed unless INSTALL_HERDR=0,
+# then configured from this repo: same prefix and keys as tmux, the popups
+# through Git Bash, the Claude and Codex integrations.
 Write-Host ""
-if (-not (Get-Command herdr -ErrorAction SilentlyContinue) -and $env:INSTALL_HERDR -eq "1") {
+if (-not (Get-Command herdr -ErrorAction SilentlyContinue) -and $env:INSTALL_HERDR -ne "0") {
     Write-Host "Installing Herdr..."
     try { Invoke-Expression (Invoke-RestMethod https://herdr.dev/install.ps1) } catch { Write-Host "  Herdr install failed: $_" -ForegroundColor Yellow }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + $env:Path
@@ -388,7 +388,7 @@ if (Get-Command herdr -ErrorAction SilentlyContinue) {
         }
     } catch { Write-Host "  Herdr setup incomplete: $_  (rerun: $ps $tmuxPath\scripts\herdr-config.ps1)" -ForegroundColor Yellow }
 } else {
-    Write-Host "Herdr not installed. For the same keys with an agent sidebar: set INSTALL_HERDR=1 and rerun, or see https://herdr.dev"
+    Write-Host "Herdr not installed (INSTALL_HERDR=0, or its installer failed). Rerun without it, or see https://herdr.dev"
 }
 
 # ─── Done ─────────────────────────────────────────────────

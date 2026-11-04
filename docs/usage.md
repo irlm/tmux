@@ -2,7 +2,9 @@
 
 ## Prefix
 
-This setup uses `C-a` as the tmux prefix instead of tmux's default `C-b`.
+The prefix is `C-a` in Herdr and tmux alike (tmux's default is `C-b`). The keys
+below are the shared ones; the [Herdr guide](herdr.md) lists the few that
+exist only there, such as the agent sidebar keys.
 
 Examples:
 
