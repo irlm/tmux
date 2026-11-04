@@ -48,6 +48,7 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
 Write-Host "Adding scoop buckets..."
 scoop bucket add extras 2>$null
 scoop bucket add nerd-fonts 2>$null
+scoop bucket add java 2>$null       # openjdk lives here, not in main
 
 # ─── Install dependencies ────────────────────────────────
 Write-Host ""
@@ -59,9 +60,10 @@ if ($manifestPath -and (Test-Path $manifestPath)) {
 } else {
     $toolManifest = (Invoke-RestMethod "https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
 }
-$packages = @($toolManifest | Where-Object { $_.scoop -ne "-" } | ForEach-Object { $_.scoop }) + @("nodejs", "go", "openjdk")
+$required = @($toolManifest | Where-Object { $_.scoop -ne "-" } | ForEach-Object { $_.scoop })
+$extras = @("nodejs", "go", "openjdk")   # language toolchains: wanted, not required
 
-foreach ($pkg in $packages) {
+foreach ($pkg in $required + $extras) {
     # Check if already installed via scoop (more reliable than checking command name)
     $installed = scoop list $pkg 2>$null | Select-String $pkg
     if ($installed) {
@@ -69,7 +71,10 @@ foreach ($pkg in $packages) {
     } else {
         Write-Host "  Installing $pkg..."
         scoop install $pkg
-        if ($LASTEXITCODE -ne 0) { throw "Failed to install $pkg. Re-run after resolving the error above." }
+        if ($LASTEXITCODE -ne 0) {
+            if ($pkg -in $required) { throw "Failed to install $pkg. Re-run after resolving the error above." }
+            Write-Host "  Skipped $pkg (install it later with: scoop install $pkg)" -ForegroundColor Yellow
+        }
     }
 }
 
