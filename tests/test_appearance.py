@@ -46,6 +46,12 @@ class AppearanceTests(unittest.TestCase):
         self.assertGreaterEqual(contrast(styles['unstagedChangesColor'][0], styles['selectedLineBgColor'][0]), 4.5)
         self.assertNotIn('git', appearance.lazygit_theme(nord))
 
+    def test_lazygit_pages_diffs_through_delta_only_when_installed(self):
+        with mock.patch.object(appearance.shutil, 'which', lambda name: '/usr/bin/delta' if name == 'delta' else None):
+            self.assertIn('delta --dark --paging=never', appearance.lazygit_pager()['git']['paging']['pager'])
+        with mock.patch.object(appearance.shutil, 'which', lambda name: None):
+            self.assertEqual(appearance.lazygit_pager(), {})
+
     def test_selection_is_persisted_without_editing_repo_templates(self):
         original = (ROOT / 'catppuccin.omp.json').read_bytes()
         with mock.patch.object(appearance, 'apply_tmux') as apply:

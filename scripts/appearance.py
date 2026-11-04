@@ -64,13 +64,16 @@ def atomic_write(path, content):
             os.unlink(name)
 
 
+def lazygit_pager():
+    """delta gives lazygit's diff pane syntax colours and line numbers (git-delta);
+    without it lazygit keeps git's own colouring."""
+    if not shutil.which('delta'):
+        return {}
+    return {'git': {'paging': {'colorArg': 'always', 'pager': 'delta --dark --paging=never --line-numbers --syntax-theme Nord'}}}
+
+
 def lazygit_theme(theme):
     c = theme['colors']
-    # delta gives the diff pane syntax colours and line numbers (git-delta);
-    # without it lazygit falls back to git's own colouring.
-    pager = {}
-    if shutil.which('delta'):
-        pager = {'paging': {'colorArg': 'always', 'pager': 'delta --dark --paging=never --line-numbers --syntax-theme Nord'}}
     styles = {
         'activeBorderColor': [c['accent'], 'bold'],
         'inactiveBorderColor': [c['muted']],
@@ -86,10 +89,7 @@ def lazygit_theme(theme):
         'markedBaseCommitFgColor': [c['background']],
         'markedBaseCommitBgColor': [c['yellow']],
     }
-    config = {'gui': {'colorScheme': 'dark', 'theme': styles, 'darkTheme': styles}}
-    if pager:
-        config['git'] = pager
-    return config
+    return {'gui': {'colorScheme': 'dark', 'theme': styles, 'darkTheme': styles}}
 
 
 def fzf_colors(theme):
@@ -136,7 +136,7 @@ def prompt_theme(theme, root=ROOT):
 def write_outputs(theme, directory=None, root=ROOT):
     directory = directory or theme_dir()
     private_directory(directory)
-    atomic_write(directory / 'lazygit.yml', json.dumps(lazygit_theme(theme), indent=2) + '\n')
+    atomic_write(directory / 'lazygit.yml', json.dumps({**lazygit_theme(theme), **lazygit_pager()}, indent=2) + '\n')
     atomic_write(directory / 'prompt.omp.json', json.dumps(prompt_theme(theme, root), indent=2) + '\n')
     atomic_write(directory / 'fzf.opts', fzf_colors(theme) + '\n')
 
