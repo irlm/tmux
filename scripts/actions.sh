@@ -68,7 +68,9 @@ run_action() {
         shell) "${SHELL:-/bin/sh}" ;;
         info) if command -v fastfetch >/dev/null 2>&1; then
                   logo=$(info_logo)
-                  if [ -n "$logo" ]; then fastfetch --logo-type kitty --logo "$logo" --logo-width 28 --logo-height 14 --pipe false | less -R
+                  # An image only draws straight to the terminal: through a pager
+                  # fastfetch falls back to its ASCII logo.
+                  if [ -n "$logo" ]; then fastfetch --logo-type kitty --logo "$logo" --logo-width 28 --logo-height 14; pause_close
                   else fastfetch --pipe false | less -R; fi
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
