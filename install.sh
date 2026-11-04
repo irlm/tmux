@@ -426,6 +426,11 @@ else
     fi
 fi
 
+# ─── Nerd Font ───────────────────────────────────────────
+echo ""
+ensure_nerd_font || true
+configure_terminal_font
+
 # ─── Shell config ─────────────────────────────────────────
 install_shell_integration desktop
 
@@ -442,7 +447,7 @@ check_install_tools desktop "$INSTALL_ASSETS"
 echo "=== Install complete! ==="
 echo ""
 echo "Next steps:"
-echo "  1. Open a new terminal"
+echo "  1. Open a new terminal (its font should be 'JetBrainsMono Nerd Font'; Ghostty was set up for it)"
 echo "  2. Run: tmux"
 echo "  3. Press C-a I to install tmux plugins"
 echo "  4. Run: nvim (plugins + LSPs auto-install on first launch)"

@@ -43,6 +43,14 @@ if command -v tmux >/dev/null 2>&1; then
         echo '  Clipboard: verify OSC 52 after attaching tmux (no active client).'
     fi
 fi
+if [ "$profile" != server ]; then
+    case "$(uname -s)" in
+        Darwin) ls "$HOME/Library/Fonts"/JetBrainsMono*Nerd* /Library/Fonts/JetBrainsMono*Nerd* >/dev/null 2>&1 || brew list --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1 || fail 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).' ;;
+        *) if command -v fc-list >/dev/null 2>&1 && ! grep -qi microsoft /proc/version 2>/dev/null; then
+               fc-list | grep -qi 'JetBrainsMono Nerd' || fail 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).'
+           fi ;;
+    esac
+fi
 if command -v infocmp >/dev/null 2>&1 && ! infocmp tmux-256color >/dev/null 2>&1; then
     fail 'tmux-256color terminfo is missing — install your tmux/terminfo package.'
 fi

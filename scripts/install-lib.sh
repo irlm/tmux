@@ -183,3 +183,49 @@ install_herdr_workbench() {
         herdr integration install "$agent" >/dev/null 2>&1 && printf 'Herdr integration: %s\n' "$agent"
     done
 }
+
+# The Nerd Font every glyph in the status lines, popups and prompts assumes.
+# macOS: Homebrew cask, else a per-user copy; Linux: ~/.local/share/fonts;
+# WSL: the font belongs to the Windows side. Nothing happens when it exists.
+ensure_nerd_font() {
+    local version=v3.3.0 dir tmp
+    case "$(uname -s)" in
+        Darwin)
+            if brew list --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1 || ls "$HOME/Library/Fonts"/JetBrainsMono*Nerd* >/dev/null 2>&1; then
+                echo "Nerd Font: JetBrains Mono already installed"; return 0
+            fi
+            echo "Installing JetBrains Mono Nerd Font..."
+            brew install --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1 && return 0
+            dir="$HOME/Library/Fonts" ;;
+        *)
+            if grep -qi microsoft /proc/version 2>/dev/null; then
+                echo "WSL: install 'JetBrainsMono Nerd Font' on the Windows side and pick it in your terminal."; return 0
+            fi
+            if fc-list 2>/dev/null | grep -qi 'JetBrainsMono Nerd'; then echo "Nerd Font: JetBrains Mono already installed"; return 0; fi
+            echo "Installing JetBrains Mono Nerd Font..."
+            dir="$HOME/.local/share/fonts/JetBrainsMonoNerdFont" ;;
+    esac
+    mkdir -p "$dir" || return 1
+    tmp=$(mktemp) || return 1
+    if curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/$version/JetBrainsMono.zip" -o "$tmp" && unzip -qo "$tmp" '*.ttf' -d "$dir"; then
+        rm -f "$tmp"; command -v fc-cache >/dev/null 2>&1 && fc-cache -f "$dir" >/dev/null 2>&1
+        echo "Nerd Font installed to $dir"
+    else
+        rm -f "$tmp"; echo "Nerd Font not installed; get JetBrainsMono from https://github.com/ryanoasis/nerd-fonts/releases" >&2; return 1
+    fi
+}
+
+# Point the terminal at it where the terminal keeps a plain config file and
+# has no font of its own yet (Ghostty); other terminals are told.
+configure_terminal_font() {
+    local ghostty="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"
+    if [ -f "$ghostty" ] || [ -d "/Applications/Ghostty.app" ] || command -v ghostty >/dev/null 2>&1; then
+        if [ -f "$ghostty" ] && grep -qE '^\s*font-family\s*=' "$ghostty"; then
+            echo "Ghostty: keeps its own font ($(grep -E '^\s*font-family\s*=' "$ghostty" | head -1 | sed 's/.*= *//'))"
+        else
+            mkdir -p "$(dirname "$ghostty")" && printf 'font-family = JetBrainsMono Nerd Font\n' >> "$ghostty" && echo "Ghostty: font set to JetBrains Mono Nerd Font in $ghostty"
+        fi
+    else
+        echo "Set your terminal's font to 'JetBrainsMono Nerd Font' (iTerm2, kitty and WezTerm each in their own settings)."
+    fi
+}

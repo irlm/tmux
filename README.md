@@ -44,7 +44,7 @@ For tmux on Windows, use WSL: `wsl --install`
 
 ## First Run
 
-1. Set your terminal font to a Nerd Font such as `JetBrainsMono Nerd Font` or `MesloLGM Nerd Font`.
+1. The installer installs `JetBrainsMono Nerd Font` and points Ghostty or Windows Terminal at it; any other terminal, pick that font in its settings.
 2. Start tmux with `tmux`.
 3. Install tmux plugins with `C-a I`.
 4. Open Neovim with `nvim` and let plugins/LSPs finish installing on first launch.

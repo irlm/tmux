@@ -29,6 +29,10 @@ All notable changes to this tmux configuration will be documented in this file.
 - Keep the pager's terminal on stderr, so the help no longer sits in "Waiting for data" when it fits on one screen, and escape `:` in the footer, which `less` read as a prompt directive and cut the text short.
 - Pad the help to the popup height. A file shorter than the screen made `less` draw it at the bottom, turn the rows above into `~` after `G`, and answer `b`, `k` and Up with a beep, so the title seemed impossible to bring back to the top.
 
+### Installer
+
+- Install JetBrains Mono Nerd Font in the default install on macOS and Linux (Windows already did), set it as Ghostty's and Windows Terminal's font when they have none, and have the doctor report a missing font: the status icons depend on it.
+
 ### Status bar
 
 - Name the process behind a busy CPU reading, above `@cpu_process_threshold` percent (default 30), in both the tmux line and Herdr's tab bar. One `ps` per five-second sample, only while busy.

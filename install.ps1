@@ -110,6 +110,26 @@ try {
     }
 } catch {}
 
+# Point Windows Terminal at the font when it has none of its own yet.
+foreach ($wt in @("$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json", "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json")) {
+    if (-not (Test-Path $wt)) { continue }
+    try {
+        $settings = Get-Content $wt -Raw | ConvertFrom-Json
+        if (-not $settings.profiles) { continue }
+        if (-not $settings.profiles.defaults) { $settings.profiles | Add-Member -NotePropertyName "defaults" -NotePropertyValue ([PSCustomObject]@{}) -Force }
+        $defaults = $settings.profiles.defaults
+        if ($defaults.font -and $defaults.font.face) {
+            Write-Host "  Windows Terminal keeps its own font ($($defaults.font.face))"
+        } else {
+            Copy-Item $wt "$wt.backup.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+            $defaults | Add-Member -NotePropertyName "font" -NotePropertyValue ([PSCustomObject]@{ face = "JetBrainsMono Nerd Font" }) -Force
+            $settings | ConvertTo-Json -Depth 32 | Set-Content $wt -Encoding UTF8
+            Write-Host "  Windows Terminal: default font set to JetBrainsMono Nerd Font"
+        }
+    } catch { Write-Host "  Windows Terminal font not set: $_" -ForegroundColor Yellow }
+    break
+}
+
 # ─── Neovim language toolchain ──────────────────────────
 # Wanted for the editor's LSPs, not required for the terminal setup: a
 # failure here is reported and skipped.
@@ -320,9 +340,7 @@ Write-Host "=== Install complete! ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal"
-Write-Host "  2. Set terminal font:" -ForegroundColor Yellow
-Write-Host "     Windows Terminal: Settings > Profiles > Defaults > Appearance > Font face"
-Write-Host "     Select: 'JetBrainsMono Nerd Font' or 'JetBrainsMono NF'"
+Write-Host "  2. Windows Terminal's default font is JetBrainsMono Nerd Font (set here unless it had one); other terminals: pick it in their settings"
 Write-Host "  3. Launch Docker Desktop"
 Write-Host "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
 Write-Host "  5. Run: lazygit, lazydocker, btop, fastfetch"
