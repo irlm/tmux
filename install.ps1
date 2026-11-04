@@ -89,7 +89,7 @@ try {
     winget list --name "JetBrainsMono" 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  Registering JetBrains Mono Nerd Font system-wide..."
-        winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements 2>$null --source winget
+        winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements --source winget 2>$null
     }
 } catch {}
 
