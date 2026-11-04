@@ -5,13 +5,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 CPU_DIR="$TMUX_CONFIG_DIR/plugins/tmux-cpu/scripts"
+# --plain: no tmux colour directives, for hosts that strip escapes (Herdr's
+# tab bar shows the last line of output as plain text).
+paint=1
+if [ "${1:-}" = --plain ]; then paint=0; shift; fi
 width=${1:-160}
 case "$width" in ''|*[!0-9]*) width=160 ;; esac
 [ "$width" -ge 100 ] || exit 0
 private_dir "$TMUX_CACHE_DIR" || exit 0
 read -r now today <<< "$(date '+%s %F')"
-info=$(tmux display-message -p '#{@ascii}|#{@theme}|#{@theme_magenta}|#{@theme_accent}|#{@theme_yellow}|#{@theme_green}|#{@theme_red}|#{@special_days}' 2>/dev/null) || info=""
+if [ "$(wb_backend)" = tmux ]; then
+    info=$(tmux display-message -p '#{@ascii}|#{@theme}|#{@theme_magenta}|#{@theme_accent}|#{@theme_yellow}|#{@theme_green}|#{@theme_red}|#{@special_days}' 2>/dev/null) || info=""
+else
+    info="$(tmux_option @ascii)|$(tmux_option @theme)|||||||$(tmux_option @special_days)"
+fi
 IFS='|' read -r ascii theme_id magenta accent yellow green red special_days <<< "$info"
+# paint <colour> <text>: a tmux style span, or the bare text in --plain mode.
+paint() { if [ "$paint" -eq 1 ]; then printf '#[fg=%s]%s#[default]' "$1" "$2"; else printf '%s' "$2"; fi; }
 ascii=${ascii:-off}; theme_id=${theme_id:-nord}
 case "$theme_id" in *[!a-z0-9-]*|'') theme_id=nord ;; esac
 magenta=${magenta:-#d4a9ca}; accent=${accent:-#88c0d0}; yellow=${yellow:-#ebcb8b}
@@ -19,7 +29,7 @@ green=${green:-#a3be8c}; red=${red:-#f2a1a8}
 case "$ascii" in on|off) ;; *) ascii=off ;; esac
 export TMUX_ASCII="$ascii"
 case "$special_days" in off) ;; *) special_days=on ;; esac
-cache="$TMUX_CACHE_DIR/status-$theme_id-$ascii-$special_days"
+cache="$TMUX_CACHE_DIR/status-$theme_id-$ascii-$special_days-$paint"
 if [ -f "$cache" ]; then
     read -r sampled sampled_day < "$cache"
     if [ "$sampled_day" = "$today" ] && [[ "$sampled" =~ ^[0-9]+$ ]] && [ "$((now - sampled))" -ge 0 ] && [ "$((now - sampled))" -lt 5 ]; then
@@ -34,13 +44,13 @@ sep=" | "
 # Network speed (first — variable width won't shift the rest)
 if [ -x "$SCRIPT_DIR/net_speed.sh" ]; then
     net=$("$SCRIPT_DIR/net_speed.sh")
-    [ -n "$net" ] && out="#[fg=${magenta}]${net}#[default]"
+    [ -n "$net" ] && out=$(paint "$magenta" "$net")
 fi
 
 # CPU
 if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
     cpu=$("$CPU_DIR/cpu_percentage.sh")
-    [ -n "$cpu" ] && out="${out}${sep}#[fg=${accent}]${cpu}#[default]"
+    [ -n "$cpu" ] && out="${out}${sep}$(paint "$accent" "$cpu")"
 fi
 
 # RAM (actual usage, not file cache — matches btop/Activity Monitor)
@@ -62,7 +72,7 @@ elif command -v free &>/dev/null; then
     # Falls back to used/total if "available" column is missing (older kernels)
     ram=$(free | awk '/Mem/ { if ($7 > 0) printf "%.0f%%", 100 * ($2 - $7) / $2; else printf "%.0f%%", 100 * $3 / $2 }')
 fi
-[ -n "$ram" ] && out="${out}${sep}#[fg=${yellow}]${ram}#[default]"
+[ -n "$ram" ] && out="${out}${sep}$(paint "$yellow" "$ram")"
 
 # Battery capabilities and readings change much less often than network/CPU.
 battery_cache="$TMUX_CACHE_DIR/battery"
@@ -138,7 +148,7 @@ if $has_battery && [ -n "$batt_pct" ]; then
         color="$red"
     fi
     [ "$ascii" != on ] || icon=BAT
-    out="${out}${sep}#[fg=${color}]${icon} ${batt_pct}%#[default]"
+    out="${out}${sep}$(paint "$color" "${icon} ${batt_pct}%")"
 fi
 
 # A small ASCII drawing sits next to the native clock on special days.
@@ -158,7 +168,7 @@ if [ "$special_days" = on ]; then
             holiday=""
         fi
     fi
-    [ -z "$holiday" ] || out="${out}${sep}#[fg=${accent}]${holiday}#[default]"
+    [ -z "$holiday" ] || out="${out}${sep}$(paint "$accent" "$holiday")"
 fi
 
 # Date/time is rendered natively by tmux, outside this cached sample.

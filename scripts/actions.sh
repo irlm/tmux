@@ -5,6 +5,20 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 registry="$SCRIPT_DIR/../actions.tsv"
+backend=$(wb_backend)
+herdr() { "${HERDR_BIN_PATH:-herdr}" "$@"; }
+# A Herdr popup is not a pane, so the pane it was opened over has to be
+# looked up: the focused one in the active workspace.
+herdr_focused_pane() {
+    [ -z "${HERDR_PANE_ID:-}" ] || { printf '%s' "$HERDR_PANE_ID"; return; }
+    herdr pane list 2>/dev/null | python3 -c '
+import json, sys
+try:
+    panes = json.load(sys.stdin)["result"]["panes"]
+except Exception:
+    sys.exit(1)
+print(next((p["pane_id"] for p in panes if p.get("focused")), ""), end="")'
+}
 row_available() {
     local tools=$1 candidate group found
     [ "$tools" != - ] || return 0
@@ -70,7 +84,12 @@ run_action() {
         notes|projects) if [ "$id" = notes ]; then output=notes.sh; else output=sessionizer.sh; fi
                         if ! row_available fzf; then "$SCRIPT_DIR/popup.sh" fzf; return $?; fi
                         "$SCRIPT_DIR/$output" ;;
-        history) tmux capture-pane -pS -10000 -t "${TMUX_SOURCE_PANE:-${TMUX_PANE:-}}" | fzf --tac --no-sort ;;
+        history)
+            if [ "$backend" = herdr ]; then
+                herdr pane read "$(herdr_focused_pane)" --source recent-unwrapped --lines 10000 | fzf --tac --no-sort
+            else
+                tmux capture-pane -pS -10000 -t "${TMUX_SOURCE_PANE:-${TMUX_PANE:-}}" | fzf --tac --no-sort
+            fi ;;
         search) "$SCRIPT_DIR/websearch.sh" ;;
         scoped-search) "$SCRIPT_DIR/websearch.sh" --pick ;;
         ai) "$SCRIPT_DIR/ai-ask.sh" ;;
@@ -89,13 +108,37 @@ run_action() {
         new-session|rename-session|rename-window)
             printf '%s: ' "$id"; IFS= read -r query || return 0
             [ -n "$query" ] || return 0
+            if [ "$backend" = herdr ]; then
+                case "$id" in
+                    new-session) herdr workspace create --cwd "$PWD" --label "$query" --focus >/dev/null ;;
+                    rename-session) herdr workspace rename "${HERDR_WORKSPACE_ID:?}" "$query" >/dev/null ;;
+                    rename-window) herdr tab rename "${HERDR_TAB_ID:?}" "$query" >/dev/null ;;
+                esac
+                return
+            fi
             case "$id" in
                 new-session) tmux new-session -d -s "$query" && tmux switch-client -t "=$query" ;;
                 rename-session) tmux rename-session -- "$query" ;;
                 rename-window) tmux rename-window -- "$query" ;;
             esac ;;
         update) "$SCRIPT_DIR/../update.sh"; rc=$?; pause_close; return "$rc" ;;
-        ssh|ssh-split) "$SCRIPT_DIR/ssh-remote.sh" ;;
+        ssh|ssh-split)
+            # Under Herdr a saved machine (herdr machine add) puts the server's
+            # agents in the sidebar; this is the quick plain-ssh path.
+            if [ "$backend" = herdr ]; then
+                printf 'SSH host (alias or user@host): '; IFS= read -r query || return 0
+                [ -n "$query" ] || return 0
+                case "$query" in -*|*[[:space:]]*) echo 'Enter a host alias or user@host; put SSH options in ~/.ssh/config.'; pause_close; return 1 ;; esac
+                if [ "$id" = ssh ]; then
+                    output=$(herdr tab create --label "ssh $query" --focus) || { pause_close; return 1; }
+                else
+                    output=$(herdr pane split "$(herdr_focused_pane)" --direction right --focus) || { pause_close; return 1; }
+                fi
+                output=$(printf '%s' "$output" | python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]; print((r.get("root_pane") or r.get("pane"))["pane_id"], end="")')
+                herdr pane run "$output" "ssh $(printf '%q' "$query")" >/dev/null
+                return
+            fi
+            "$SCRIPT_DIR/ssh-remote.sh" ;;
         *) printf 'Unknown action: %s\n' "$id" >&2; return 2 ;;
     esac
 }
@@ -120,6 +163,7 @@ case "${1:-palette}" in
 
     open)
         id=${2:-palette}
+        if [ "$backend" = herdr ]; then "$SCRIPT_DIR/actions.sh" run "$id"; exit $?; fi
         # Pass cwd as a tmux argument; free text is read inside the popup.
         cwd=$(tmux display-message -p '#{pane_current_path}')
         pane=$(tmux display-message -p '#{pane_id}')

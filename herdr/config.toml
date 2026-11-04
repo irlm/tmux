@@ -1,0 +1,114 @@
+# Herdr configuration template for the irlm/tmux workbench.
+#
+# scripts/herdr-config.sh renders this file plus the popup bindings generated
+# from actions.tsv into ~/.config/herdr/config.toml, then appends your own
+# ~/.config/tmux-user/herdr.toml. Edit that file for personal settings; edits
+# to the rendered file are overwritten on the next update.
+#
+# The keys mirror tmux.conf: C-a prefix, hjkl panes, | and - splits, [ for
+# copy mode, 1-9 for tabs, Backspace for the previous workspace. Every
+# conflict with a Herdr default was moved to a ctrl chord under the prefix.
+
+[theme]
+name = "nord"
+
+[terminal]
+# Popups and new panes follow the pane they were opened from, like tmux's
+# split-window -c "#{pane_current_path}".
+new_cwd = "follow"
+# Images drawn with the Kitty graphics protocol pass through to Ghostty,
+# kitty and WezTerm. Costs nothing until a program draws one.
+kitty_graphics = true
+
+[keys]
+prefix = "ctrl+a"
+
+# ─── Panes ───────────────────────────────────────────────
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+resize_pane_left = "prefix+shift+h"
+resize_pane_down = "prefix+shift+j"
+resize_pane_up = "prefix+shift+k"
+resize_pane_right = "prefix+shift+l"
+resize_mode = "prefix+shift+r"
+swap_pane_left = "prefix+{"
+swap_pane_right = "prefix+}"
+swap_pane_up = ""
+swap_pane_down = ""
+split_vertical = "prefix+|"
+split_horizontal = "prefix+minus"
+zoom = "prefix+z"
+close_pane = "prefix+x"
+last_pane = "prefix+;"
+cycle_pane_next = "prefix+tab"
+cycle_pane_previous = "prefix+shift+tab"
+rename_pane = ""            # C-a P is the SSH split popup; rename from the pane menu
+copy_mode = "prefix+["
+edit_scrollback = "prefix+ctrl+e"
+
+# ─── Tabs (tmux windows) ─────────────────────────────────
+new_tab = "prefix+c"
+rename_tab = "prefix+,"
+close_tab = "prefix+shift+x"
+previous_tab = "prefix+p"
+next_tab = "prefix+]"       # C-a n is the notes popup, as in tmux
+switch_tab = "prefix+1..9"
+move_tab_previous = "prefix+<"
+move_tab_next = "prefix+>"
+
+# ─── Workspaces (tmux sessions) ──────────────────────────
+new_workspace = "prefix+shift+n"
+rename_workspace = "prefix+."
+close_workspace = "prefix+shift+q"
+workspace_picker = "prefix+shift+s"
+goto = "prefix+shift+w"
+previous_workspace = "prefix+backspace"
+toggle_sidebar = "prefix+b"
+
+# ─── Agents ──────────────────────────────────────────────
+next_agent = "prefix+ctrl+n"
+previous_agent = "prefix+ctrl+p"
+open_notification_target = "prefix+ctrl+o"
+
+# ─── Herdr itself ────────────────────────────────────────
+help = "prefix+f1"          # C-a ? is the workbench reference; F1 lists live Herdr bindings
+settings = "prefix+ctrl+s"
+reload_config = "prefix+r"
+detach = "prefix+q"
+
+[ui]
+status_indicators = "symbols"
+# Spaces grouped by workspace; blocked and done agents stand out by glyph.
+agent_panel_sort = "spaces"
+confirm_close = true
+prompt_new_tab_name = false
+window_title = "{hostname}: {workspace}"
+# The right edge of the tab bar carries the same cached hardware readings the
+# tmux status bar shows. The script samples at most once every five seconds
+# and reuses the result, so this costs one short process per interval.
+tab_bar_right = [
+  { type = "zoom" },
+  { type = "command", command = "@@STATUS_COMMAND@@", interval_seconds = 5, timeout_seconds = 3 },
+  { type = "datetime", format = "%a %d %b %H:%M" },
+]
+tab_bar_right_separator = " | "
+
+[ui.toast]
+# Desktop notification through the outer terminal when an agent needs you
+# and Herdr is in the background. No polling, no daemon.
+delivery = "terminal"
+
+[ui.sound]
+enabled = true
+
+[session]
+# Claude Code and Codex come back into the same conversation after a server
+# restart (needs the integrations: herdr integration install claude codex).
+resume_agents_on_restore = true
+
+[experimental]
+# Recent pane contents also survive a server restart. Stored beside
+# session.json; treat it like shell history.
+pane_history = true
