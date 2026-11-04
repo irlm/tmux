@@ -72,7 +72,7 @@ run_action() {
                   else fastfetch --pipe false | less -R; fi
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
-        llm) python3 "$SCRIPT_DIR/llm_usage.py" | less -R ;;
+        llm) python3 "$SCRIPT_DIR/llm_usage.py" ;;
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0
                  [ -n "$selected" ] || return 0
                  selected=${selected%%$'\t'*}

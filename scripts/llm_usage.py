@@ -23,6 +23,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = Path(os.environ.get('TMUX_CACHE_DIR', str(Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'tmux')))
 RESET = '\033[0m'
+PLANS = {}  # provider -> plan name reported by quota-axi
 BOLD = '\033[1m'
 DIM = '\033[2m'
 
@@ -187,6 +188,8 @@ def quota_windows(timeout=15):
     for entry in report.get('providers') or []:
         name = entry.get('provider')
         rows = []
+        if entry.get('plan'):
+            PLANS[name] = str(entry['plan'])
         for window in entry.get('windows') or []:
             remaining = window.get('percentRemaining')
             if remaining is None:
@@ -304,37 +307,219 @@ def render(providers, windows, days, width, painter):
     return '\n'.join(lines).rstrip('\n') + '\n'
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--days', type=int, default=7)
-    parser.add_argument('--width', type=int)
-    parser.add_argument('--plain', action='store_true', help='no colors')
-    parser.add_argument('--no-limits', action='store_true', help='skip the live quota lookup')
-    parser.add_argument('--json', action='store_true', help='print the aggregates instead of the report')
-    args = parser.parse_args(argv)
-    since = (datetime.now() - timedelta(days=args.days + 1)).timestamp()
+def gather(days, limits=True):
+    """Both providers' aggregates and live windows, ready to draw."""
+    since = (datetime.now() - timedelta(days=days + 1)).timestamp()
     cache = Cache(CACHE_DIR / 'llm-usage.json')
     claude_dir = Path(os.environ.get('CLAUDE_CONFIG_DIR', str(Path.home() / '.claude'))) / 'projects'
     codex_dir = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'sessions'
     claude = collect('claude', claude_dir, '*.jsonl', parse_claude, since, cache)
     codex = collect('codex', codex_dir, '*.jsonl', parse_codex, since, cache)
-    windows = {} if args.no_limits else quota_windows()
-    if args.json:
-        print(json.dumps({'claude': {k: v for k, v in claude.items() if k != 'limits'},
-                          'codex': {k: v for k, v in codex.items()}, 'windows': windows}, default=str, indent=1))
-        return 0
+    windows = quota_windows() if limits else {}
     claude_rows, claude_note = windows.get('claude', ([], 'quota-axi not installed' if not shutil.which('quota-axi') else ''))
     codex_rows, codex_note = windows.get('codex', ([], ''))
     codex_rows = codex_rows or codex_windows(codex.get('limits'))
+    claude['plan'] = PLANS.get('claude', '')
+    codex['plan'] = PLANS.get('codex', '')
     providers = [('Claude Code', claude, claude_rows, claude_note), ('Codex', codex, codex_rows, codex_note)]
-    colored = not args.plain and sys.stdin.isatty()
+    return providers, windows
+
+
+ICONS = {
+    'Claude Code': ['  ╲ ╷ ╱  ', '  ─ ✦ ─  ', '  ╱ ╵ ╲  '],
+    'Codex': ['  ╭───╮  ', '  │ ◇ │  ', '  ╰───╯  '],
+}
+
+
+class Screen:
+    """The interactive card: tabs per agent, limit, day and model bars."""
+
+    def __init__(self, stdscr, providers, days, palette, refresh):
+        self.stdscr = stdscr
+        self.providers = providers
+        self.days = days
+        self.refresh = refresh
+        self.tab = 0
+        self.pairs = {}
+        self.setup_colors(palette)
+
+    def setup_colors(self, palette):
+        import curses
+        curses.start_color()
+        curses.use_default_colors()
+        roles = ('foreground', 'muted', 'accent', 'red', 'selection', 'background', 'yellow', 'green')
+        basic = {'foreground': curses.COLOR_WHITE, 'muted': 8 if curses.COLORS > 8 else curses.COLOR_WHITE,
+                 'accent': curses.COLOR_CYAN, 'red': curses.COLOR_RED, 'selection': 8 if curses.COLORS > 8 else curses.COLOR_BLUE,
+                 'background': -1, 'yellow': curses.COLOR_YELLOW, 'green': curses.COLOR_GREEN}
+        numbers = {}
+        custom = curses.can_change_color() and curses.COLORS >= 256 and palette
+        for index, role in enumerate(roles):
+            if custom and role in palette:
+                value = palette[role]
+                number = 200 + index
+                curses.init_color(number, *(int(value[i:i + 2], 16) * 1000 // 255 for i in (1, 3, 5)))
+                numbers[role] = number
+            else:
+                numbers[role] = basic[role]
+        pairs = [('text', 'foreground', -1), ('muted', 'muted', -1), ('accent', 'accent', -1), ('icon', 'red', -1),
+                 ('fill', 'foreground', 'selection'), ('track', 'selection', -1), ('tab', 'foreground', 'selection'),
+                 ('yellow', 'yellow', -1), ('green', 'green', -1)]
+        for index, (name, fg, bg) in enumerate(pairs, start=1):
+            curses.init_pair(index, numbers[fg], numbers[bg] if bg != -1 else -1)
+            self.pairs[name] = curses.color_pair(index)
+
+    def put(self, y, x, text, style='text', bold=False, width=None):
+        import curses
+        height, columns = self.stdscr.getmaxyx()
+        if y < 0 or y >= height or x >= columns:
+            return
+        if width is not None:
+            text = text[:width]
+        text = text[:max(0, columns - x - 1)]
+        attr = self.pairs.get(style, 0) | (curses.A_BOLD if bold else 0)
+        try:
+            self.stdscr.addstr(y, x, text, attr)
+        except curses.error:
+            pass
+
+    def bar(self, y, x, width, fraction, style='text'):
+        filled = max(0, min(width, round(fraction * width)))
+        self.put(y, x, '━' * filled, style)
+        self.put(y, x + filled, '━' * (width - filled), 'track')
+
+    def draw(self):
+        import curses
+        self.stdscr.erase()
+        rows, columns = self.stdscr.getmaxyx()
+        width = min(columns - 2, 72)
+        left = max(0, (columns - width) // 2)
+        inner = width - 4
+        title, totals, limit_rows, note = self.providers[self.tab]
+        # the card is as tall as its content, like a panel, not the whole popup
+        content = 9 + (3 * len(limit_rows) if limit_rows else 1) + 3 + self.days + 3 + max(1, len(totals['models'])) + 1
+        height = min(rows, content + 2)
+        # frame
+        self.put(0, left, '╭' + '─' * (width - 2) + '╮', 'accent')
+        for y in range(1, height - 1):
+            self.put(y, left, '│', 'accent'); self.put(y, left + width - 1, '│', 'accent')
+        self.put(height - 1, left, '╰' + '─' * (width - 2) + '╯', 'accent')
+        x = left + 2
+        y = 1
+        # icon and title
+        for line_index, line in enumerate(ICONS.get(title, ['', '', ''])):
+            self.put(y + line_index, x, line, 'icon', bold=True)
+        self.put(y, x + 10, title, 'text', bold=True)
+        plan = totals.get('plan') or ''
+        self.put(y + 1, x + 10, plan or 'last %d days' % self.days, 'muted')
+        y += 4
+        # tabs
+        tab_width = (inner - 2) // len(self.providers)
+        for index, (name, *_) in enumerate(self.providers):
+            label = name.center(tab_width - 2)
+            style = 'tab' if index == self.tab else 'muted'
+            self.put(y, x + index * (tab_width + 2), '[' + label + ']' if index != self.tab else ' ' + label + ' ', style, bold=(index == self.tab))
+        y += 2
+        self.put(y, x, '─' * inner, 'track'); y += 1
+        # limits
+        self.put(y, x, 'LIMITS', 'muted', bold=True); y += 1
+        if limit_rows:
+            for label, used, resets in limit_rows:
+                self.put(y, x, label.capitalize(), 'text', bold=True)
+                self.put(y, x + inner - 5, f'{used:4.0f}%', 'text'); y += 1
+                self.bar(y, x, inner, used / 100); y += 1
+                self.put(y, x, resets_in(resets), 'muted'); y += 1
+        else:
+            self.put(y, x, note or 'no live window data', 'muted'); y += 1
+        y += 1
+        self.put(y, x, '─' * inner, 'track'); y += 1
+        # tokens by day
+        self.put(y, x, 'TOKENS BY DAY', 'muted', bold=True); y += 1
+        today = date.today()
+        day_keys = [(today - timedelta(days=offset)).isoformat() for offset in range(self.days - 1, -1, -1)]
+        peak = max([totals['days'].get(day, 0) for day in day_keys] + [1])
+        bar_x = x + 7
+        bar_width = inner - 7 - 9
+        for day in day_keys:
+            tokens = totals['days'].get(day, 0)
+            is_today = day == today.isoformat()
+            name = 'Today' if is_today else date.fromisoformat(day).strftime('%a')
+            self.put(y, x, name, 'text' if is_today else 'muted', bold=is_today)
+            self.bar(y, bar_x, bar_width, tokens / peak)
+            self.put(y, bar_x + bar_width + 1, f'{human(tokens):>7}', 'text'); y += 1
+        y += 1
+        self.put(y, x, '─' * inner, 'track'); y += 1
+        # tokens by model
+        self.put(y, x, 'TOKENS BY MODEL', 'muted', bold=True); y += 1
+        models = sorted(totals['models'].items(), key=lambda item: -item[1])
+        peak = max([tokens for _, tokens in models] + [1])
+        if not models:
+            self.put(y, x, 'nothing in the last %d days' % self.days, 'muted'); y += 1
+        for model, tokens in models:
+            if y >= height - 2:
+                break
+            label = ' ' + pretty_model(model) + ' '
+            filled = max(len(label), round(tokens / peak * (inner - 8)))
+            self.put(y, x, label.ljust(filled), 'fill', bold=True)
+            self.put(y, x + inner - 7, f'{human(tokens):>7}', 'text'); y += 1
+        hint = 'Tab/←→ switch  r refresh  q close'
+        self.put(height - 1, left + width - len(hint) - 3, ' ' + hint + ' ', 'muted')
+        self.stdscr.refresh()
+
+    def run(self):
+        import curses
+        curses.curs_set(0)
+        self.stdscr.keypad(True)
+        while True:
+            self.draw()
+            key = self.stdscr.getch()
+            if key in (ord('q'), 27):
+                return
+            if key in (9, curses.KEY_RIGHT, ord('l'), ord('2'), curses.KEY_BTAB, curses.KEY_LEFT, ord('h'), ord('1')):
+                if key in (ord('1'),):
+                    self.tab = 0
+                elif key in (ord('2'),):
+                    self.tab = min(1, len(self.providers) - 1)
+                else:
+                    self.tab = (self.tab + 1) % len(self.providers)
+            elif key == ord('r'):
+                self.providers = self.refresh()
+            elif key == curses.KEY_RESIZE:
+                continue
+
+
+def interactive(days, palette):
+    import curses
+    providers, _ = gather(days)
+    refresh = lambda: gather(days)[0]  # noqa: E731
+    curses.wrapper(lambda stdscr: Screen(stdscr, providers, days, palette, refresh).run())
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('--days', type=int, default=7)
+    parser.add_argument('--width', type=int)
+    parser.add_argument('--plain', action='store_true', help='no colors, no interface: print the report')
+    parser.add_argument('--no-limits', action='store_true', help='skip the live quota lookup')
+    parser.add_argument('--json', action='store_true', help='print the aggregates instead of the report')
+    args = parser.parse_args(argv)
+    if args.json:
+        providers, windows = gather(args.days, limits=not args.no_limits)
+        claude, codex = providers[0][1], providers[1][1]
+        print(json.dumps({'claude': {k: v for k, v in claude.items() if k != 'limits'},
+                          'codex': {k: v for k, v in codex.items()}, 'windows': windows}, default=str, indent=1))
+        return 0
+    interactive_terminal = not args.plain and sys.stdin.isatty() and sys.stdout.isatty() and not args.no_limits
     palette = {}
-    if colored:
+    if not args.plain and sys.stdin.isatty():
         sys.path.insert(0, str(ROOT / 'scripts'))
         from appearance import current_theme
         palette = current_theme()[1]['colors']
+    if interactive_terminal:
+        interactive(args.days, palette)
+        return 0
+    providers, windows = gather(args.days, limits=not args.no_limits)
     width = args.width or shutil.get_terminal_size((100, 40)).columns
-    sys.stdout.write(render(providers, windows, args.days, min(width - 2, 110), Painter(colored, palette)))
+    sys.stdout.write(render(providers, windows, args.days, min(width - 2, 110), Painter(not args.plain and sys.stdin.isatty(), palette)))
     return 0
 
 
