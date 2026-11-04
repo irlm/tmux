@@ -31,6 +31,7 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Installer
 
+- Windows: install gcc and the tree-sitter CLI through Scoop so Neovim can compile its treesitter parsers.
 - Install JetBrains Mono Nerd Font in the default install on macOS and Linux (Windows already did), set it as Ghostty's and Windows Terminal's font when they have none, and have the doctor report a missing font: the status icons depend on it.
 
 ### Status bar

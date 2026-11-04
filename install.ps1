@@ -144,6 +144,18 @@ function Refresh-Path {
 }
 
 try {
+    # Treesitter parsers are compiled on this machine: a C compiler and the
+    # tree-sitter CLI, both from Scoop's main bucket.
+    foreach ($pkg in @("gcc", "tree-sitter")) {
+        if (-not (scoop list $pkg 2>$null | Select-String $pkg)) {
+            Write-Host "  Installing $pkg (treesitter parsers)..."
+            scoop install $pkg
+        }
+    }
+    Refresh-Path
+} catch { Write-Host "  Skipped the treesitter toolchain: $_" -ForegroundColor Yellow }
+
+try {
     # Rust: install rustup + rust-analyzer (rustup reports progress on stderr)
     if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
         Write-Host "  Installing Rust via rustup..."
