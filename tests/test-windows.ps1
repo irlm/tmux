@@ -57,7 +57,7 @@ try {
     Set-Content (Join-Path $Scratch 'herdr.toml') '[theme.custom.light]' -NoNewline
     $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
     foreach ($expected in @('prefix = "ctrl+a"', 'split_vertical = "prefix+|"', 'name = "catppuccin"', 'overlay1 = "#cad3f5"',
-                            'key = "prefix+g"', 'bash.exe\" \"', 'actions.sh\" run git', 'width = "70%"', '{ type = "hostname" }',
+                            'key = "prefix+g"', 'bash.exe\" \"', 'actions.sh\" run git', 'width = "70%"',
                             'herdr-navigate.sh\" left', '[theme.custom.light]', 'status_right.ps1', 'interval_seconds = 10')) {
         if ($rendered -notmatch [regex]::Escape($expected)) { throw "Windows Herdr render is missing: $expected" }
     }

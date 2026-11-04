@@ -10,6 +10,9 @@
 param([string]$Part = '', [switch]$Ascii, [int]$ProcessThreshold = -1)
 $ErrorActionPreference = 'SilentlyContinue'
 if (-not $IsWindows -and $PSVersionTable.PSVersion.Major -ge 6) { exit 0 }
+# Windows PowerShell writes in the console code page by default, which turns
+# the glyphs into question marks before Herdr reads them.
+try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catch {}
 $cacheDir = Join-Path $env:LOCALAPPDATA 'tmux\cache'
 New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
 $cache = Join-Path $cacheDir 'status-net.json'
