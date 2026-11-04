@@ -58,9 +58,11 @@ try {
     $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
     foreach ($expected in @('prefix = "ctrl+a"', 'split_vertical = "prefix+|"', 'name = "catppuccin"', 'overlay1 = "#cad3f5"',
                             'key = "prefix+g"', 'bash.exe\" \"', 'actions.sh\" run git', 'width = "70%"', '{ type = "hostname" }',
-                            'herdr-navigate.sh\" left', '[theme.custom.light]', "run info`"`nwidth = 100`nheight = 36")) {
+                            'herdr-navigate.sh\" left', '[theme.custom.light]')) {
         if ($rendered -notmatch [regex]::Escape($expected)) { throw "Windows Herdr render is missing: $expected" }
     }
+    # Line endings are the platform's: CRLF when rendered on Windows.
+    if ($rendered -notmatch 'run info"\r?\nwidth = 100\r?\nheight = 36') { throw 'Windows Herdr render did not size the info popup.' }
     if ($rendered -match 'run new-session' -or $rendered -match '@@') { throw 'Windows Herdr render kept a native prompt or a placeholder.' }
     $plugin = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -PrintPlugin | Out-String
     if ($plugin -notmatch 'id = "palette"' -or $plugin -notmatch '"windows"') { throw 'Windows Herdr plugin manifest is incomplete.' }
