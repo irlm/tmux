@@ -94,7 +94,16 @@ are client-side in Herdr, so after any change press `C-a r` inside Herdr:
 but not the colours you are looking at.
 The right edge of the tab bar runs `status_right.sh --plain` every five
 seconds; the script reuses its five-second sample, so the cost is one short
-process per interval.
+process per interval. Herdr paints every entry in one colour and strips
+escape codes, so the readings are told apart by icon rather than colour.
+
+A patch that lets each entry name its own colour is kept alongside this repo
+(see the changelog) and awaits Herdr's maintainers; on a Herdr built with it,
+set `herdr_status_colors=on` in `options.env` and the renderer emits one entry
+per reading, painted like the tmux status line (`status_right.sh --part cpu`
+and friends read the same cached sample, so four entries still measure once).
+A stock Herdr rejects that config, which `herdr config check` reports before
+anything is installed.
 
 `C-a i` draws a small image beside the system information when the terminal
 can show one (Ghostty, kitty, WezTerm; Herdr passes it through). Put your own

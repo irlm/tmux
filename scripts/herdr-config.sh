@@ -112,17 +112,46 @@ else:
 PY
 }
 
+# The tab bar readings: one entry running the whole status line, or, when
+# herdr_status_colors=on and the Herdr in use accepts a color per entry, one
+# entry per reading painted like the tmux status line. Each part reads the
+# same five-second sample, so four entries still measure once.
+render_status_entries() {
+    local status=$1 part role
+    if [ "$(tmux_option @herdr_status_colors off)" != on ]; then
+        printf '  { type = "command", command = %s, interval_seconds = 5, timeout_seconds = 3 },' "$(toml_string "$status")"
+        return
+    fi
+    for part in net:magenta cpu:accent ram:yellow battery:green holiday:accent; do
+        role=${part#*:}; part=${part%%:*}
+        printf '  { type = "command", command = %s, interval_seconds = 5, timeout_seconds = 3, color = %s },\n' \
+            "$(toml_string "$status --part $part")" "$(toml_string "$(palette_color "$role")")"
+    done
+}
+
+palette_color() {  # a role from the saved palette (themes.json)
+    python3 - "$SCRIPT_DIR" "$1" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from appearance import current_theme
+print(current_theme()[1]['colors'][sys.argv[2]], end='')
+PY
+}
+
 render() {
-    local size status key id label theme
+    local size status key id label theme entries
     size=$(tmux_option @popup_size 85%)
     case "$size" in *[!0-9%]*|'') size=85% ;; esac
     status="bash $(printf '%q' "$SCRIPT_DIR/status_right.sh") --plain 160"
+    entries=$(render_status_entries "$status")
     printf '%s on %s. Do not edit: personal settings belong in %s\n\n' "$MARK" "$(date '+%F %T')" "$USER_TOML"
     theme=$(render_theme) || theme='[theme]
 name = "nord"'
     # The theme block spans lines; macOS awk refuses newlines in -v values.
-    WB_THEME="$theme" awk -v status="$status" -v scripts="$(printf '%q' "$SCRIPT_DIR")" \
-        '/@@THEME@@/ { print ENVIRON["WB_THEME"]; next } { gsub(/@@STATUS_COMMAND@@/, status); gsub(/@@SCRIPTS@@/, scripts); print }' "$TEMPLATE"
+    WB_THEME="$theme" WB_STATUS_ENTRIES="$entries" awk -v scripts="$(printf '%q' "$SCRIPT_DIR")" \
+        '/@@THEME@@/ { print ENVIRON["WB_THEME"]; next }
+         /@@STATUS_ENTRIES@@/ { print ENVIRON["WB_STATUS_ENTRIES"]; next }
+         { gsub(/@@SCRIPTS@@/, scripts); print }' "$TEMPLATE"
     printf '\n# ─── Popups generated from actions.tsv ───────────────────\n'
     while IFS=$'\t' read -r key id label _ hosts; do
         [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue

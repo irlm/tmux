@@ -117,9 +117,11 @@ window_title = "{hostname}: {workspace}"
 # The right edge of the tab bar carries the same cached hardware readings the
 # tmux status bar shows. The script samples at most once every five seconds
 # and reuses the result, so this costs one short process per interval.
+# With herdr_status_colors=on in options.env (a Herdr whose entries accept a
+# color) each reading becomes its own entry in the palette's colours.
 tab_bar_right = [
   { type = "zoom" },
-  { type = "command", command = "@@STATUS_COMMAND@@", interval_seconds = 5, timeout_seconds = 3 },
+@@STATUS_ENTRIES@@
   { type = "datetime", format = "%a %d %b %H:%M" },
 ]
 tab_bar_right_separator = " | "

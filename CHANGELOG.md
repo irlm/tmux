@@ -11,6 +11,7 @@ All notable changes to this tmux configuration will be documented in this file.
 - Add `ctrl+hjkl` navigation that enters Neovim when it runs in the pane (paired with the irlm/nvim `herdr` branch), text and URL pickers over `herdr pane read`, a generated `irlm.workbench` plugin, and an image beside `C-a i` on terminals that draw Kitty graphics.
 - Add `C-a $`: tokens by day and by model for Claude Code and Codex from their transcripts, with live limit windows from quota-axi.
 - Map the saved theme onto Herdr's tokens, replacing its dim status colour with the palette's text colour so the tab bar reads like the tmux status line.
+- Add `--part net|cpu|ram|battery|holiday` to the status renderer and `herdr_status_colors=on` to emit one coloured tab bar entry per reading, for a Herdr whose entries accept a colour (patch proposed upstream; stock Herdr keeps the single entry with icons).
 - Keep a theme picked in Herdr's own settings until the next `C-a C-t`, raising only its status token to that theme's text colour; `C-a C-t` re-renders Herdr and takes precedence again.
 
 ### Installed update recovery

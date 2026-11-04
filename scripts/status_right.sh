@@ -7,13 +7,42 @@ source "$SCRIPT_DIR/lib.sh"
 CPU_DIR="$TMUX_CONFIG_DIR/plugins/tmux-cpu/scripts"
 # --plain: no tmux colour directives, for hosts that strip escapes (Herdr's
 # tab bar shows the last line of output as plain text).
-paint=1
-if [ "${1:-}" = --plain ]; then paint=0; shift; fi
+# --part net|cpu|ram|battery|holiday: only that reading, for a host that
+# colours whole entries (a Herdr with per-entry colours). The sample and its
+# cache are shared, so several parts still cost one measurement.
+paint=1; part=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --plain) paint=0; shift ;;
+        --part) part=${2:-}; shift 2 ;;
+        *) break ;;
+    esac
+done
 width=${1:-160}
 case "$width" in ''|*[!0-9]*) width=160 ;; esac
 [ "$width" -ge 100 ] || exit 0
 private_dir "$TMUX_CACHE_DIR" || exit 0
 read -r now today <<< "$(date '+%s %F')"
+cpu_icon=""; ram_icon="󰍛"
+sep=" | "
+
+# Readings are joined with sep in a fixed order; --part picks one back out by
+# the marker each carries in plain mode (net arrows, cpu and ram icons or
+# their ASCII labels, a percentage for the battery, whatever is left for the
+# special-day motif).
+select_part() {
+    local line=$1 segment kind
+    [ -n "$part" ] || { printf '%s\n' "$line"; return; }
+    while IFS= read -r segment; do
+        [ -n "$segment" ] || continue
+        if [[ "$segment" == *↓* ]]; then kind=net
+        elif [[ "$segment" == "$cpu_icon "* || "$segment" == CPU* ]]; then kind=cpu
+        elif [[ "$segment" == "$ram_icon "* || "$segment" == RAM* ]]; then kind=ram
+        elif [[ "$segment" == *% ]]; then kind=battery
+        else kind=holiday; fi
+        if [ "$kind" = "$part" ]; then printf '%s\n' "$segment"; return; fi
+    done <<< "${line//$sep/$'\n'}"
+}
 if [ "$(wb_backend)" = tmux ]; then
     info=$(tmux display-message -p '#{@ascii}|#{@theme}|#{@theme_magenta}|#{@theme_accent}|#{@theme_yellow}|#{@theme_green}|#{@theme_red}|#{@special_days}' 2>/dev/null) || info=""
 else
@@ -33,13 +62,12 @@ cache="$TMUX_CACHE_DIR/status-$theme_id-$ascii-$special_days-$paint"
 if [ -f "$cache" ]; then
     read -r sampled sampled_day < "$cache"
     if [ "$sampled_day" = "$today" ] && [[ "$sampled" =~ ^[0-9]+$ ]] && [ "$((now - sampled))" -ge 0 ] && [ "$((now - sampled))" -lt 5 ]; then
-        tail -n +2 "$cache"
+        select_part "$(tail -n +2 "$cache")"
         exit 0
     fi
 fi
 
 out=""
-sep=" | "
 
 # Network speed (first — variable width won't shift the rest)
 if [ -x "$SCRIPT_DIR/net_speed.sh" ]; then
@@ -52,7 +80,7 @@ if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
     cpu=$("$CPU_DIR/cpu_percentage.sh")
     # Without colours (Herdr's tab bar) an icon says which reading is which.
 if [ "$paint" -eq 0 ] && [ -n "$cpu" ]; then
-    if [ "$ascii" = on ]; then cpu="CPU $cpu"; else cpu=" $cpu"; fi
+    if [ "$ascii" = on ]; then cpu="CPU $cpu"; else cpu="$cpu_icon $cpu"; fi
 fi
 [ -n "$cpu" ] && out="${out}${sep}$(paint "$accent" "$cpu")"
 fi
@@ -77,7 +105,7 @@ elif command -v free &>/dev/null; then
     ram=$(free | awk '/Mem/ { if ($7 > 0) printf "%.0f%%", 100 * ($2 - $7) / $2; else printf "%.0f%%", 100 * $3 / $2 }')
 fi
 if [ "$paint" -eq 0 ] && [ -n "$ram" ]; then
-    if [ "$ascii" = on ]; then ram="RAM $ram"; else ram="󰍛 $ram"; fi
+    if [ "$ascii" = on ]; then ram="RAM $ram"; else ram="$ram_icon $ram"; fi
 fi
 [ -n "$ram" ] && out="${out}${sep}$(paint "$yellow" "$ram")"
 
@@ -182,4 +210,4 @@ fi
 tmp=$(mktemp "$TMUX_CACHE_DIR/status.XXXXXX")
 printf '%s %s\n%s\n' "$now" "$today" "$out" > "$tmp"
 mv -f -- "$tmp" "$cache"
-printf '%s\n' "$out"
+select_part "$out"
