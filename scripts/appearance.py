@@ -47,7 +47,8 @@ def private_directory(directory):
     if directory.is_symlink():
         raise ValueError(f'Theme directory must not be a symlink: {directory}')
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if directory.stat().st_uid != os.getuid():
+    # Windows has no numeric owner to compare and ignores Unix modes.
+    if hasattr(os, 'getuid') and directory.stat().st_uid != os.getuid():
         raise ValueError('Theme directory belongs to another user')
     directory.chmod(0o700)
 
