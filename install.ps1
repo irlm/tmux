@@ -115,11 +115,13 @@ foreach ($wt in @("$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d
     if (-not (Test-Path $wt)) { continue }
     try {
         $settings = Get-Content $wt -Raw | ConvertFrom-Json
-        if (-not $settings.profiles) { continue }
-        if (-not $settings.profiles.defaults) { $settings.profiles | Add-Member -NotePropertyName "defaults" -NotePropertyValue ([PSCustomObject]@{}) -Force }
+        if (-not $settings.PSObject.Properties["profiles"]) { continue }
+        if (-not $settings.profiles.PSObject.Properties["defaults"]) { $settings.profiles | Add-Member -NotePropertyName "defaults" -NotePropertyValue ([PSCustomObject]@{}) -Force }
         $defaults = $settings.profiles.defaults
-        if ($defaults.font -and $defaults.font.face) {
-            Write-Host "  Windows Terminal keeps its own font ($($defaults.font.face))"
+        # Strict mode: a missing property is an error, so look it up by name.
+        $font = $defaults.PSObject.Properties["font"]
+        if ($font -and $font.Value -and $font.Value.PSObject.Properties["face"] -and $font.Value.face) {
+            Write-Host "  Windows Terminal keeps its own font ($($font.Value.face))"
         } else {
             Copy-Item $wt "$wt.backup.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
             $defaults | Add-Member -NotePropertyName "font" -NotePropertyValue ([PSCustomObject]@{ face = "JetBrainsMono Nerd Font" }) -Force
