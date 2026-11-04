@@ -7,7 +7,7 @@ file, so a popup costs a few milliseconds after the first run), adds the
 live rate-limit windows from quota-axi when it is installed, and draws:
 
     LIMITS           remaining window budget and when it resets
-    TOKENS BY DAY    last seven days, today last
+    TOKENS BY DAY    last seven days, today last, and the whole window
     TOKENS BY MODEL  which models the tokens went to
 """
 import argparse
@@ -323,7 +323,7 @@ def render(providers, windows, days, width, painter):
     label_width = 18
     lines = []
     today = date.today()
-    day_keys = [(today - timedelta(days=offset)).isoformat() for offset in range(days - 1, -1, -1)]
+    day_keys = [(today - timedelta(days=offset)).isoformat() for offset in range(min(days, 7) - 1, -1, -1)]
     for title, totals, limit_rows, note in providers:
         lines.append(painter.paint(title, 'accent', True))
         lines.append('')
@@ -342,6 +342,8 @@ def render(providers, windows, days, width, painter):
             name = 'Today' if day == today.isoformat() else date.fromisoformat(day).strftime('%a')
             name = painter.paint(f'{name:<{label_width}}', 'foreground', bold=(day == today.isoformat()))
             lines.append(f'  {name} {painter.bar(tokens / peak, width - label_width - 12)} {human(tokens):>7}')
+        if days > 7:
+            lines.append('  ' + painter.paint(f'{days} days'.ljust(label_width) + ' ' + ' ' * (width - label_width - 12) + f' {human(sum(totals["days"].values())):>7}', 'muted'))
         lines.append('')
         lines.append(painter.paint('TOKENS BY MODEL', 'muted', True))
         models = sorted(totals['models'].items(), key=lambda item: -item[1])
@@ -481,7 +483,7 @@ class Screen:
             self.put(y + line_index, x, line, 'icon', bold=True)
         self.put(y, x + 10, title, 'text', bold=True)
         plan = totals.get('plan') or ''
-        self.put(y + 1, x + 10, plan or 'last %d days' % self.days, 'muted')
+        self.put(y + 1, x + 10, (plan.upper() + ' · ' if plan else '') + 'last %d days' % self.days, 'muted')
         y += 4
         # tabs
         tab_width = max(8, (inner - 2 * (len(self.providers) - 1)) // len(self.providers))
@@ -506,7 +508,7 @@ class Screen:
         # tokens by day
         self.put(y, x, 'TOKENS BY DAY', 'muted', bold=True); y += 1
         today = date.today()
-        day_keys = [(today - timedelta(days=offset)).isoformat() for offset in range(self.days - 1, -1, -1)]
+        day_keys = [(today - timedelta(days=offset)).isoformat() for offset in range(min(self.days, 7) - 1, -1, -1)]
         peak = max([totals['days'].get(day, 0) for day in day_keys] + [1])
         bar_x = x + 7
         bar_width = inner - 7 - 9
@@ -517,6 +519,9 @@ class Screen:
             self.put(y, x, name, 'text' if is_today else 'muted', bold=is_today)
             self.bar(y, bar_x, bar_width, tokens / peak)
             self.put(y, bar_x + bar_width + 1, f'{human(tokens):>7}', 'text'); y += 1
+        if self.days > 7:
+            self.put(y, x, f'{self.days} days', 'muted')
+            self.put(y, bar_x + bar_width + 1, f'{human(sum(totals["days"].values())):>7}', 'muted', bold=True); y += 1
         y += 1
         self.put(y, x, '─' * inner, 'track'); y += 1
         # tokens by model
@@ -525,6 +530,7 @@ class Screen:
         peak = max([tokens for _, tokens in models] + [1])
         if not models:
             self.put(y, x, 'nothing in the last %d days' % self.days, 'muted'); y += 1
+        self.put(y - len(models) - 1 if models else y - 2, x + inner - 12, '', 'muted')
         for model, tokens in models:
             if y >= height - 2:
                 break
@@ -566,7 +572,7 @@ def interactive(days, palette):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--days', type=int, default=7)
+    parser.add_argument('--days', type=int, default=30, help='window for the totals; the day bars always show the last week')
     parser.add_argument('--width', type=int)
     parser.add_argument('--plain', action='store_true', help='no colors, no interface: print the report')
     parser.add_argument('--no-limits', action='store_true', help='skip the live quota lookup')
