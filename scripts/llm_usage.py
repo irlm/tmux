@@ -101,6 +101,7 @@ def recent_files(directory, pattern, since):
 def parse_claude(file):
     """Assistant replies carry message.usage; one message can span lines."""
     days, models, seen = defaultdict(int), defaultdict(int), {}
+    day_models = defaultdict(lambda: defaultdict(int))
     with file.open(encoding='utf-8', errors='replace') as stream:
         for line in stream:
             if '"usage"' not in line:
@@ -125,12 +126,14 @@ def parse_claude(file):
     for day, model, tokens in seen.values():
         days[day] += tokens
         models[model] += tokens
-    return {'days': days, 'models': models}
+        day_models[day][model] += tokens
+    return {'days': days, 'models': models, 'day_models': day_models}
 
 
 def parse_codex(file):
     """token_count events report the last turn; turn_context names the model."""
     days, models = defaultdict(int), defaultdict(int)
+    day_models = defaultdict(lambda: defaultdict(int))
     model, limits = 'codex', None
     with file.open(encoding='utf-8', errors='replace') as stream:
         for line in stream:
@@ -154,15 +157,17 @@ def parse_codex(file):
             if day and tokens:
                 days[day] += tokens
                 models[model] += tokens
+                day_models[day][model] += tokens
             if payload.get('rate_limits'):
                 limits = {'at': record.get('timestamp'), **payload['rate_limits']}
-    return {'days': days, 'models': models, 'limits': limits}
+    return {'days': days, 'models': models, 'day_models': day_models, 'limits': limits}
 
 
 def parse_antigravity(file):
     """Antigravity CLI steps carry input/cache/output tokens; the model is
     announced in the conversation when the user picks one."""
     days, models = defaultdict(int), defaultdict(int)
+    day_models = defaultdict(lambda: defaultdict(int))
     model = 'antigravity'
     picked = re.compile(r'`Model Selection` from .*? to ([^\n.]+?)(?: \((?:High|Medium|Low)\))?\.')
     with file.open(encoding='utf-8', errors='replace') as stream:
@@ -185,7 +190,8 @@ def parse_antigravity(file):
             if day and tokens:
                 days[day] += tokens
                 models[model] += tokens
-    return {'days': days, 'models': models}
+                day_models[day][model] += tokens
+    return {'days': days, 'models': models, 'day_models': day_models}
 
 
 # Every agent this can account for. Transcript-less providers still get a
@@ -208,7 +214,8 @@ def provider_dir(spec):
 
 
 def collect(provider, directory, pattern, parse, since, cache):
-    totals = {'days': defaultdict(int), 'models': defaultdict(int), 'limits': None, 'files': 0}
+    totals = {'days': defaultdict(int), 'models': defaultdict(int), 'day_models': defaultdict(lambda: defaultdict(int)),
+              'limits': None, 'files': 0}
     keep = set()
     for file in recent_files(directory, pattern, since):
         keep.add(str(file))
@@ -218,6 +225,9 @@ def collect(provider, directory, pattern, parse, since, cache):
             totals['days'][day] += tokens
         for model, tokens in entry['models'].items():
             totals['models'][model] += tokens
+        for day, per_model in (entry.get('day_models') or {}).items():
+            for model, tokens in per_model.items():
+                totals['day_models'][day][model] += tokens
         limits = entry.get('limits')
         if limits and (not totals['limits'] or limits.get('at', '') > totals['limits'].get('at', '')):
             totals['limits'] = limits
@@ -342,14 +352,13 @@ def render(providers, windows, days, width, painter):
             name = 'Today' if day == today.isoformat() else date.fromisoformat(day).strftime('%a')
             name = painter.paint(f'{name:<{label_width}}', 'foreground', bold=(day == today.isoformat()))
             lines.append(f'  {name} {painter.bar(tokens / peak, width - label_width - 12)} {human(tokens):>7}')
-        if days > 7:
-            lines.append('  ' + painter.paint(f'{days} days'.ljust(label_width) + ' ' + ' ' * (width - label_width - 12) + f' {human(sum(totals["days"].values())):>7}', 'muted'))
+        lines.append('  ' + painter.paint(totals['window_label'].ljust(label_width) + ' ' + ' ' * (width - label_width - 12) + f' {human(totals["window_total"]):>7}', 'muted'))
         lines.append('')
-        lines.append(painter.paint('TOKENS BY MODEL', 'muted', True))
-        models = sorted(totals['models'].items(), key=lambda item: -item[1])
+        lines.append(painter.paint('TOKENS BY MODEL ' + totals['window_label'], 'muted', True))
+        models = sorted(totals['window_models'].items(), key=lambda item: -item[1])
         peak = max([tokens for _, tokens in models] + [1])
         if not models:
-            lines.append('  ' + painter.paint('nothing in the last %d days' % days, 'muted'))
+            lines.append('  ' + painter.paint('nothing ' + totals['window_label'], 'muted'))
         for model, tokens in models:
             bar_width = width - 14
             filled = max(len(pretty_model(model)) + 2, round(tokens / peak * bar_width))
@@ -368,7 +377,7 @@ def gather(days, limits=True):
     An agent shows up when it left transcripts in the window or quota-axi
     says it is set up; Claude Code and Codex always do."""
     since = (datetime.now() - timedelta(days=days + 1)).timestamp()
-    cache = Cache(CACHE_DIR / 'llm-usage.json')
+    cache = Cache(CACHE_DIR / 'llm-usage-v2.json')
     windows = quota_windows() if limits else {}
     providers = []
     for key, title, spec, pattern, parser in PROVIDERS:
@@ -376,7 +385,7 @@ def gather(days, limits=True):
         if parser:
             totals = collect(key, directory, pattern, globals()[parser], since, cache)
         else:
-            totals = {'days': defaultdict(int), 'models': defaultdict(int), 'limits': None, 'files': 0}
+            totals = {'days': defaultdict(int), 'models': defaultdict(int), 'day_models': {}, 'limits': None, 'files': 0}
         rows, note = windows.get(key, ([], ''))
         # A tab needs something to show: transcripts in the window or live
         # limit windows. "Set up but not signed in" stays out of the way.
@@ -390,8 +399,32 @@ def gather(days, limits=True):
         if not parser and not rows:
             note = note or 'no transcripts to read on this machine'
         totals['plan'] = PLANS.get(key, '')
+        totals.update(since_reset(rows, totals, days))
         providers.append((title, totals, rows, note))
     return providers, windows
+
+
+def since_reset(rows, totals, days):
+    """The consumption behind the weekly limit bar: tokens since that window
+    began (its reset minus seven days), per model. Falls back to the whole
+    scanned window when no weekly reset is known."""
+    weekly = next((resets for label, _, resets in rows if 'week' in label.lower() and resets), None)
+    start = None
+    if weekly:
+        try:
+            start = (datetime.fromisoformat(str(weekly).replace('Z', '+00:00')) - timedelta(days=7)).astimezone().date()
+        except ValueError:
+            start = None
+    if not start:
+        return {'window_start': None, 'window_models': dict(totals['models']),
+                'window_total': sum(totals['days'].values()), 'window_label': f'{days} days'}
+    models = defaultdict(int)
+    for day, per_model in totals['day_models'].items():
+        if date.fromisoformat(day) >= start:
+            for model, tokens in per_model.items():
+                models[model] += tokens
+    return {'window_start': start.isoformat(), 'window_models': dict(models), 'window_total': sum(models.values()),
+            'window_label': 'since ' + start.strftime('%a %d %b')}
 
 
 ICONS = {
@@ -483,7 +516,7 @@ class Screen:
             self.put(y + line_index, x, line, 'icon', bold=True)
         self.put(y, x + 10, title, 'text', bold=True)
         plan = totals.get('plan') or ''
-        self.put(y + 1, x + 10, (plan.upper() + ' · ' if plan else '') + 'last %d days' % self.days, 'muted')
+        self.put(y + 1, x + 10, (plan.upper() + ' · ' if plan else '') + totals['window_label'], 'muted')
         y += 4
         # tabs
         tab_width = max(8, (inner - 2 * (len(self.providers) - 1)) // len(self.providers))
@@ -519,18 +552,17 @@ class Screen:
             self.put(y, x, name, 'text' if is_today else 'muted', bold=is_today)
             self.bar(y, bar_x, bar_width, tokens / peak)
             self.put(y, bar_x + bar_width + 1, f'{human(tokens):>7}', 'text'); y += 1
-        if self.days > 7:
-            self.put(y, x, f'{self.days} days', 'muted')
-            self.put(y, bar_x + bar_width + 1, f'{human(sum(totals["days"].values())):>7}', 'muted', bold=True); y += 1
+        self.put(y, x, totals['window_label'], 'muted')
+        self.put(y, bar_x + bar_width + 1, f'{human(totals["window_total"]):>7}', 'muted', bold=True); y += 1
         y += 1
         self.put(y, x, '─' * inner, 'track'); y += 1
         # tokens by model
-        self.put(y, x, 'TOKENS BY MODEL', 'muted', bold=True); y += 1
-        models = sorted(totals['models'].items(), key=lambda item: -item[1])
+        self.put(y, x, 'TOKENS BY MODEL', 'muted', bold=True)
+        self.put(y, x + 16, totals['window_label'], 'muted'); y += 1
+        models = sorted(totals['window_models'].items(), key=lambda item: -item[1])
         peak = max([tokens for _, tokens in models] + [1])
         if not models:
-            self.put(y, x, 'nothing in the last %d days' % self.days, 'muted'); y += 1
-        self.put(y - len(models) - 1 if models else y - 2, x + inner - 12, '', 'muted')
+            self.put(y, x, 'nothing ' + totals['window_label'], 'muted'); y += 1
         for model, tokens in models:
             if y >= height - 2:
                 break

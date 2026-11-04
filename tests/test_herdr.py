@@ -245,6 +245,18 @@ class UsageTests(unittest.TestCase):
             ]) + '\n')
             parsed = llm_usage.parse_antigravity(file)
         self.assertEqual(parsed['models'], {'Gemini 4 Argon': 7670})
+        self.assertEqual(parsed['day_models']['2026-11-03'], {'Gemini 4 Argon': 7670})
+
+    def test_since_reset_counts_only_the_current_weekly_window(self):
+        totals = {'days': {'2026-10-20': 100, '2026-11-02': 10, '2026-11-04': 1},
+                  'models': {'a': 111},
+                  'day_models': {'2026-10-20': {'a': 100}, '2026-11-02': {'a': 10}, '2026-11-04': {'a': 1}}}
+        rows = [('week', 4.0, '2026-11-10T17:00:00+00:00'), ('session', 0.0, '2026-11-04T19:00:00Z')]
+        window = llm_usage.since_reset(rows, totals, 30)
+        self.assertEqual(window['window_start'], '2026-11-03')
+        self.assertEqual(window['window_total'], 1)
+        self.assertEqual(llm_usage.since_reset([], totals, 30)['window_label'], '30 days')
+        self.assertEqual(llm_usage.since_reset([], totals, 30)['window_total'], 111)
 
     def test_codex_transcripts_attribute_turns_to_the_current_model(self):
         with tempfile.TemporaryDirectory() as scratch:
