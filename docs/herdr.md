@@ -41,6 +41,21 @@ The Claude Code and Codex integrations (`herdr integration install claude codex`
 are installed when those CLIs exist. They are what brings a conversation back
 into its pane after a restart.
 
+### While Herdr is running
+
+Nothing needs closing. Run the installer, `dotup` or `herdr-config.sh` from a
+Herdr pane like any other command: the renderer validates the new config,
+writes it and reloads the running server, so new keys and popups work in the
+pane next to it straight away. Only the theme is read by the client, so after
+a theme change press `C-a r` inside Herdr.
+
+The one exception is Herdr's own binary. A full `dotup` runs `herdr update`,
+which installs the new version on disk while the running server keeps the old
+one. When that happens, finish what the agents are doing, press `C-a q` to
+detach (everything keeps running), and start `herdr` again; the integrations
+bring each agent conversation back into its pane. `herdr update --handoff`
+attempts the switch live instead.
+
 Run `herdr` in a terminal window that is not inside tmux, so tmux does not
 swallow `C-a`.
 
