@@ -17,9 +17,11 @@ import json
 import re
 import os
 from pathlib import Path
+import queue
 import shutil
 import subprocess
 import sys
+import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = Path(os.environ.get('TMUX_CACHE_DIR', str(Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'tmux')))
@@ -448,7 +450,17 @@ class Screen:
         self.refresh = refresh
         self.tab = 0
         self.pairs = {}
+        self.results = queue.Queue()
+        self.fetching = False
         self.setup_colors(palette)
+
+    def fetch(self):
+        """Limits come from the network and can be slow: fetch them behind
+        the drawn card and redraw when they land."""
+        if self.fetching:
+            return
+        self.fetching = True
+        threading.Thread(target=lambda: self.results.put(self.refresh()), daemon=True).start()
 
     def setup_colors(self, palette):
         import curses
@@ -527,7 +539,10 @@ class Screen:
         y += 2
         self.put(y, x, '─' * inner, 'track'); y += 1
         # limits
-        self.put(y, x, 'LIMITS', 'muted', bold=True); y += 1
+        self.put(y, x, 'LIMITS', 'muted', bold=True)
+        if self.fetching:
+            self.put(y, x + 8, 'reading live windows…', 'muted')
+        y += 1
         if limit_rows:
             for label, used, resets in limit_rows:
                 self.put(y, x, label[:1].upper() + label[1:], 'text', bold=True)
@@ -535,7 +550,7 @@ class Screen:
                 self.bar(y, x, inner, used / 100); y += 1
                 self.put(y, x, resets_in(resets), 'muted'); y += 1
         else:
-            self.put(y, x, note or 'no live window data', 'muted'); y += 1
+            self.put(y, x, note or ('' if self.fetching else 'no live window data'), 'muted'); y += 1
         y += 1
         self.put(y, x, '─' * inner, 'track'); y += 1
         # tokens by day
@@ -578,9 +593,18 @@ class Screen:
         import curses
         curses.curs_set(0)
         self.stdscr.keypad(True)
+        self.stdscr.timeout(200)
+        self.fetch()
         while True:
             self.draw()
             key = self.stdscr.getch()
+            if key == -1:
+                try:
+                    self.providers = self.results.get_nowait()
+                    self.fetching = False
+                except queue.Empty:
+                    pass
+                continue
             if key in (ord('q'), 27):
                 return
             if ord('1') <= key <= ord('9'):
@@ -590,14 +614,14 @@ class Screen:
             elif key in (curses.KEY_BTAB, curses.KEY_LEFT, ord('h')):
                 self.tab = (self.tab - 1) % len(self.providers)
             elif key == ord('r'):
-                self.providers = self.refresh()
+                self.fetch()
             elif key == curses.KEY_RESIZE:
                 continue
 
 
 def interactive(days, palette):
     import curses
-    providers, _ = gather(days)
+    providers, _ = gather(days, limits=False)   # transcripts only: instant
     refresh = lambda: gather(days)[0]  # noqa: E731
     curses.wrapper(lambda stdscr: Screen(stdscr, providers, days, palette, refresh).run())
 
