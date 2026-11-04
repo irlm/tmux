@@ -7,47 +7,48 @@
   |          Split side by side                     F12        Switch local/remote keys (no
   -          Split top and bottom                              prefix)
   h j k l    Move left/down/up/right                s          SSH in new window
-  H J K L    Resize left/down/up/right              P          SSH in split pane
+  Arrows     Move between panes too                 P          SSH in split pane
+  H J K L    Resize left/down/up/right
   z          Zoom or unzoom pane
-  x          Close pane
-  b          Move pane to a new window              Copy mode (no prefix)
-  @          Join marked pane
-  { }        Swap panes                             C-a [      Enter copy mode
-  m          Mark pane                              v          Begin selection
-  q          Show pane numbers                      y          Copy selection and exit
-  Y          Toggle synchronized typing             C-v        Toggle rectangle selection
-                                                    H L        Start / end of line
+  x          Close pane                             Copy mode (no prefix)
+  b          Move pane to a new window
+  @          Join marked pane                       C-a [      Enter copy mode
+  { }        Swap panes                             v          Begin selection
+  m          Mark pane                              y          Copy selection and exit
+  q          Show pane numbers                      C-v        Toggle rectangle selection
+  Y          Toggle synchronized typing             H L        Start / end of line
                                                     / ?        Search forward / backward
-  Windows & sessions                                Esc        Exit copy mode
+                                                    Esc        Exit copy mode
+  Windows & sessions
 
-  c          New window
-  X          Close window                           Help & plugins
-  W          Choose window
-  S          Choose session                         r          Reload tmux configuration
-  Backspace  Previous session                       I          Install tmux plugins
-  < >        Reorder windows                        Space      Pick and copy text hints
-  C-n        Enable automatic window names          u          Pick a URL from the pane
-  Q          Close all sessions (confirm)           C-s        Save sessions
-  D          Choose a client to detach              C-r        Restore sessions
-  N          New session                            C-l        Clear pane history
-  .          Rename session                         T          Clock mode
-  ,          Rename window                          F          Search commands
-                                                    ?          Tmux keybindings
+  c          New window                             Help & plugins
+  X          Close window
+  W          Choose window                          r          Reload tmux configuration
+  S          Choose session                         I          Install tmux plugins
+  Backspace  Previous session                       Space      Pick and copy text hints
+  < >        Reorder windows                        u          Pick a URL from the pane
+  C-n        Enable automatic window names          C-s        Save sessions
+  Q          Close all sessions (confirm)           C-r        Restore sessions
+  D          Choose a client to detach              C-l        Clear pane history
+  N          New session                            T          Clock mode
+  .          Rename session                         F          Search commands
+  ,          Rename window                          ?          Tmux keybindings
                                                     !          Neovim keybindings
-  Tools & projects                                  C-u        Update environment
-                                                    C-t        Choose theme
-  g          Git: lazygit                           A          Special day art
+                                                    C-u        Update environment
+  Tools & projects                                  C-t        Choose theme
+                                                    A          Special day art
+  g          Git: lazygit
   G          GitHub dashboard
-  f          Floating shell
-  t          System monitor                         Shell (full setup)
-  d          Docker dashboard
-  i          System information                     z          Jump to a directory
-  n          Notes                                  C-r        Search shell history
-  o          Projects and sessions                  C-t        Find files
-  $          LLM usage and limits                   Alt-c      Find directories
-                                                    dotup      Update environment
+  f          Floating shell                         Shell (full setup)
+  t          System monitor
+  d          Docker dashboard                       z          Jump to a directory
+  i          System information                     C-r        Search shell history
+  n          Notes                                  C-t        Find files
+  o          Projects and sessions                  Alt-c      Find directories
+  $          LLM usage and limits                   dotup      Update environment
                                                     dotcheck   Check environment
-  Search & reference                                ta         Attach or create tmux session
+                                                    ta         Attach or create tmux session
+  Search & reference
 
   /          Search pane history
   e          Web search

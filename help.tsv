@@ -2,6 +2,7 @@ section	key	description	hosts
 Panes	|	Split side by side	all
 Panes	-	Split top and bottom	all
 Panes	h j k l	Move left/down/up/right	all
+Panes	Arrows	Move between panes too	all
 Panes	H J K L	Resize left/down/up/right	all
 Panes	z	Zoom or unzoom pane	all
 Panes	x	Close pane	all

@@ -24,6 +24,10 @@ except Exception:
     sys.exit(0)
 print(procs[-1].get("name", "") if procs else "", end="")')
 case "$front" in
-    vim|nvim|vi|view|nvim-*|*vim) herdr pane send-keys "$pane" "ctrl+$key" >/dev/null ;;
-    *) herdr pane focus --direction "$direction" --pane "$pane" >/dev/null 2>&1 ;;
+    vim|nvim|vi|view|nvim-*|*vim) action="send ctrl+$key to $front"; result=$(herdr pane send-keys "$pane" "ctrl+$key" 2>&1) ;;
+    *) action="focus $direction"; result=$(herdr pane focus --direction "$direction" --pane "$pane" 2>&1) ;;
 esac
+# One line about the last press, for `why did nothing happen`: no growth.
+if private_dir "$TMUX_CACHE_DIR" 2>/dev/null; then
+    printf '%s pane=%s front=%s %s -> %s\n' "$(date '+%H:%M:%S')" "$pane" "${front:-?}" "$action" "${result:0:160}" > "$TMUX_CACHE_DIR/navigate-last"
+fi

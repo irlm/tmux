@@ -26,10 +26,11 @@ kitty_graphics = true
 prefix = "ctrl+a"
 
 # ─── Panes ───────────────────────────────────────────────
-focus_pane_left = "prefix+h"
-focus_pane_down = "prefix+j"
-focus_pane_up = "prefix+k"
-focus_pane_right = "prefix+l"
+# The arrows work under the prefix too, as they do in tmux.
+focus_pane_left = ["prefix+h", "prefix+left"]
+focus_pane_down = ["prefix+j", "prefix+down"]
+focus_pane_up = ["prefix+k", "prefix+up"]
+focus_pane_right = ["prefix+l", "prefix+right"]
 resize_pane_left = "prefix+shift+h"
 resize_pane_down = "prefix+shift+j"
 resize_pane_up = "prefix+shift+k"
@@ -83,8 +84,17 @@ detach = "prefix+q"
 # ─── Editor-aware navigation (no prefix) ─────────────────
 # ctrl+h/j/k/l move between panes, and inside Neovim between its windows,
 # exactly like vim-tmux-navigator under tmux. One short script per press.
+# ctrl+alt+h/j/k/l do the same: the chords Herdr documents as reaching it
+# from every terminal, in case the plain ctrl ones are read as backspace or
+# enter. The last press is described in ~/.cache/tmux/navigate-last.
 [[keys.command]]
 key = "ctrl+h"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh left"
+description = "focus pane or editor window to the left"
+
+[[keys.command]]
+key = "ctrl+alt+h"
 type = "shell"
 command = "bash @@SCRIPTS@@/herdr-navigate.sh left"
 description = "focus pane or editor window to the left"
@@ -96,13 +106,31 @@ command = "bash @@SCRIPTS@@/herdr-navigate.sh down"
 description = "focus pane or editor window below"
 
 [[keys.command]]
+key = "ctrl+alt+j"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh down"
+description = "focus pane or editor window below"
+
+[[keys.command]]
 key = "ctrl+k"
 type = "shell"
 command = "bash @@SCRIPTS@@/herdr-navigate.sh up"
 description = "focus pane or editor window above"
 
 [[keys.command]]
+key = "ctrl+alt+k"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh up"
+description = "focus pane or editor window above"
+
+[[keys.command]]
 key = "ctrl+l"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh right"
+description = "focus pane or editor window to the right"
+
+[[keys.command]]
+key = "ctrl+alt+l"
 type = "shell"
 command = "bash @@SCRIPTS@@/herdr-navigate.sh right"
 description = "focus pane or editor window to the right"
