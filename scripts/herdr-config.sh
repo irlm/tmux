@@ -32,6 +32,19 @@ herdr_key() {
     esac
 }
 
+# "<width> <height>" as TOML values: the row's own WIDTHxHEIGHT (cells as
+# numbers, percentages as strings) or the shared popup size for both.
+popup_dimensions() {
+    local shared=$1 own=$2 width height
+    case "$own" in
+        [0-9]*x[0-9]*) width=${own%x*}; height=${own#*x} ;;
+        *) width=$shared; height=$shared ;;
+    esac
+    case "$width" in *%) width="\"$width\"" ;; esac
+    case "$height" in *%) height="\"$height\"" ;; esac
+    printf '%s %s\n' "$width" "$height"
+}
+
 toml_string() {  # escape for a basic TOML string
     local s=${1//\\/\\\\}
     printf '"%s"' "${s//\"/\\\"}"
@@ -153,14 +166,15 @@ name = "nord"'
          /@@STATUS_ENTRIES@@/ { print ENVIRON["WB_STATUS_ENTRIES"]; next }
          { gsub(/@@SCRIPTS@@/, scripts); print }' "$TEMPLATE"
     printf '\n# ─── Popups generated from actions.tsv ───────────────────\n'
-    while IFS=$'\t' read -r key id label _ hosts; do
+    while IFS=$'\t' read -r key id label _ hosts own; do
         [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue
         # Herdr prompts for these itself (new_workspace, rename_*).
         case "$id" in new-session|rename-session|rename-window) continue ;; esac
-        printf '\n[[keys.command]]\nkey = %s\ntype = "popup"\ncommand = %s\nwidth = "%s"\nheight = "%s"\ndescription = %s\n' \
+        read -r width height <<< "$(popup_dimensions "$size" "$own")"
+        printf '\n[[keys.command]]\nkey = %s\ntype = "popup"\ncommand = %s\nwidth = %s\nheight = %s\ndescription = %s\n' \
             "$(toml_string "$(herdr_key "$key")")" \
             "$(toml_string "bash $(printf '%q' "$SCRIPT_DIR/actions.sh") run $id")" \
-            "$size" "$size" "$(toml_string "$label")"
+            "$width" "$height" "$(toml_string "$label")"
     done < "$REGISTRY"
     if [ -f "$USER_TOML" ]; then
         printf '\n# ─── %s ───\n' "$USER_TOML"
@@ -186,11 +200,12 @@ render_plugin() {
         printf '\n[[actions]]\nid = "%s"\ntitle = %s\ncontexts = ["workspace"]\ncommand = [%s, "plugin", "pane", "open", "--plugin", "%s", "--entrypoint", "%s", "--placement", "popup", "--width", "%s", "--height", "%s"]\n' \
             "$id" "$(toml_string "$label")" "$(toml_string "${HERDR_BIN_PATH:-herdr}")" "$PLUGIN_ID" "$id" "$size" "$size"
     done
-    while IFS=$'\t' read -r key id label _ hosts; do
+    while IFS=$'\t' read -r key id label _ hosts own; do
         [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue
         case "$id" in new-session|rename-session|rename-window) continue ;; esac
-        printf '\n[[panes]]\nid = "%s"\ntitle = %s\nplacement = "popup"\nwidth = "%s"\nheight = "%s"\ncommand = ["bash", %s, "run", "%s"]\n' \
-            "$id" "$(toml_string "$label")" "$size" "$size" "$(toml_string "$SCRIPT_DIR/actions.sh")" "$id"
+        read -r width height <<< "$(popup_dimensions "$size" "$own")"
+        printf '\n[[panes]]\nid = "%s"\ntitle = %s\nplacement = "popup"\nwidth = %s\nheight = %s\ncommand = ["bash", %s, "run", "%s"]\n' \
+            "$id" "$(toml_string "$label")" "$width" "$height" "$(toml_string "$SCRIPT_DIR/actions.sh")" "$id"
     done < "$REGISTRY"
 }
 

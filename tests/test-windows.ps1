@@ -58,7 +58,7 @@ try {
     $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
     foreach ($expected in @('prefix = "ctrl+a"', 'split_vertical = "prefix+|"', 'name = "catppuccin"', 'overlay1 = "#cad3f5"',
                             'key = "prefix+g"', 'bash.exe\" \"', 'actions.sh\" run git', 'width = "70%"', '{ type = "hostname" }',
-                            'herdr-navigate.sh\" left', '[theme.custom.light]')) {
+                            'herdr-navigate.sh\" left', '[theme.custom.light]', "run info`"`nwidth = 100`nheight = 36")) {
         if ($rendered -notmatch [regex]::Escape($expected)) { throw "Windows Herdr render is missing: $expected" }
     }
     if ($rendered -match 'run new-session' -or $rendered -match '@@') { throw 'Windows Herdr render kept a native prompt or a placeholder.' }

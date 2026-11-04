@@ -1,30 +1,30 @@
-key	id	label	tool	hosts
-F	palette	Search commands	fzf	all
-g	git	Git: lazygit	lazygit	all
-G	github	GitHub dashboard	gh	all
-f	shell	Floating shell	-	all
-t	top	System monitor	btop|htop	all
-d	docker	Docker dashboard	lazydocker	all
-i	info	System information	-	all
-?	help	Tmux keybindings	python3&less	all
-!	nvim-help	Neovim keybindings	less	all
-n	notes	Notes	fzf	all
-o	projects	Projects and sessions	fzf	all
-/	history	Search pane history	fzf	all
-e	search	Web search	python3&fzf	all
-E	scoped-search	Web search: choose site	python3&fzf	all
-a	ai	Ask AI	@ai	all
-M	man	Manual page	man	all
-C	cheat	Cheat.sh reference	curl&python3	all
-V	tldr	tldr reference	tldr	all
-C-u	update	Update environment	-	all
-$	llm	LLM usage and limits	python3	all
-s	ssh	SSH in new window	ssh	all
-P	ssh-split	SSH in split pane	ssh	all
-N	new-session	New session	-	all
-.	rename-session	Rename session	-	all
-,	rename-window	Rename window	-	all
-C-t	themes	Choose theme	python3&fzf	all
-A	special-days	Special day art	python3&fzf	all
-Space	pick	Pick and copy text	fzf	herdr
-u	urls	Pick a URL from the pane	fzf	herdr
+key	id	label	tool	hosts	size
+F	palette	Search commands	fzf	all	
+g	git	Git: lazygit	lazygit	all	
+G	github	GitHub dashboard	gh	all	
+f	shell	Floating shell	-	all	
+t	top	System monitor	btop|htop	all	
+d	docker	Docker dashboard	lazydocker	all	
+i	info	System information	-	all	100x36
+?	help	Tmux keybindings	python3&less	all	
+!	nvim-help	Neovim keybindings	less	all	
+n	notes	Notes	fzf	all	
+o	projects	Projects and sessions	fzf	all	
+/	history	Search pane history	fzf	all	
+e	search	Web search	python3&fzf	all	
+E	scoped-search	Web search: choose site	python3&fzf	all	
+a	ai	Ask AI	@ai	all	
+M	man	Manual page	man	all	
+C	cheat	Cheat.sh reference	curl&python3	all	
+V	tldr	tldr reference	tldr	all	
+C-u	update	Update environment	-	all	
+$	llm	LLM usage and limits	python3	all	
+s	ssh	SSH in new window	ssh	all	
+P	ssh-split	SSH in split pane	ssh	all	
+N	new-session	New session	-	all	
+.	rename-session	Rename session	-	all	
+,	rename-window	Rename window	-	all	
+C-t	themes	Choose theme	python3&fzf	all	
+A	special-days	Special day art	python3&fzf	all	
+Space	pick	Pick and copy text	fzf	herdr	
+u	urls	Pick a URL from the pane	fzf	herdr	

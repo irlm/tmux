@@ -163,7 +163,13 @@ case "${1:-palette}" in
             ssh-split) tmux split-window -h -c "$cwd" "$command" ;;
             *) size=$(tmux_option @popup_size 85%)
                case "$size" in *[!0-9%]*|'') size=85% ;; esac
-               tmux display-popup -d "$cwd" -w "$size" -h "$size" -E "$command" ;;
+               width=$size; height=$size
+               # A row's own size (WIDTHxHEIGHT, cells or percent) fits a popup to its content.
+               own=$(awk -F '\t' -v id="$id" '$2 == id {print $6}' "$registry")
+               case "$own" in
+                   [0-9]*x[0-9]*) width=${own%x*}; height=${own#*x} ;;
+               esac
+               tmux display-popup -d "$cwd" -w "$width" -h "$height" -E "$command" ;;
         esac ;;
     *) run_action "$1" ;;
 esac

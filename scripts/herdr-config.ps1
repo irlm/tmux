@@ -43,6 +43,12 @@ function Set-Option($name, $value) {
 
 function TomlString($text) { '"' + ($text -replace '\\', '\\' -replace '"', '\"') + '"' }
 
+# "<width>", "<height>" as TOML values: the row's own WIDTHxHEIGHT or the shared size.
+function PopupDimensions($shared, $own) {
+    if ($own -match '^(\d+%?)x(\d+%?)$') { $width = $Matches[1]; $height = $Matches[2] } else { $width = $shared; $height = $shared }
+    return @(($(if ($width -match '%') { "`"$width`"" } else { $width })), ($(if ($height -match '%') { "`"$height`"" } else { $height })))
+}
+
 # tmux key names in actions.tsv -> Herdr binding syntax under the prefix.
 function HerdrKey($key) {
     if ($key -match '^C-(.)$') { return "prefix+ctrl+$($Matches[1])" }
@@ -146,8 +152,9 @@ function Render-Config {
             [void]$out.AppendLine("key = $(TomlString (HerdrKey $row.key))")
             [void]$out.AppendLine('type = "popup"')
             [void]$out.AppendLine("command = $(TomlString (ScriptCommand $bash 'actions.sh' "run $($row.id)"))")
-            [void]$out.AppendLine("width = `"$size`"")
-            [void]$out.AppendLine("height = `"$size`"")
+            $dims = PopupDimensions $size $row.size
+            [void]$out.AppendLine("width = $($dims[0])")
+            [void]$out.AppendLine("height = $($dims[1])")
             [void]$out.AppendLine("description = $(TomlString $row.label)")
         }
     } else {
@@ -172,7 +179,8 @@ function Render-Plugin {
         if (-not $row.id -or $row.hosts -eq 'tmux' -or $row.id -in @('new-session', 'rename-session', 'rename-window')) { continue }
         $script = (Join-Path $Root 'scripts\actions.sh')
         $lines += ''; $lines += '[[panes]]'; $lines += "id = `"$($row.id)`""; $lines += "title = $(TomlString $row.label)"
-        $lines += 'placement = "popup"'; $lines += "width = `"$size`""; $lines += "height = `"$size`""
+        $dims = PopupDimensions $size $row.size
+        $lines += 'placement = "popup"'; $lines += "width = $($dims[0])"; $lines += "height = $($dims[1])"
         $lines += "command = [$(TomlString $bash.path), $(TomlString $script), `"run`", `"$($row.id)`"]"
     }
     return ($lines -join "`n")

@@ -116,6 +116,11 @@ class RenderTests(HerdrFixture):
         self.assertIn('--part net", interval_seconds = 5, timeout_seconds = 3, color = "#d4a9ca"', text)
         self.assertIn('--part battery", interval_seconds = 5, timeout_seconds = 3, color = "#a3be8c"', text)
 
+    def test_a_row_can_size_its_own_popup(self):
+        text = self.rendered()
+        self.assertIn('run info"\nwidth = 100\nheight = 36\n', text)
+        self.assertIn('run git"\nwidth = "85%"\nheight = "85%"\n', text)
+
     def test_user_toml_and_popup_size_are_honoured(self):
         (self.user / 'herdr.toml').write_text('[theme.custom.light]\ntext = "#000000"\n')
         (self.user / 'options.env').write_text('popup_size=70%\n')
