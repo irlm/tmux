@@ -537,8 +537,6 @@ else exec ''' + shlex_quote(real_git) + ''' "$@"; fi''')
         self.assertEqual((nvim / 'lazy-lock.json').read_text(), generated)
         self.assertEqual(git(nvim, 'stash', 'list'), '')
 
-
-class EditorTests(WorkflowTests):
     def tools(self, profile, nvim_dir):
         env = dict(self.env, NVIM_CONFIG_DIR=str(nvim_dir))
         result = subprocess.run([BASH, '-c', f'source "{REPO}/scripts/lib.sh"; managed_tools {profile}'], env=env,

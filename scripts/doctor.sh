@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 failures=0
 fail() { printf '  FAIL: %s\n' "$*"; failures=$((failures + 1)); }
+warn() { printf '  WARN: %s\n' "$*"; }
 profile=${TMUX_PROFILE:-desktop}
 [ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/.server" ] || profile=server
 printf 'Health check (%s)\n' "$profile"
@@ -45,9 +46,9 @@ if command -v tmux >/dev/null 2>&1; then
 fi
 if [ "$profile" != server ]; then
     case "$(uname -s)" in
-        Darwin) ls "$HOME/Library/Fonts"/JetBrainsMono*Nerd* /Library/Fonts/JetBrainsMono*Nerd* >/dev/null 2>&1 || brew list --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1 || fail 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).' ;;
+        Darwin) ls "$HOME/Library/Fonts"/JetBrainsMono*Nerd* /Library/Fonts/JetBrainsMono*Nerd* >/dev/null 2>&1 || brew list --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1 || warn 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).' ;;
         *) if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && command -v fc-list >/dev/null 2>&1 && ! grep -qi microsoft /proc/version 2>/dev/null; then
-               fc-list | grep -qi 'JetBrainsMono Nerd' || fail 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).'
+               fc-list | grep -qi 'JetBrainsMono Nerd' || warn 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).'
            fi ;;
     esac
 fi
