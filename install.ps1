@@ -31,8 +31,17 @@ Write-Host "Git: $(git --version)"
 # ─── Install Scoop if missing ─────────────────────────────
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Write-Host "Installing Scoop..."
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-    Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+    # A process- or machine-level policy may already override this; that is fine.
+    try { Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop } catch {}
+    # Scoop's installer refuses an elevated shell unless told it is intended,
+    # and this script is normally run as Administrator.
+    $elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    $scoopInstaller = Join-Path $env:TEMP "scoop-install.ps1"
+    Invoke-RestMethod -Uri https://get.scoop.sh -OutFile $scoopInstaller
+    if ($elevated) { & $scoopInstaller -RunAsAdmin } else { & $scoopInstaller }
+    Remove-Item $scoopInstaller -ErrorAction SilentlyContinue
+    $env:PATH = "$env:USERPROFILE\scoop\shims;$env:PATH"
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) { throw "Scoop did not install; see the messages above." }
 }
 
 # ─── Add buckets ──────────────────────────────────────────
