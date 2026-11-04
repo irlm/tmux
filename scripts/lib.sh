@@ -57,11 +57,13 @@ brew_tools() {
 
 # Herdr CLI. Inside a Herdr pane HERDR_BIN_PATH names the binary that owns
 # the session; WB_HERDR_SESSION lets tests aim every call at a named session.
+# `command` skips this function when the binary is found by name; without
+# it a shell outside Herdr (no HERDR_BIN_PATH) recursed until it crashed.
 herdr() {
     if [ -n "${WB_HERDR_SESSION:-}" ]; then
-        "${HERDR_BIN_PATH:-herdr}" --session "$WB_HERDR_SESSION" "$@"
+        command "${HERDR_BIN_PATH:-herdr}" --session "$WB_HERDR_SESSION" "$@"
     else
-        "${HERDR_BIN_PATH:-herdr}" "$@"
+        command "${HERDR_BIN_PATH:-herdr}" "$@"
     fi
 }
 

@@ -230,6 +230,15 @@ class RegistryTests(HerdrFixture):
         self.assertEqual(len(result.stdout.splitlines()), len(rows))
 
 
+    def test_herdr_wrapper_finds_the_binary_by_name_without_recursing(self):
+        self.fake_herdr('echo "called with: $*"')
+        env = {k: v for k, v in self.env.items() if k != 'HERDR_BIN_PATH'}
+        result = subprocess.run([BASH, '-c', f'source {REPO}/scripts/lib.sh; herdr pane list; WB_HERDR_SESSION=t herdr agent list'],
+                                env=env, text=True, capture_output=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ['called with: pane list', 'called with: --session t agent list'])
+
+
 class HelpTests(unittest.TestCase):
     def test_help_lists_the_keys_of_the_host_it_runs_on(self):
         herdr = help_layout.render(120, host='herdr')
