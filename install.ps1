@@ -108,36 +108,53 @@ try {
 } catch {}
 
 # ─── Neovim language toolchain ──────────────────────────
+# Wanted for the editor's LSPs, not required for the terminal setup: a
+# failure here is reported and skipped.
 Write-Host ""
 Write-Host "Installing neovim language dependencies..."
 
-# Rust: install rustup + rust-analyzer
-if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
-    Write-Host "  Installing Rust via rustup..."
-    scoop install rustup-msvc
-    rustup default stable
-    rustup component add rust-analyzer
-} else {
-    $raInstalled = rustup component list 2>$null | Select-String "rust-analyzer.*installed"
-    if (-not $raInstalled) {
-        Write-Host "  Adding rust-analyzer component..."
-        rustup component add rust-analyzer
-    } else {
-        Write-Host "  rust-analyzer already installed"
-    }
+# Scoop puts new shims on the user PATH; this process needs them now.
+function Refresh-Path {
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User") + ";$env:USERPROFILE\scoop\shims"
 }
 
-# Scala: install coursier + metals
-if (-not (Get-Command metals -ErrorAction SilentlyContinue)) {
-    if (-not (Get-Command cs -ErrorAction SilentlyContinue)) {
-        Write-Host "  Installing Coursier..."
-        scoop install coursier
+try {
+    # Rust: install rustup + rust-analyzer (rustup reports progress on stderr)
+    if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+        Write-Host "  Installing Rust via rustup..."
+        scoop install rustup-msvc
+        Refresh-Path
     }
-    Write-Host "  Installing Metals LSP..."
-    cs install metals 2>$null
-} else {
-    Write-Host "  metals already installed"
-}
+    if (Get-Command rustup -ErrorAction SilentlyContinue) {
+        $raInstalled = rustup component list 2>$null | Select-String "rust-analyzer.*installed"
+        if (-not $raInstalled) {
+            Write-Host "  Adding rust-analyzer component..."
+            rustup default stable 2>&1 | Out-Null
+            rustup component add rust-analyzer 2>&1 | Out-Null
+        } else {
+            Write-Host "  rust-analyzer already installed"
+        }
+    }
+} catch { Write-Host "  Skipped Rust toolchain: $_" -ForegroundColor Yellow }
+
+try {
+    # Scala: install coursier + metals
+    if (-not (Get-Command metals -ErrorAction SilentlyContinue)) {
+        if (-not (Get-Command cs -ErrorAction SilentlyContinue)) {
+            Write-Host "  Installing Coursier..."
+            scoop install coursier
+            Refresh-Path
+        }
+        if (Get-Command cs -ErrorAction SilentlyContinue) {
+            Write-Host "  Installing Metals LSP..."
+            cs install metals 2>&1 | Out-Null
+        } else {
+            Write-Host "  Skipped Metals: coursier (cs) is not on PATH yet; run 'cs install metals' in a new terminal" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "  metals already installed"
+    }
+} catch { Write-Host "  Skipped Scala toolchain: $_" -ForegroundColor Yellow }
 
 # ─── Docker Desktop ─────────────────────────────────────
 Write-Host ""
