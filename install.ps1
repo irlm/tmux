@@ -258,12 +258,14 @@ if (-not (Get-Command herdr -ErrorAction SilentlyContinue) -and $env:INSTALL_HER
 }
 if (Get-Command herdr -ErrorAction SilentlyContinue) {
     Write-Host "Configuring Herdr from this repo..."
+    # PowerShell 7 when present, else the Windows PowerShell every machine has.
+    $ps = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
     try {
-        & pwsh -NoProfile -NonInteractive -File "$tmuxPath\scripts\herdr-config.ps1"
+        & $ps -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$tmuxPath\scripts\herdr-config.ps1"
         foreach ($agent in @("claude", "codex")) {
             if (Get-Command $agent -ErrorAction SilentlyContinue) { herdr integration install $agent *> $null; Write-Host "  Herdr integration: $agent" }
         }
-    } catch { Write-Host "  Herdr setup incomplete: $_  (rerun: pwsh $tmuxPath\scripts\herdr-config.ps1)" -ForegroundColor Yellow }
+    } catch { Write-Host "  Herdr setup incomplete: $_  (rerun: $ps $tmuxPath\scripts\herdr-config.ps1)" -ForegroundColor Yellow }
 } else {
     Write-Host "Herdr not installed. For the same keys with an agent sidebar: set INSTALL_HERDR=1 and rerun, or see https://herdr.dev"
 }
