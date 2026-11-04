@@ -236,9 +236,12 @@ $repoBase = "https://github.com/irlm"
 function Clone-OrPull {
     param($Repo, $Dest, $Name)
     $repoName = $Repo -replace '\.git$', ''
+    # The workbench repository was irlm/tmux until November 2026; GitHub redirects the old name.
+    $names = if ($repoName -eq "workbench") { @("workbench", "tmux") } else { @($repoName) }
+    $managed = foreach ($n in $names) { "https://github.com/irlm/$n"; "https://github.com/irlm/$n.git"; "git@github.com:irlm/$n.git"; "ssh://git@github.com/irlm/$n.git" }
     if (Test-Path "$Dest\.git") {
         $remote = git -C $Dest remote get-url origin 2>$null
-        if ($remote -in @("https://github.com/irlm/$repoName", "https://github.com/irlm/$repoName.git", "git@github.com:irlm/$repoName.git", "ssh://git@github.com/irlm/$repoName.git")) {
+        if ($remote -in $managed) {
             git -C $Dest pull --ff-only
             if ($LASTEXITCODE -ne 0) { throw "Failed to update $Name; existing config preserved." }
             return

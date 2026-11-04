@@ -19,12 +19,16 @@ shell_rc_file() {
     fi
 }
 
+# The workbench repository was irlm/tmux until November 2026; checkouts that
+# still point at the old name are managed too (GitHub redirects it).
 managed_remote() {
-    local remote=${1%.git} name=${2%.git}
-    case "$remote" in
-        "https://github.com/irlm/$name"|"git@github.com:irlm/$name"|"ssh://git@github.com/irlm/$name") return 0 ;;
-        *) return 1 ;;
-    esac
+    local remote=${1%.git} name=${2%.git} alias
+    for alias in "$name" $([ "$name" = workbench ] && echo tmux); do
+        case "$remote" in
+            "https://github.com/irlm/$alias"|"git@github.com:irlm/$alias"|"ssh://git@github.com/irlm/$alias") return 0 ;;
+        esac
+    done
+    return 1
 }
 
 clone_config() {

@@ -24,14 +24,19 @@ done
 failures=0
 failed() { printf '  FAILED: %s\n' "$*" >&2; failures=$((failures + 1)); }
 update_repo() {
-    local name=$1 dir=$2 remote head changes
+    local name=$1 dir=$2 remote head changes managed alias
     printf '\n── %s ──\n' "$name"
     if [ ! -d "$dir/.git" ] && [ ! -f "$dir/.git" ]; then failed "$name repo missing — run install.sh"; return; fi
     remote=$(git -C "$dir" remote get-url origin 2>/dev/null) || { failed "$name has no origin remote"; return; }
-    case "${remote%.git}" in
-        "https://github.com/irlm/$name"|"git@github.com:irlm/$name"|"ssh://git@github.com/irlm/$name") ;;
-        *) failed "$dir has a custom origin; update it manually"; return ;;
-    esac
+    # Same rule as managed_remote in install-lib.sh, which is not loaded yet
+    # here: the workbench repository was irlm/tmux until November 2026.
+    managed=0
+    for alias in "$name" $([ "$name" = workbench ] && echo tmux); do
+        case "${remote%.git}" in
+            "https://github.com/irlm/$alias"|"git@github.com:irlm/$alias"|"ssh://git@github.com/irlm/$alias") managed=1 ;;
+        esac
+    done
+    [ "$managed" -eq 1 ] || { failed "$dir has a custom origin; update it manually"; return; }
     if [ "$MODE" = check ]; then
         head=$(git -C "$dir" -c http.lowSpeedLimit=100 -c http.lowSpeedTime=15 ls-remote origin refs/heads/main 2>/dev/null) || {
             failed "Cannot check $name origin"; return;
