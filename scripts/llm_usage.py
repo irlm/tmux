@@ -638,7 +638,13 @@ def main(argv=None):
         providers, windows = gather(args.days, limits=not args.no_limits)
         print(json.dumps({title: totals for title, totals, _, _ in providers} | {'windows': windows}, default=str, indent=1))
         return 0
-    interactive_terminal = not args.plain and sys.stdin.isatty() and sys.stdout.isatty() and not args.no_limits
+    # Windows Python ships without curses: the plain report, paged, instead.
+    try:
+        import curses  # noqa: F401
+        has_curses = True
+    except ImportError:
+        has_curses = False
+    interactive_terminal = has_curses and not args.plain and sys.stdin.isatty() and sys.stdout.isatty() and not args.no_limits
     palette = {}
     if not args.plain and sys.stdin.isatty():
         sys.path.insert(0, str(ROOT / 'scripts'))

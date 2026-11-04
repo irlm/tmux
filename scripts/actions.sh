@@ -42,7 +42,8 @@ run_action() {
         info) if command -v fastfetch >/dev/null 2>&1; then fastfetch --pipe false | less -R;
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
-        llm) python3 "$SCRIPT_DIR/llm_usage.py" ;;
+        llm) if python3 -c 'import curses' 2>/dev/null; then python3 "$SCRIPT_DIR/llm_usage.py"
+             else python3 "$SCRIPT_DIR/llm_usage.py" --plain | less -R; fi ;;
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0
                  [ -n "$selected" ] || return 0
                  selected=${selected%%$'\t'*}
