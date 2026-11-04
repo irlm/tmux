@@ -85,7 +85,7 @@ for path in "$HOME/.local/bin" "$HOME/.cargo/bin" /opt/homebrew/bin /usr/local/b
 done
 export PATH
 profile=desktop
-[ ! -f "$NVIM_DIR/.server" ] || profile=server
+! wb_server_install || profile=server
 nvim_repo_ready=0
 if [ -f "$NVIM_DIR/init.lua" ]; then
     # Neovim is the optional second editor: only an existing checkout is updated.

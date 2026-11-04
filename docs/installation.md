@@ -55,7 +55,7 @@ Use this when you want:
 - no Docker installation
 - no heavy LSP/toolchain expectations
 
-`update.sh` recognises a server install (by the `~/.config/nvim/.server` marker) and checks for that smaller tool set only; `--fix` re-runs the installer in server mode.
+`update.sh` recognises a server install (by the `server` line the installer writes to `~/.config/tmux-user/profile`) and checks for that smaller tool set only; `--fix` re-runs the installer in server mode.
 
 You rarely need to run this by hand: `C-a s` from a workstation that has this config offers to run it on any server that does not (see [usage: SSH and Remote Servers](usage.md#ssh-and-remote-servers)). Once installed, the server's tmux announces itself to the tmux you connect from, so your local keys act on the server.
 

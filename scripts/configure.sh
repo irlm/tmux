@@ -15,7 +15,7 @@ done
 profile=$(tmux_option @profile auto)
 if [ "$profile" = auto ]; then
     profile=desktop
-    [ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/.server" ] || profile=server
+    ! wb_server_install || profile=server
 fi
 limit=100000
 case "$profile" in server|compact) limit=20000 ;; esac

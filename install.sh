@@ -198,6 +198,9 @@ if [ "$MODE" = "server" ]; then
 
     clone_config tmux "$HOME/.config/tmux"
     install_helix_config "$HOME/.config/tmux/helix/config.toml"
+    # The profile marker keeps tmux, the updater and the doctor in server mode.
+    mkdir -p "$HOME/.config/tmux-user"
+    printf 'server\n' > "$HOME/.config/tmux-user/profile"
     if [ "$WANT_NVIM" = 1 ]; then
         clone_config nvim "$HOME/.config/nvim"
         # Mark nvim as server mode (disables LSPs, heavy treesitter, Mason packages)
@@ -363,6 +366,7 @@ echo "Setting up configs..."
 
 clone_config tmux "$HOME/.config/tmux"
 install_helix_config "$HOME/.config/tmux/helix/config.toml"
+rm -f -- "$HOME/.config/tmux-user/profile"
 if [ "$WANT_NVIM" = 1 ]; then
     clone_config nvim "$HOME/.config/nvim"
     rm -f -- "$HOME/.config/nvim/.server"

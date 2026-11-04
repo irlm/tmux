@@ -25,7 +25,7 @@ Palette definitions live in `themes.json`. The default Nord red is `#f2a1a8`: ab
 Keep personal tmux settings in `~/.config/tmux-user/local.conf` (recommended), or in the Git-ignored `~/.config/tmux/local.conf`. Settings load after plugins and action bindings. Updates preserve both files. The external file also survives replacing the managed repository.
 
 ```tmux
-# desktop (default), server, compact, or auto (detect the Neovim .server marker)
+# desktop (default), server, compact, or auto (detect the server install marker)
 set -g @profile compact
 set -g @history_limit 20000
 set -g @ascii on

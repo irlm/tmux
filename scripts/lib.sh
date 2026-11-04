@@ -47,6 +47,12 @@ pause_close() {
     IFS= read -rsn1 _ || true
 }
 
+# A server install writes ~/.config/tmux-user/profile = server (older installs
+# only had Neovim's .server marker, which still counts).
+wb_server_install() {
+    [ "$(cat "$TMUX_USER_DIR/profile" 2>/dev/null)" = server ] || [ -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/.server" ]
+}
+
 # tools.tsv scopes: all (every profile), desktop (not servers), nvim (only
 # when the optional Neovim config is checked out on a desktop).
 tool_scope_filter() {

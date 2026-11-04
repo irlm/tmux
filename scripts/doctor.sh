@@ -8,7 +8,7 @@ failures=0
 fail() { printf '  FAIL: %s\n' "$*"; failures=$((failures + 1)); }
 warn() { printf '  WARN: %s\n' "$*"; }
 profile=${TMUX_PROFILE:-desktop}
-[ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/.server" ] || profile=server
+! wb_server_install || profile=server
 printf 'Health check (%s)\n' "$profile"
 [ -r "$TMUX_CONFIG_DIR/tools.tsv" ] || fail "Tool manifest missing — update or reinstall $TMUX_CONFIG_DIR."
 while IFS= read -r tool; do
