@@ -98,6 +98,7 @@ case "$mode" in
         chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --prompt='Open > ' --header='Enter: open at that line in $EDITOR | Esc: quit') || exit 0
         [ -n "$chosen" ] || exit 0
         file=${chosen%%:*}; line=${chosen#"$file"}; line=${line#:}
+        case "$file" in -*) file=./$file; chosen=./$chosen ;; esac
         editor=${EDITOR:-nvim}
         case "$editor" in
             *hx*) exec "$editor" "$chosen" ;;

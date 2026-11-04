@@ -211,8 +211,9 @@ esac''')
         env = dict(self.env, HERDR_WORKSPACE_ID='w1')
         result = self.run_script('scripts/agent-send.sh', input='review this hunk\n', env=env)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('pane send-text w1:p3 review this hunk', self.calls())
-        self.assertNotIn('pane send-text w2:p1 review this hunk', self.calls())
+        # one bracketed paste: a newline inside the text must not submit the prompt
+        self.assertIn('pane send-text w1:p3 \x1b[200~review this hunk\x1b[201~', self.calls())
+        self.assertFalse(any(call.startswith('pane send-text w2:p1') for call in self.calls()))
 
     def test_sessionizer_focuses_an_existing_workspace_and_creates_new_ones(self):
         project = self.root / 'projects/api'; (project / '.git').mkdir(parents=True)

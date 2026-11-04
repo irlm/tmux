@@ -37,7 +37,8 @@ If you just installed the project, these are the commands and keys you will prob
 | `t` | `btop` or `htop` | `/` | search pane history |
 | `i` | system info | `f` | floating shell |
 | `C-u` | update everything | `A` | choose and replay special day art |
-| `$` | LLM usage and limits (Claude Code, Codex) | | |
+| `$` | LLM usage and limits (Claude Code, Codex) | `C-f` | open a `file:line` the pane mentions in `$EDITOR` |
+| `!` | editor cheatsheet (Helix; Neovim's too when installed) | | |
 
 The first tmux attachment on a special day also shows a brief ASCII greeting,
 including fireworks for New Year and July 4. See [Special day art](customization.md#special-day-art)
@@ -153,6 +154,24 @@ Enter copy mode with `C-a [`.
 | `r` | reload config |
 
 Sessions are persisted with `tmux-resurrect` and `tmux-continuum`. Auto-save runs every 15 minutes.
+
+## Editor
+
+Helix (`hx`) is the editor the installers set up, with `helix/config.toml`
+from this repo. Inside Helix, `-` (minus) is the review leader:
+
+| Key | Action |
+|-----|--------|
+| `- a` | send the selection, or the current line, into the agent's input without pressing Enter |
+| `- f` | open a `file:line` the pane mentions (same as `C-a C-f`) |
+| `- g` | lazygit in a popup |
+| `- y` | copy the selection to the clipboard |
+| `- r` | reload every file an agent changed |
+| `] c` `[ c` | next / previous change; `] e` `[ e` next / previous diagnostic |
+
+`hx --tutor` teaches the editing model; `C-a !` shows the cheatsheet. From a
+shell, `git diff | ~/.config/tmux/scripts/agent-send.sh` sends text the same
+way. Neovim is the optional second editor (`install.sh --nvim`).
 
 ## Utilities
 

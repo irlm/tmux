@@ -57,12 +57,17 @@ Everything from `C-a ?` applies. The differences from tmux:
 | `F1` `C-s` | Herdr's live key list and settings |
 | `Space` `u` | pick text to copy, pick a URL (stand-ins for tmux-thumbs and fzf-url) |
 | `$` | LLM usage and limits |
+| `C-f` | open a `file:line` the pane mentions in your editor |
+| `!` | editor cheatsheet |
 
-`ctrl+h/j/k/l` without the prefix move between panes and, inside Neovim,
-between its windows, as vim-tmux-navigator does under tmux. Herdr sends the
-key to the editor when one runs in the pane (`scripts/herdr-navigate.sh`),
-and the paired [irlm/nvim](https://github.com/irlm/nvim) config hands the
-focus back at an edge. Shells lose `ctrl+l` for clear, as they already do
+`ctrl+h/j/k/l` without the prefix move between panes. Helix leaves those keys
+to Herdr (its own windows use `C-w`), and its `-a` key sends the selection
+into the agent pane of the workspace; see [usage: Editor](usage.md#editor).
+With the optional Neovim, the keys also move between its windows, as
+vim-tmux-navigator does under tmux: Herdr sends the key to the editor when
+one runs in the pane (`scripts/herdr-navigate.sh`), and the paired
+[irlm/nvim](https://github.com/irlm/nvim) config hands the focus back at an
+edge. Shells lose `ctrl+l` for clear, as they already do
 under tmux; type `clear`.
 
 ## Popups and the plugin

@@ -114,7 +114,7 @@ if [ -f "$managed_shell" ]; then
     printf '\n── Shell integration ──\n'
     shell_profile=$(sed -n 's/^__TMUX_SHELL_ENV_LOADED=//p' "$managed_shell" | head -1)
     case "$shell_profile" in desktop|server|full) ;; *) shell_profile=$profile ;; esac
-    if install_shell_integration "$shell_profile" >/dev/null; then echo "  OK: managed shell file ($shell_profile)"; else failed 'shell integration refresh'; fi
+    if write_shell_integration "${managed_shell##*.}" "$shell_profile" "$managed_shell"; then echo "  OK: managed shell file ($shell_profile)"; else failed 'shell integration refresh'; fi
 fi
 run_logged() {
     local name=$1; shift
