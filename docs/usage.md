@@ -37,6 +37,7 @@ If you just installed the project, these are the commands and keys you will prob
 | `t` | `btop` or `htop` | `/` | search pane history |
 | `i` | system info | `f` | floating shell |
 | `C-u` | update everything | `A` | choose and replay special day art |
+| `$` | LLM usage and limits (Claude Code, Codex) | | |
 
 The first tmux attachment on a special day also shows a brief ASCII greeting,
 including fireworks for New Year and July 4. See [Special day art](customization.md#special-day-art)
@@ -127,6 +128,8 @@ Nothing announces itself, so the local tmux keeps its prefix. Press `F12` in tha
 ### Keeping servers current
 
 The server gets the same `update.sh` as your workstation. Run `~/.config/tmux/update.sh` there — or from your own machine, `ssh host '~/.config/tmux/update.sh'`, or the curl one-liner in the [installation guide](installation.md#updating) — and it pulls this repo, updates plugins, and reloads its tmux config. One run is always enough, however old the server's copy is. The `dotup` alias is only there if the installer wrote the server's shell config; server mode now installs the same managed update aliases.
+
+Under Herdr the same keys apply, with the differences listed in [Herdr](herdr.md).
 
 ## Copy Mode
 

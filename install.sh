@@ -6,13 +6,17 @@
 #
 # --full:   multi-distro, shell config, nerd font, zsh plugins, dev toolchain, Docker
 # --server: minimal — tmux, neovim (no LSPs), fzf, bat, btop, ripgrep
+# --herdr:  also install Herdr (herdr.dev) with this repo's keys, popups and plugin;
+#           an already installed Herdr is configured without the flag
 set -euo pipefail
 
 MODE="default"
+WANT_HERDR=0
 for arg in "$@"; do
     case "$arg" in
         --full|-f)   MODE="full" ;;
         --server|-s) MODE="server" ;;
+        --herdr)     WANT_HERDR=1 ;;   # also install Herdr and configure it from this repo
     esac
 done
 
@@ -216,6 +220,7 @@ fi
 echo "=== dotfiles installer ==="
 echo "    --full    multi-distro setup with shell config, nerd font, dev toolchain"
 echo "    --server  lightweight server install (tmux, nvim, fzf, bat, btop)"
+echo "    --herdr   also install Herdr and configure it from this repo"
 echo ""
 
 # Detect OS
@@ -424,6 +429,9 @@ fi
 # ─── Shell config ─────────────────────────────────────────
 install_shell_integration desktop
 
+# ─── Herdr (optional) ────────────────────────────────────
+install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || echo "  Herdr setup incomplete; rerun: bash install.sh --herdr"
+
 # ─── Create data dirs ─────────────────────────────────────
 mkdir -p "$HOME/.local/share/tmux"
 mkdir -p "$HOME/.local/bin"
@@ -438,6 +446,7 @@ echo "  1. Open a new terminal"
 echo "  2. Run: tmux"
 echo "  3. Press C-a I to install tmux plugins"
 echo "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
+if command -v herdr >/dev/null 2>&1; then echo "  5. Or run: herdr (same keys, agent sidebar; see docs/herdr.md)"; fi
 echo ""
 echo "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
 echo ""

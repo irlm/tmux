@@ -21,11 +21,51 @@ project_paths() {
     done <<< "$roots"
 }
 
+# Under Herdr a workspace plays the session's part. Herdr does not record a
+# workspace's directory, so the map written at creation time is consulted
+# first and the live pane directories second.
+backend=$(wb_backend)
+workspace_map="$TMUX_DATA_DIR/herdr-workspaces"
+
+herdr_workspaces() {  # id<TAB>label<TAB>directory of its first pane
+    herdr api snapshot 2>/dev/null | python3 -c '
+import json, sys
+try:
+    snapshot = json.load(sys.stdin)["result"]["snapshot"]
+except Exception:
+    sys.exit(0)
+first = {}
+for pane in snapshot.get("panes", []):
+    first.setdefault(pane.get("workspace_id"), pane.get("cwd") or "")
+for workspace in snapshot.get("workspaces", []):
+    identifier = workspace.get("workspace_id", "")
+    print(identifier, workspace.get("label") or identifier, first.get(identifier, ""), sep="\t")'
+}
+
+herdr_workspace_for() {  # the workspace already showing this project, if any
+    local target=$1 id label path
+    if [ -f "$workspace_map" ]; then
+        while IFS=$'\t' read -r id path; do
+            [ "$path" = "$target" ] || continue
+            if herdr workspace get "$id" >/dev/null 2>&1; then printf '%s' "$id"; return; fi
+        done < "$workspace_map"
+    fi
+    while IFS=$'\t' read -r id label path; do
+        if [ "$path" = "$target" ]; then printf '%s' "$id"; return; fi
+    done < <(herdr_workspaces)
+}
+
 list_choices() {
     local id name path canonical
-    while IFS=$'\t' read -r id name; do
-        [ -n "$id" ] && printf 'session\t%s\tSession: %s\n' "$id" "$name"
-    done < <(tmux list-sessions -F $'#{session_id}\t#{session_name}' 2>/dev/null || true)
+    if [ "$backend" = herdr ]; then
+        while IFS=$'\t' read -r id name path; do
+            [ -n "$id" ] && printf 'session\t%s\tSession: %s\n' "$id" "$name"
+        done < <(herdr_workspaces)
+    else
+        while IFS=$'\t' read -r id name; do
+            [ -n "$id" ] && printf 'session\t%s\tSession: %s\n' "$id" "$name"
+        done < <(tmux list-sessions -F $'#{session_id}\t#{session_name}' 2>/dev/null || true)
+    fi
     while IFS= read -r path; do
         [ -d "$path" ] || continue
         canonical=$(cd "$path" && pwd -P)
@@ -42,9 +82,23 @@ if [ "$kind" = project ]; then
     [ -d "$target" ] || exit 1
     target=$(cd "$target" && pwd -P)
     session=""
+    if [ "$backend" = herdr ]; then
+        session=$(herdr_workspace_for "$target")
+        if [ -z "$session" ]; then
+            label=$(basename "$target")
+            session=$(herdr workspace create --cwd "$target" --label "$label" --no-focus | python3 -c '
+import json, sys
+print(json.load(sys.stdin)["result"]["workspace"]["workspace_id"], end="")') || exit 1
+            [ -n "$session" ] || exit 1
+            tmp=$(mktemp "$TMUX_DATA_DIR/workspaces.XXXXXX")
+            { printf '%s\t%s\n' "$session" "$target"; [ ! -f "$workspace_map" ] || grep -v "^$session"$'\t' "$workspace_map"; } > "$tmp"
+            mv -f "$tmp" "$workspace_map"
+        fi
+    else
     while IFS=$'\t' read -r id path; do
         if [ "$path" = "$target" ]; then session="$id"; break; fi
     done < <(tmux list-sessions -F $'#{session_id}\t#{@project_path}' 2>/dev/null || true)
+    fi
     if [ -z "$session" ]; then
         label=$(basename "$target" | tr -c '[:alnum:]_-' '-')
         checksum=$(printf '%s' "$target" | cksum); checksum=${checksum%% *}
@@ -61,4 +115,5 @@ if [ "$kind" = project ]; then
     mv -f "$tmp" "$recent"
     target="$session"
 fi
-if [ -n "${TMUX:-}" ]; then tmux switch-client -t "$target"; else tmux attach-session -t "$target"; fi
+if [ "$backend" = herdr ]; then herdr workspace focus "$target" >/dev/null
+elif [ -n "${TMUX:-}" ]; then tmux switch-client -t "$target"; else tmux attach-session -t "$target"; fi

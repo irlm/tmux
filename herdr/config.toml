@@ -9,8 +9,10 @@
 # copy mode, 1-9 for tabs, Backspace for the previous workspace. Every
 # conflict with a Herdr default was moved to a ctrl chord under the prefix.
 
-[theme]
-name = "nord"
+# The theme follows C-a C-t: the base Herdr theme plus the chosen palette's
+# text and status colours, so the tab bar reads as well as the tmux status
+# line does (Herdr's own secondary text token is too dim for that).
+@@THEME@@
 
 [terminal]
 # Popups and new panes follow the pane they were opened from, like tmux's
@@ -77,6 +79,33 @@ help = "prefix+f1"          # C-a ? is the workbench reference; F1 lists live He
 settings = "prefix+ctrl+s"
 reload_config = "prefix+r"
 detach = "prefix+q"
+
+# ─── Editor-aware navigation (no prefix) ─────────────────
+# ctrl+h/j/k/l move between panes, and inside Neovim between its windows,
+# exactly like vim-tmux-navigator under tmux. One short script per press.
+[[keys.command]]
+key = "ctrl+h"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh left"
+description = "focus pane or editor window to the left"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh down"
+description = "focus pane or editor window below"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh up"
+description = "focus pane or editor window above"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "shell"
+command = "bash @@SCRIPTS@@/herdr-navigate.sh right"
+description = "focus pane or editor window to the right"
 
 [ui]
 status_indicators = "symbols"

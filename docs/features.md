@@ -89,6 +89,7 @@ The tmux config enables these plugins:
 | `install.ps1` | Windows installer |
 | `update.sh` | updater for repos, plugins, gh extensions, and CLI tools (`dotup` / `C-a C-u`) |
 | `cheatsheet.txt` | popup cheatsheet shown with `C-a ?` |
+| `herdr/config.toml` | Herdr template rendered by `scripts/herdr-config.sh` with the tmux keys, popups and theme |
 
 ## Script Layout
 
@@ -108,6 +109,10 @@ The tmux config enables these plugins:
 | `scripts/remote-mode.sh` | decides whether the pane in front shows a remote tmux and switches the local prefix off or on accordingly; `F12` overrides it |
 | `scripts/prompt.sh` | lightweight bash prompt |
 | `scripts/prompt.zsh` | lightweight zsh prompt |
+| `scripts/herdr-config.sh` | render, validate and install the Herdr config and plugin |
+| `scripts/herdr-navigate.sh` | `ctrl+hjkl` under Herdr: into Neovim when it runs in the pane, else focus the next pane |
+| `scripts/pick.sh` | pick text to copy or a URL to open from the pane behind the popup |
+| `scripts/llm_usage.py` | `C-a $`: tokens by day and model for Claude Code and Codex, plus live limits |
 
 ## Related Repositories
 

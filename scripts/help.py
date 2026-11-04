@@ -16,12 +16,12 @@ KEY = '\033[1;38;2;236;239;244m'
 MUTED = '\033[38;2;216;222;233m'
 ANSI = re.compile(r'\033\[[0-9;]*m')
 ORDER = ('Panes', 'Windows & sessions', 'Tools & projects', 'Search & reference',
-         'Remote', 'Copy mode (no prefix)', 'Help & plugins', 'Shell (full setup)')
+         'Remote', 'Agents', 'Copy mode (no prefix)', 'Help & plugins', 'Shell (full setup)')
 REFERENCES = ('Lazygit (no prefix)', 'Btop (no prefix)', 'Git aliases (full setup)')
 ACTION_GROUPS = {
-    **dict.fromkeys(('git', 'github', 'docker', 'top', 'info', 'shell', 'notes', 'projects'), 'Tools & projects'),
+    **dict.fromkeys(('git', 'github', 'docker', 'top', 'info', 'shell', 'notes', 'projects', 'llm'), 'Tools & projects'),
     **dict.fromkeys(('history', 'search', 'scoped-search', 'ai', 'man', 'cheat', 'tldr'), 'Search & reference'),
-    **dict.fromkeys(('palette', 'help', 'nvim-help', 'update', 'themes', 'special-days'), 'Help & plugins'),
+    **dict.fromkeys(('palette', 'help', 'nvim-help', 'update', 'themes', 'special-days', 'pick', 'urls'), 'Help & plugins'),
     **dict.fromkeys(('new-session', 'rename-session', 'rename-window'), 'Windows & sessions'),
     'ssh': 'Remote', 'ssh-split': 'Remote',
 }
@@ -56,15 +56,29 @@ def wrap(text, width):
     return result
 
 
-def sections(root=ROOT):
+def current_host():
+    """tmux or herdr: which multiplexer's keys the reference describes."""
+    if os.environ.get('TMUX'):
+        return 'tmux'
+    return 'herdr' if os.environ.get('HERDR_ENV') == '1' else 'tmux'
+
+
+def applies(row, host):
+    return row.get('hosts', 'all') in ('all', host)
+
+
+def sections(root=ROOT, host=None):
+    host = host or current_host()
     groups = {title: [] for title in (*ORDER, *REFERENCES)}
     with (root / 'help.tsv').open() as stream:
         for row in csv.DictReader(stream, delimiter='\t'):
-            groups.setdefault(row['section'], []).append((row['key'], row['description']))
+            if applies(row, host):
+                groups.setdefault(row['section'], []).append((row['key'], row['description']))
     with (root / 'actions.tsv').open() as stream:
         for row in csv.DictReader(stream, delimiter='\t'):
-            title = ACTION_GROUPS.get(row['id'], 'Other commands')
-            groups.setdefault(title, []).append((row['key'], row['label']))
+            if applies(row, host):
+                title = ACTION_GROUPS.get(row['id'], 'Other commands')
+                groups.setdefault(title, []).append((row['key'], row['label']))
     return [(title, items) for title, items in groups.items() if items]
 
 
@@ -121,15 +135,16 @@ def columns(groups, width, count, color):
     return rows
 
 
-def render(width, color=False, root=ROOT, palette=True):
+def render(width, color=False, root=ROOT, palette=True, host=None):
+    host = host or current_host()
     width = max(20, width)
     padding = 2 if width >= 40 else 1
     usable = width - 2 * padding
     count = 3 if width >= 144 else 2 if width >= 96 else 1
-    groups = sections(root)
+    groups = sections(root, host)
     primary = [(title, items) for title, items in groups if title not in REFERENCES]
     reference = [(title, items) for title, items in groups if title in REFERENCES]
-    title, prefix = 'TMUX SHORTCUTS', 'Prefix: Ctrl-a'
+    title, prefix = ('HERDR SHORTCUTS' if host == 'herdr' else 'TMUX SHORTCUTS'), 'Prefix: Ctrl-a'
     if cells(title) + cells(prefix) + 4 <= usable:
         heading = style(title, HEADING, color) + ' ' * (usable - cells(title) - cells(prefix)) + style(prefix, KEY, color)
         lines = [heading]
@@ -166,6 +181,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--width', type=int, help='output width in terminal cells')
     parser.add_argument('--plain', action='store_true', help='omit terminal colors')
+    parser.add_argument('--host', choices=('tmux', 'herdr'), help='which multiplexer the keys belong to (default: detected)')
     parser.add_argument('--no-palette', action='store_true',
                         help='omit the F hint when the pager cannot hand over to the palette')
     parser.add_argument('--fill', action='store_true',
@@ -183,7 +199,7 @@ def main(argv=None):
         HEADING = ansi(palette['accent'], True)
         KEY = ansi(palette['foreground'], True)
         MUTED = ansi(palette['muted'])
-    text = render(args.width or terminal_width(), color=colored, palette=not args.no_palette)
+    text = render(args.width or terminal_width(), color=colored, palette=not args.no_palette, host=args.host)
     if args.fill:
         text += '\n' * max(0, terminal_size().lines - 1 - text.count('\n'))
     sys.stdout.write(text)

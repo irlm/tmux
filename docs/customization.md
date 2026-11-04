@@ -39,6 +39,8 @@ set -g @project_depth 6
 set -g @ai_command my-ai-wrapper
 ```
 
+Under Herdr, where there is no tmux option store, the same names go in `~/.config/tmux-user/options.env` as `popup_size=90%` lines; see [Herdr](herdr.md).
+
 Reload with `C-a r`. The compact profile keeps a smaller history and status area; narrow clients automatically omit system metrics. ASCII mode replaces custom status icons and uses simple pane borders. Existing pane history is not trimmed until panes are recreated.
 
 `@project_roots` also accepts an actual multiline quoted value. `TMUX_PROJECT_ROOTS` is a newline-separated environment alternative; `TMUX_PROJECT_DEPTH` sets its discovery depth. Without an override, projects are searched under `~/projects`, `~/Projects`, and `~/.config`. Project discovery includes `.git` directories and Git worktree `.git` files, and prunes plugin, vendor, build-cache and dependency directories. Recent projects appear first; live sessions are listed separately. Canonical paths identify projects, so two repositories named `api` remain distinct. Paths with tabs or newlines are excluded from this line-oriented picker.
@@ -98,7 +100,7 @@ python3 ~/.config/tmux/scripts/special_days.py --play july-4
 
 Press **`C-a F`** for a searchable command palette. It shows each action's key and dependency availability. **`C-a ?`** shows one grouped shortcut reference. It uses the popup’s actual interior width: one column below 96 cells, two columns from 96–143, and three columns from 144 upward. Keys and descriptions align within each column; long descriptions wrap with a hanging indent. Main tmux shortcuts come first, followed by tool-specific references. Scrolling and search remain available in `less`. Close and reopen after resizing the terminal.
 
-`actions.tsv` is the shared registry for popup bindings, the palette, and action help. `help.tsv` supplies the remaining shortcuts. The renderer is `scripts/help.py`; `cheatsheet.txt` is a plain-text fallback generated with `python3 scripts/help.py --width 100 --plain`. Dependency availability stays in the command palette.
+`actions.tsv` is the shared registry for popup bindings, the palette, and action help; its `hosts` column says whether a row applies to tmux, Herdr, or both. `help.tsv` supplies the remaining shortcuts with the same column. The renderer is `scripts/help.py`; `cheatsheet.txt` is a plain-text fallback generated with `python3 scripts/help.py --width 100 --plain`. Dependency availability stays in the command palette.
 
 Search, AI, SSH, manual, tldr, and rename prompts now read input inside their popup/window. Text is passed as arguments, so quotes and shell expressions remain literal. Use SSH aliases for ports, jump hosts and other options. For a custom AI provider, point `@ai_command` at a wrapper executable; the default `claude` command is invoked with `-p`.
 

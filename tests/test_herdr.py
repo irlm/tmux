@@ -1,0 +1,226 @@
+"""The Herdr side: rendered config, plugin manifest, host-aware help, pickers.
+
+Everything here runs without a Herdr server. A fake `herdr` on PATH records
+what the scripts ask of it; the real binary, when installed, only validates
+the rendered config and is never pointed at the user's session.
+"""
+import csv
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+REPO = Path(__file__).resolve().parents[1]
+BASH = '/bin/bash'
+sys.path.insert(0, str(REPO / 'scripts'))
+import help as help_layout  # noqa: E402
+import llm_usage  # noqa: E402
+
+
+class HerdrFixture(unittest.TestCase):
+    def setUp(self):
+        self.scratch = tempfile.TemporaryDirectory(prefix='herdr-test-')
+        self.addCleanup(self.scratch.cleanup)
+        self.root = Path(self.scratch.name).resolve()
+        self.bin = self.root / 'bin'; self.bin.mkdir()
+        self.user = self.root / 'user'; self.user.mkdir()
+        self.log = self.root / 'herdr-calls'
+        env = {key: value for key, value in os.environ.items() if not key.startswith('HERDR') and key != 'TMUX'}
+        self.env = dict(env, PATH=f'{self.bin}:' + env['PATH'], TMUX_CONFIG_DIR=str(REPO),
+                        TMUX_DATA_DIR=str(self.root / 'data'), TMUX_CACHE_DIR=str(self.root / 'cache'),
+                        TMUX_THEME_DIR=str(self.user), HERDR_ENV='1', HERDR_BIN_PATH=str(self.bin / 'herdr'),
+                        HERDR_CONFIG_PATH=str(self.root / 'herdr' / 'config.toml'))
+
+    def fake_herdr(self, body='exit 0'):
+        path = self.bin / 'herdr'
+        path.write_text('#!/bin/bash\nprintf "%s\\n" "$*" >> ' + str(self.log) + '\n' + body + '\n')
+        path.chmod(0o755)
+        return path
+
+    def calls(self):
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    def run_script(self, name, *args, input='', env=None):
+        return subprocess.run([BASH, str(REPO / name), *args], env=env or self.env, input=input,
+                              text=True, capture_output=True, timeout=30)
+
+
+class RenderTests(HerdrFixture):
+    def rendered(self):
+        self.fake_herdr()
+        result = self.run_script('scripts/herdr-config.sh', '--print')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def test_template_keys_and_registry_popups_are_rendered(self):
+        text = self.rendered()
+        self.assertIn('prefix = "ctrl+a"', text)
+        self.assertIn('split_vertical = "prefix+|"', text)
+        self.assertIn('key = "prefix+g"', text)
+        self.assertIn('actions.sh run git', text)
+        self.assertIn('key = "prefix+ctrl+u"', text)      # C-u -> ctrl chord
+        self.assertIn('key = "prefix+shift+g"', text)     # G -> shift
+        self.assertIn('status_right.sh --plain', text)
+        self.assertNotIn('@@', text)
+
+    def test_native_prompts_and_tmux_only_rows_are_not_popups(self):
+        text = self.rendered()
+        for native in ('new-session', 'rename-session', 'rename-window'):
+            self.assertNotIn(f'run {native}"', text)
+        with (REPO / 'actions.tsv').open() as stream:
+            rows = list(csv.DictReader(stream, delimiter='\t'))
+        for row in rows:
+            if row['hosts'] == 'tmux':
+                self.assertNotIn(f"run {row['id']}\"", text)
+            elif row['id'] not in ('new-session', 'rename-session', 'rename-window'):
+                self.assertIn(f"run {row['id']}\"", text)
+
+    def test_theme_follows_the_saved_palette(self):
+        (self.user / 'theme').write_text('catppuccin\n')
+        text = self.rendered()
+        self.assertIn('name = "catppuccin"', text)
+        self.assertIn('overlay1 = "#b8c0e0"', text)
+        (self.user / 'theme').write_text('contrast\n')
+        text = self.rendered()
+        self.assertIn('name = "nord"', text)
+        self.assertIn('overlay1 = "#d1d9e6"', text)
+
+    def test_user_toml_and_popup_size_are_honoured(self):
+        (self.user / 'herdr.toml').write_text('[theme.custom.light]\ntext = "#000000"\n')
+        (self.user / 'options.env').write_text('popup_size=70%\n')
+        text = self.rendered()
+        self.assertIn('[theme.custom.light]', text)
+        self.assertIn('width = "70%"', text)
+        self.assertTrue(text.rstrip().endswith('text = "#000000"'))
+
+    def test_plugin_manifest_lists_every_popup_as_a_pane(self):
+        self.fake_herdr()
+        result = self.run_script('scripts/herdr-config.sh', '--print-plugin')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('id = "irlm.workbench"', result.stdout)
+        self.assertIn('[[panes]]\nid = "palette"', result.stdout)
+        self.assertIn('"--entrypoint", "projects"', result.stdout)
+        self.assertNotIn('id = "new-session"', result.stdout)
+
+    def test_install_writes_config_and_links_plugin_through_the_cli(self):
+        self.fake_herdr('case "$1 $2" in "config check") echo "config: ok";; "plugin list") echo "0 plugins";; esac')
+        result = self.run_script('scripts/herdr-config.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = Path(self.env['HERDR_CONFIG_PATH'])
+        self.assertTrue(config.read_text().startswith('# Generated by irlm/tmux'))
+        self.assertTrue((self.user / 'herdr-plugin/herdr-plugin.toml').exists())
+        self.assertIn(f'plugin link {self.user}/herdr-plugin', self.calls())
+
+    def test_rejected_config_is_not_installed(self):
+        self.fake_herdr('case "$1 $2" in "config check") echo "bad key"; exit 1;; esac')
+        result = self.run_script('scripts/herdr-config.sh')
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(Path(self.env['HERDR_CONFIG_PATH']).exists())
+
+    @unittest.skipUnless(shutil.which('herdr'), 'herdr is not installed')
+    def test_real_herdr_accepts_the_rendered_config(self):
+        env = dict(self.env, PATH=os.environ['PATH'])
+        rendered = self.root / 'rendered.toml'
+        rendered.write_text(subprocess.run([BASH, str(REPO / 'scripts/herdr-config.sh'), '--print'], env=env,
+                                           capture_output=True, text=True, check=True).stdout)
+        result = subprocess.run(['herdr', 'config', 'check'], env=dict(os.environ, HERDR_CONFIG_PATH=str(rendered)),
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn('issues found', result.stdout + result.stderr)
+
+
+class ScriptTests(HerdrFixture):
+    def test_navigation_sends_keys_to_an_editor_and_focuses_otherwise(self):
+        self.fake_herdr('''case "$*" in
+  *process-info*) echo '{"result":{"process_info":{"foreground_processes":[{"name":"'"$FRONT"'"}]}}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        env = dict(self.env, HERDR_ACTIVE_PANE_ID='w1:p2', FRONT='nvim')
+        self.assertEqual(self.run_script('scripts/herdr-navigate.sh', 'left', env=env).returncode, 0)
+        self.assertIn('pane send-keys w1:p2 ctrl+h', self.calls())
+        env['FRONT'] = 'zsh'
+        self.run_script('scripts/herdr-navigate.sh', 'down', env=env)
+        self.assertIn('pane focus --direction down --pane w1:p2', self.calls())
+
+    def test_picker_reads_the_pane_and_copies_the_choice(self):
+        self.fake_herdr('''case "$*" in
+  *"pane read"*) printf 'open https://example.org/a and ~/notes/todo.md at 4f3a2b1c\\n' ;;
+esac''')
+        (self.bin / 'fzf').write_text('#!/bin/bash\ncat | tail -1\n'); (self.bin / 'fzf').chmod(0o755)
+        (self.bin / 'pbcopy').write_text('#!/bin/bash\ncat > "$TMUX_DATA_DIR/clip"\n'); (self.bin / 'pbcopy').chmod(0o755)
+        (self.root / 'data').mkdir()
+        env = dict(self.env, HERDR_ACTIVE_PANE_ID='w1:p1')
+        result = self.run_script('scripts/pick.sh', 'hints', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('pane read w1:p1 --source recent-unwrapped --lines 2000', self.calls())
+        self.assertEqual((self.root / 'data/clip').read_text(), '4f3a2b1c')
+
+    def test_sessionizer_focuses_an_existing_workspace_and_creates_new_ones(self):
+        project = self.root / 'projects/api'; (project / '.git').mkdir(parents=True)
+        other = self.root / 'projects/web'; (other / '.git').mkdir(parents=True)
+        self.fake_herdr('''case "$1 $2" in
+  "api snapshot") printf '{"result":{"snapshot":{"workspaces":[{"workspace_id":"w1","label":"api"}],"panes":[{"workspace_id":"w1","cwd":"%s"}]}}}\\n' "$PROJECT" ;;
+  "workspace create") echo '{"result":{"workspace":{"workspace_id":"w2"}}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        (self.bin / 'fzf').write_text('#!/bin/bash\ngrep -F "$PICK" | head -1\n'); (self.bin / 'fzf').chmod(0o755)
+        env = dict(self.env, PROJECT=str(project.resolve()), TMUX_PROJECT_ROOTS=str(self.root / 'projects'), PICK=str(project.resolve()))
+        result = self.run_script('scripts/sessionizer.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('workspace focus w1', self.calls())
+        self.assertNotIn('workspace create', ' '.join(self.calls()))
+        env['PICK'] = str(other.resolve())
+        result = self.run_script('scripts/sessionizer.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'workspace create --cwd {other.resolve()} --label web --no-focus', self.calls())
+        self.assertIn('workspace focus w2', self.calls())
+        self.assertIn(f'w2\t{other.resolve()}', (self.root / 'data/herdr-workspaces').read_text())
+
+
+class HelpTests(unittest.TestCase):
+    def test_help_lists_the_keys_of_the_host_it_runs_on(self):
+        herdr = help_layout.render(120, host='herdr')
+        tmux = help_layout.render(120, host='tmux')
+        self.assertIn('HERDR SHORTCUTS', herdr)
+        self.assertIn('Next / previous agent', herdr)
+        self.assertNotIn('Next / previous agent', tmux)
+        self.assertIn('Pick and copy text', herdr)
+        self.assertIn('Restore sessions', tmux)
+        self.assertNotIn('Restore sessions', herdr)
+        self.assertIn('LLM usage and limits', herdr)
+        self.assertIn('LLM usage and limits', tmux)
+
+
+class UsageTests(unittest.TestCase):
+    def test_claude_transcripts_count_each_message_once(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            file = Path(scratch) / 'session.jsonl'
+            usage = {'input_tokens': 10, 'output_tokens': 5, 'cache_creation_input_tokens': 100, 'cache_read_input_tokens': 1000}
+            line = json.dumps({'timestamp': '2026-11-03T12:00:00Z', 'message': {'role': 'assistant', 'id': 'm1', 'model': 'claude-opus-5-5', 'usage': usage}})
+            file.write_text(line + '\n' + line + '\n' + json.dumps({'timestamp': '2026-11-03T13:00:00Z', 'message': {'role': 'assistant', 'id': 'm2', 'model': 'claude-fable-5-1', 'usage': usage}}) + '\n')
+            parsed = llm_usage.parse_claude(file)
+        self.assertEqual(sum(parsed['models'].values()), 2230)
+        self.assertEqual(parsed['models']['claude-opus-5-5'], 1115)
+
+    def test_codex_transcripts_attribute_turns_to_the_current_model(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            file = Path(scratch) / 'rollout.jsonl'
+            file.write_text('\n'.join([
+                json.dumps({'timestamp': '2026-11-03T12:00:00Z', 'type': 'turn_context', 'payload': {'model': 'gpt-6'}}),
+                json.dumps({'timestamp': '2026-11-03T12:01:00Z', 'type': 'event_msg', 'payload': {'type': 'token_count', 'info': {'last_token_usage': {'total_tokens': 500}},
+                            'rate_limits': {'primary': {'used_percent': 12.5, 'window_minutes': 300, 'resets_at': 1800000000}}}}),
+            ]) + '\n')
+            parsed = llm_usage.parse_codex(file)
+        self.assertEqual(parsed['models'], {'gpt-6': 500})
+        self.assertEqual(llm_usage.codex_windows(parsed['limits'])[0][:2], ('5h', 12.5))
+        self.assertEqual(llm_usage.pretty_model('claude-opus-5-5'), 'Opus 5.5')
+        self.assertEqual(llm_usage.pretty_model('gpt-6'), 'gpt-6')
+        self.assertEqual(llm_usage.human(61_100_000), '61.1M')
+
+
+if __name__ == '__main__':
+    unittest.main()

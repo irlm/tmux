@@ -79,8 +79,12 @@ def artwork(identifier, width=80, day=None):
 
 
 def tmux(*arguments):
-    return subprocess.run(['tmux', *arguments], text=True, capture_output=True,
-                          timeout=10)
+    """Ask tmux; on a machine without it (Herdr only) answer as if unset."""
+    try:
+        return subprocess.run(['tmux', *arguments], text=True, capture_output=True,
+                              timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return subprocess.CompletedProcess(['tmux', *arguments], 1, '', '')
 
 
 def play(identifier, auto_close=False, plain=False, columns=None, day=None):

@@ -44,10 +44,11 @@
   i          System information                     z          Jump to a directory
   n          Notes                                  C-r        Search shell history
   o          Projects and sessions                  C-t        Find files
-                                                    Alt-c      Find directories
+  $          LLM usage and limits                   Alt-c      Find directories
                                                     dotup      Update environment
-  Search & reference                                dotcheck   Check environment
-                                                    ta         Attach or create tmux session
+                                                    dotcheck   Check environment
+  Search & reference                                ta         Attach or create tmux session
+
   /          Search pane history
   e          Web search
   E          Web search: choose site

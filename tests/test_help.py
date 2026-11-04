@@ -13,6 +13,9 @@ import fcntl
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+# These tests describe the tmux side. Running them from a Herdr pane must not
+# make the scripts believe they were started by Herdr.
+os.environ.pop('HERDR_ENV', None)
 spec = importlib.util.spec_from_file_location('help_layout', ROOT / 'scripts/help.py')
 help_layout = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(help_layout)
@@ -22,20 +25,22 @@ class HelpLayoutTests(unittest.TestCase):
     def test_reference_never_exceeds_its_terminal_width(self):
         for width in (20, 30, 40, 66, 80, 95, 96, 100, 143, 144, 168, 202):
             with self.subTest(width=width):
-                lines = help_layout.render(width).splitlines()
+                lines = help_layout.render(width, host='tmux').splitlines()
                 self.assertTrue(all(help_layout.cells(line) <= width for line in lines))
                 self.assertIn('Backspace', '\n'.join(lines))
 
     def test_each_registered_action_is_described_once(self):
-        rendered = help_layout.render(168)
+        rendered = help_layout.render(168, host='tmux')
         with (ROOT / 'actions.tsv').open() as stream:
             for row in csv.DictReader(stream, delimiter='\t'):
+                if row.get('hosts', 'all') not in ('all', 'tmux'):
+                    continue
                 with self.subTest(action=row['id']):
                     pattern = r'(?<!\S)' + re.escape(row['key']) + r' {2,}' + re.escape(row['label']) + r'(?= {2,}|$)'
                     self.assertEqual(len(re.findall(pattern, rendered, re.MULTILINE)), 1)
 
     def test_main_reference_fits_the_current_popup_first_screen(self):
-        lines = help_layout.render(168).splitlines()
+        lines = help_layout.render(168, host='tmux').splitlines()
         # A 200x57 client gives a 168x46 interior and 45 pager content rows.
         self.assertIn('ta         Attach or create tmux session', '\n'.join(lines[:45]))
         for title in ('Panes', 'Windows & sessions', 'Tools & projects',

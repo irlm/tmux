@@ -25,8 +25,9 @@ herdr_key() {
     local key=$1
     case "$key" in
         C-?) printf 'prefix+ctrl+%s' "${key#C-}" ;;
-        [A-Z]) printf 'prefix+shift+%s' "$(printf '%s' "$key" | tr '[:upper:]' '[:lower:]')" ;;
+        [[:upper:]]) printf 'prefix+shift+%s' "$(printf '%s' "$key" | tr '[:upper:]' '[:lower:]')" ;;
         -) printf 'prefix+minus' ;;
+        Space) printf 'prefix+space' ;;
         *) printf 'prefix+%s' "$key" ;;
     esac
 }
@@ -36,16 +37,43 @@ toml_string() {  # escape for a basic TOML string
     printf '"%s"' "${s//\"/\\\"}"
 }
 
+# [theme] for the palette saved by C-a C-t. Nord and Catppuccin map onto
+# Herdr's own themes; High contrast is Nord with brighter tokens. overlay1 is
+# what Herdr paints the tab bar status with, so it gets the palette's muted
+# (secondary text) colour, tested at 4.5:1 or better on both surfaces.
+render_theme() {
+    python3 - "$SCRIPT_DIR" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from appearance import current_theme
+identifier, theme = current_theme()
+colors = theme['colors']
+base = 'catppuccin' if identifier == 'catppuccin' else 'nord'
+print('[theme]')
+print(f'name = "{base}"')
+print('')
+print('[theme.custom]')
+for token, role in (('text', 'foreground'), ('subtext0', 'muted'), ('overlay1', 'muted'),
+                    ('accent', 'accent'), ('blue', 'blue'), ('teal', 'cyan'), ('green', 'green'),
+                    ('yellow', 'yellow'), ('red', 'red'), ('mauve', 'magenta')):
+    print(f'{token} = "{colors[role]}"')
+PY
+}
+
 render() {
-    local size status key id label
+    local size status key id label theme
     size=$(tmux_option @popup_size 85%)
     case "$size" in *[!0-9%]*|'') size=85% ;; esac
     status="bash $(printf '%q' "$SCRIPT_DIR/status_right.sh") --plain 160"
     printf '%s on %s. Do not edit: personal settings belong in %s\n\n' "$MARK" "$(date '+%F %T')" "$USER_TOML"
-    awk -v status="$status" '{ gsub(/@@STATUS_COMMAND@@/, status); print }' "$TEMPLATE"
+    theme=$(render_theme) || theme='[theme]
+name = "nord"'
+    # The theme block spans lines; macOS awk refuses newlines in -v values.
+    WB_THEME="$theme" awk -v status="$status" -v scripts="$(printf '%q' "$SCRIPT_DIR")" \
+        '/@@THEME@@/ { print ENVIRON["WB_THEME"]; next } { gsub(/@@STATUS_COMMAND@@/, status); gsub(/@@SCRIPTS@@/, scripts); print }' "$TEMPLATE"
     printf '\n# ─── Popups generated from actions.tsv ───────────────────\n'
-    while IFS=$'\t' read -r key id label _; do
-        [ "$key" != key ] && [ -n "$id" ] || continue
+    while IFS=$'\t' read -r key id label _ hosts; do
+        [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue
         # Herdr prompts for these itself (new_workspace, rename_*).
         case "$id" in new-session|rename-session|rename-window) continue ;; esac
         printf '\n[[keys.command]]\nkey = %s\ntype = "popup"\ncommand = %s\nwidth = "%s"\nheight = "%s"\ndescription = %s\n' \
@@ -59,9 +87,49 @@ render() {
     fi
 }
 
+# The same popups as a Herdr plugin, so they also open from plugin menus and
+# `herdr plugin pane open`. Rendered outside the checkout because the linked
+# directory is user state; commands point back at this repo's scripts.
+PLUGIN_ID="irlm.workbench"
+PLUGIN_DIR="$TMUX_USER_DIR/herdr-plugin"
+render_plugin() {
+    local size key id label hosts
+    size=$(tmux_option @popup_size 85%)
+    case "$size" in *[!0-9%]*|'') size=85% ;; esac
+    printf '%s\n' "$MARK" \
+        "id = \"$PLUGIN_ID\"" 'name = "Workbench"' 'version = "0.1.0"' 'min_herdr_version = "0.9.0"' \
+        'description = "The irlm/tmux popups: command palette, projects, notes, search, references, themes"' \
+        'platforms = ["linux", "macos"]'
+    for id in palette projects notes help; do
+        label=$(awk -F '\t' -v id="$id" '$2 == id {print $3}' "$REGISTRY")
+        printf '\n[[actions]]\nid = "%s"\ntitle = %s\ncontexts = ["workspace"]\ncommand = [%s, "plugin", "pane", "open", "--plugin", "%s", "--entrypoint", "%s", "--placement", "popup", "--width", "%s", "--height", "%s"]\n' \
+            "$id" "$(toml_string "$label")" "$(toml_string "${HERDR_BIN_PATH:-herdr}")" "$PLUGIN_ID" "$id" "$size" "$size"
+    done
+    while IFS=$'\t' read -r key id label _ hosts; do
+        [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue
+        case "$id" in new-session|rename-session|rename-window) continue ;; esac
+        printf '\n[[panes]]\nid = "%s"\ntitle = %s\nplacement = "popup"\nwidth = "%s"\nheight = "%s"\ncommand = ["bash", %s, "run", "%s"]\n' \
+            "$id" "$(toml_string "$label")" "$size" "$size" "$(toml_string "$SCRIPT_DIR/actions.sh")" "$id"
+    done < "$REGISTRY"
+}
+
+install_plugin() {
+    mkdir -p "$PLUGIN_DIR" || return 1
+    render_plugin > "$PLUGIN_DIR/herdr-plugin.toml" || return 1
+    if herdr plugin list 2>/dev/null | grep -qF "\"$PLUGIN_ID\""; then
+        printf 'Herdr plugin %s refreshed in %s\n' "$PLUGIN_ID" "$PLUGIN_DIR"
+    elif herdr plugin link "$PLUGIN_DIR" >/dev/null 2>&1; then
+        printf 'Herdr plugin %s linked from %s\n' "$PLUGIN_ID" "$PLUGIN_DIR"
+    else
+        printf 'Could not link the Herdr plugin; run: herdr plugin link %s\n' "$PLUGIN_DIR" >&2
+        return 1
+    fi
+}
+
 mode=${1:-install}
 case "$mode" in
     --print) render; exit 0 ;;
+    --print-plugin) render_plugin; exit 0 ;;
     --check|install) ;;
     *) printf 'Usage: herdr-config.sh [--print | --check]\n' >&2; exit 2 ;;
 esac
@@ -83,6 +151,7 @@ fi
 cp -- "$staged" "$TARGET" || exit 1
 chmod 600 "$TARGET"
 printf 'Herdr config written to %s\n' "$TARGET"
+install_plugin || true
 if herdr status server 2>/dev/null | grep -q 'status: running'; then
     herdr server reload-config >/dev/null 2>&1 && echo 'Running Herdr server reloaded.'
 fi

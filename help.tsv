@@ -1,62 +1,73 @@
-section	key	description
-Panes	|	Split side by side
-Panes	-	Split top and bottom
-Panes	h j k l	Move left/down/up/right
-Panes	H J K L	Resize left/down/up/right
-Panes	z	Zoom or unzoom pane
-Panes	x	Close pane
-Panes	b	Move pane to a new window
-Panes	@	Join marked pane
-Panes	{ }	Swap panes
-Panes	m	Mark pane
-Panes	q	Show pane numbers
-Panes	Y	Toggle synchronized typing
-Windows & sessions	c	New window
-Windows & sessions	X	Close window
-Windows & sessions	W	Choose window
-Windows & sessions	S	Choose session
-Windows & sessions	Backspace	Previous session
-Windows & sessions	< >	Reorder windows
-Windows & sessions	C-n	Enable automatic window names
-Windows & sessions	Q	Close all sessions (confirm)
-Windows & sessions	D	Choose a client to detach
-Copy mode (no prefix)	C-a [	Enter copy mode
-Copy mode (no prefix)	v	Begin selection
-Copy mode (no prefix)	y	Copy selection and exit
-Copy mode (no prefix)	C-v	Toggle rectangle selection
-Copy mode (no prefix)	H L	Start / end of line
-Copy mode (no prefix)	/ ?	Search forward / backward
-Copy mode (no prefix)	Esc	Exit copy mode
-Remote	F12	Switch local/remote keys (no prefix)
-Help & plugins	r	Reload tmux configuration
-Help & plugins	I	Install tmux plugins
-Help & plugins	Space	Pick and copy text hints
-Help & plugins	u	Pick a URL from the pane
-Help & plugins	C-s	Save sessions
-Help & plugins	C-r	Restore sessions
-Help & plugins	C-l	Clear pane history
-Help & plugins	T	Clock mode
-Shell (full setup)	z	Jump to a directory
-Shell (full setup)	C-r	Search shell history
-Shell (full setup)	C-t	Find files
-Shell (full setup)	Alt-c	Find directories
-Shell (full setup)	dotup	Update environment
-Shell (full setup)	dotcheck	Check environment
-Shell (full setup)	ta	Attach or create tmux session
-Lazygit (no prefix)	Space	Stage / unstage
-Lazygit (no prefix)	c	Commit
-Lazygit (no prefix)	p P	Push / pull
-Lazygit (no prefix)	b	Branches
-Lazygit (no prefix)	s	Stash
-Lazygit (no prefix)	q	Quit
-Btop (no prefix)	h	Help
-Btop (no prefix)	m	Menu
-Btop (no prefix)	1-4	Toggle CPU/memory/network/processes
-Btop (no prefix)	Tab	Cycle boxes
-Btop (no prefix)	f /	Filter / search processes
-Btop (no prefix)	q	Quit
-Git aliases (full setup)	gs	Git status
-Git aliases (full setup)	gl	Git log graph
-Git aliases (full setup)	gp gpl	Git push / pull
-Git aliases (full setup)	lg	Lazygit
-Git aliases (full setup)	ll	List files with Git status
+section	key	description	hosts
+Panes	|	Split side by side	all
+Panes	-	Split top and bottom	all
+Panes	h j k l	Move left/down/up/right	all
+Panes	H J K L	Resize left/down/up/right	all
+Panes	z	Zoom or unzoom pane	all
+Panes	x	Close pane	all
+Panes	b	Move pane to a new window	tmux
+Panes	@	Join marked pane	tmux
+Panes	{ }	Swap panes	all
+Panes	m	Mark pane	tmux
+Panes	q	Show pane numbers	tmux
+Panes	Y	Toggle synchronized typing	tmux
+Windows & sessions	c	New window	all
+Windows & sessions	X	Close window	all
+Windows & sessions	W	Choose window	all
+Windows & sessions	S	Choose session	all
+Windows & sessions	Backspace	Previous session	all
+Windows & sessions	< >	Reorder windows	all
+Windows & sessions	C-n	Enable automatic window names	tmux
+Windows & sessions	Q	Close all sessions (confirm)	all
+Windows & sessions	D	Choose a client to detach	tmux
+Copy mode (no prefix)	C-a [	Enter copy mode	all
+Copy mode (no prefix)	v	Begin selection	all
+Copy mode (no prefix)	y	Copy selection and exit	all
+Copy mode (no prefix)	C-v	Toggle rectangle selection	tmux
+Copy mode (no prefix)	H L	Start / end of line	tmux
+Copy mode (no prefix)	/ ?	Search forward / backward	all
+Copy mode (no prefix)	Esc	Exit copy mode	all
+Remote	F12	Switch local/remote keys (no prefix)	tmux
+Help & plugins	r	Reload tmux configuration	all
+Help & plugins	I	Install tmux plugins	tmux
+Help & plugins	Space	Pick and copy text hints	tmux
+Help & plugins	u	Pick a URL from the pane	tmux
+Help & plugins	C-s	Save sessions	tmux
+Help & plugins	C-r	Restore sessions	tmux
+Help & plugins	C-l	Clear pane history	tmux
+Help & plugins	T	Clock mode	tmux
+Shell (full setup)	z	Jump to a directory	all
+Shell (full setup)	C-r	Search shell history	all
+Shell (full setup)	C-t	Find files	all
+Shell (full setup)	Alt-c	Find directories	all
+Shell (full setup)	dotup	Update environment	all
+Shell (full setup)	dotcheck	Check environment	all
+Shell (full setup)	ta	Attach or create tmux session	all
+Lazygit (no prefix)	Space	Stage / unstage	all
+Lazygit (no prefix)	c	Commit	all
+Lazygit (no prefix)	p P	Push / pull	all
+Lazygit (no prefix)	b	Branches	all
+Lazygit (no prefix)	s	Stash	all
+Lazygit (no prefix)	q	Quit	all
+Btop (no prefix)	h	Help	all
+Btop (no prefix)	m	Menu	all
+Btop (no prefix)	1-4	Toggle CPU/memory/network/processes	all
+Btop (no prefix)	Tab	Cycle boxes	all
+Btop (no prefix)	f /	Filter / search processes	all
+Btop (no prefix)	q	Quit	all
+Git aliases (full setup)	gs	Git status	all
+Git aliases (full setup)	gl	Git log graph	all
+Git aliases (full setup)	gp gpl	Git push / pull	all
+Git aliases (full setup)	lg	Lazygit	all
+Git aliases (full setup)	ll	List files with Git status	all
+Panes	;	Last pane	herdr
+Panes	Tab	Next pane	herdr
+Panes	C-e	Open the scrollback in your editor	herdr
+Windows & sessions	p ]	Previous / next tab	herdr
+Windows & sessions	1-9	Switch tab	herdr
+Windows & sessions	q	Detach; everything keeps running	herdr
+Agents	C-n C-p	Next / previous agent	herdr
+Agents	C-o	Jump to what just notified	herdr
+Agents	b	Show or hide the sidebar	herdr
+Agents	F1	Herdr's own key list	herdr
+Agents	C-s	Herdr settings	herdr

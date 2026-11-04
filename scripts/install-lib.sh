@@ -162,3 +162,24 @@ check_install_tools() {
         return 1
     fi
 }
+
+# Herdr: render this repo's config and plugin for it and wire the agent
+# integrations. Installs Herdr itself only when asked (install.sh --herdr).
+install_herdr_workbench() {
+    local assets=$1 want=${2:-0} agent
+    if ! command -v herdr >/dev/null 2>&1; then
+        [ "$want" = 1 ] || return 0
+        echo "Installing Herdr (https://herdr.dev)..."
+        if ! curl -fsSL https://herdr.dev/install.sh | sh; then
+            echo '  Herdr install failed; see https://herdr.dev/tui/docs/install/' >&2
+            return 1
+        fi
+        [ -d "$HOME/.local/bin" ] && case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac
+        command -v herdr >/dev/null 2>&1 || { echo '  herdr is not on PATH yet; open a new shell and rerun install.sh --herdr' >&2; return 1; }
+    fi
+    bash "$assets/scripts/herdr-config.sh" || return 1
+    for agent in claude codex; do
+        command -v "$agent" >/dev/null 2>&1 || continue
+        herdr integration install "$agent" >/dev/null 2>&1 && printf 'Herdr integration: %s\n' "$agent"
+    done
+}

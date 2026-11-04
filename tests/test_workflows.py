@@ -12,6 +12,9 @@ import unittest
 from unittest import mock
 
 REPO = Path(__file__).resolve().parents[1]
+# These tests describe the tmux side. Running them from a Herdr pane must not
+# make the scripts believe they were started by Herdr.
+os.environ.pop('HERDR_ENV', None)
 BASH = '/bin/bash'
 
 

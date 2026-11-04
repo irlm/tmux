@@ -6,19 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 registry="$SCRIPT_DIR/../actions.tsv"
 backend=$(wb_backend)
-herdr() { "${HERDR_BIN_PATH:-herdr}" "$@"; }
-# A Herdr popup is not a pane, so the pane it was opened over has to be
-# looked up: the focused one in the active workspace.
-herdr_focused_pane() {
-    [ -z "${HERDR_PANE_ID:-}" ] || { printf '%s' "$HERDR_PANE_ID"; return; }
-    herdr pane list 2>/dev/null | python3 -c '
-import json, sys
-try:
-    panes = json.load(sys.stdin)["result"]["panes"]
-except Exception:
-    sys.exit(1)
-print(next((p["pane_id"] for p in panes if p.get("focused")), ""), end="")'
-}
 row_available() {
     local tools=$1 candidate group found
     [ "$tools" != - ] || return 0
@@ -35,23 +22,57 @@ row_available() {
     done
 }
 list_actions() {
-    local key id label tool state
-    while IFS=$'\t' read -r key id label tool; do
+    local key id label tool hosts state
+    while IFS=$'\t' read -r key id label tool hosts; do
         [ "$key" != key ] || continue
+        wb_host_match "$hosts" || continue
         state=ready; row_available "$tool" || state="missing $tool"
         printf '%s\tC-a %-4s %-32s [%s]\n' "$id" "$key" "$label" "$state"
     done < "$registry"
 }
+# An image for the system info popup, drawn with the Kitty graphics protocol
+# when the terminal in front can show one. Only looked up when C-a i runs.
+# @info_logo names a PNG; otherwise macOS converts a system icon once into
+# the cache and Linux uses the distribution logo when one is installed.
+info_logo() {
+    local logo
+    logo=$(tmux_option @info_logo)
+    [ -n "$logo" ] || logo="$TMUX_USER_DIR/logo.png"
+    case "$(wb_backend)" in
+        herdr) ;;
+        *) case "${TERM_PROGRAM:-}${KITTY_WINDOW_ID:+kitty}" in ghostty|kitty|WezTerm) ;; *) return 0 ;; esac ;;
+    esac
+    [ ! -f "$logo" ] || { printf '%s' "$logo"; return 0; }
+    if command -v sips >/dev/null 2>&1; then
+        logo="$TMUX_CACHE_DIR/logo.png"
+        if [ ! -f "$logo" ]; then
+            private_dir "$TMUX_CACHE_DIR" || return 0
+            local icon=/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/com.apple.macbook-retina-space-gray.icns
+            [ -f "$icon" ] || return 0
+            sips -s format png -Z 256 "$icon" --out "$logo" >/dev/null 2>&1 || { rm -f -- "$logo"; return 0; }
+        fi
+        printf '%s' "$logo"; return 0
+    fi
+    for logo in /usr/share/pixmaps/*-logo.png /usr/share/pixmaps/*logo*.png; do
+        [ ! -f "$logo" ] || { printf '%s' "$logo"; return 0; }
+    done
+}
+
 run_action() {
-    local id=$1 query output rc
+    local id=$1 query output rc logo
     case "$id" in
         git) "$SCRIPT_DIR/lazygit.sh" ;;
         github) "$SCRIPT_DIR/popup.sh" --gh-ext gh-dash -- 'gh dash' ;;
         docker) "$SCRIPT_DIR/popup.sh" lazydocker ;;
         top) "$SCRIPT_DIR/popup.sh" --any btop htop ;;
         shell) "${SHELL:-/bin/sh}" ;;
-        info) if command -v fastfetch >/dev/null 2>&1; then fastfetch --pipe false | less -R;
+        info) if command -v fastfetch >/dev/null 2>&1; then
+                  logo=$(info_logo)
+                  if [ -n "$logo" ]; then fastfetch --logo-type kitty --logo "$logo" --logo-width 28 --logo-height 14 --pipe false | less -R
+                  else fastfetch --pipe false | less -R; fi
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
+        pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
+        llm) python3 "$SCRIPT_DIR/llm_usage.py" | less -R ;;
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0
                  [ -n "$selected" ] || return 0
                  selected=${selected%%$'\t'*}
@@ -86,7 +107,7 @@ run_action() {
                         "$SCRIPT_DIR/$output" ;;
         history)
             if [ "$backend" = herdr ]; then
-                herdr pane read "$(herdr_focused_pane)" --source recent-unwrapped --lines 10000 | fzf --tac --no-sort
+                herdr pane read "$(herdr_active_pane)" --source recent-unwrapped --lines 10000 | fzf --tac --no-sort
             else
                 tmux capture-pane -pS -10000 -t "${TMUX_SOURCE_PANE:-${TMUX_PANE:-}}" | fzf --tac --no-sort
             fi ;;
@@ -132,7 +153,7 @@ run_action() {
                 if [ "$id" = ssh ]; then
                     output=$(herdr tab create --label "ssh $query" --focus) || { pause_close; return 1; }
                 else
-                    output=$(herdr pane split "$(herdr_focused_pane)" --direction right --focus) || { pause_close; return 1; }
+                    output=$(herdr pane split "$(herdr_active_pane)" --direction right --focus) || { pause_close; return 1; }
                 fi
                 output=$(printf '%s' "$output" | python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]; print((r.get("root_pane") or r.get("pane"))["pane_id"], end="")')
                 herdr pane run "$output" "ssh $(printf '%q' "$query")" >/dev/null
@@ -144,8 +165,8 @@ run_action() {
 }
 case "${1:-palette}" in
     bind)
-        while IFS=$'\t' read -r key id _ _; do
-            [ "$key" != key ] || continue
+        while IFS=$'\t' read -r key id _ _ hosts; do
+            [ "$key" != key ] && [ "${hosts:-all}" != herdr ] || continue
             printf -v command '%q open %q' "$SCRIPT_DIR/actions.sh" "$id"
             tmux bind-key "$key" run-shell "$command"
         done < "$registry" ;;

@@ -11,6 +11,7 @@ The root [`README.md`](../README.md) is the quick-start version. Use the guides 
 - [Features and project layout](features.md): what the project includes, how the status bar and plugins fit together, and which files do what
 
 - [Customization and diagnostics](customization.md): profiles, local overrides, command palette, health checks, and development checks
+- [Herdr](herdr.md): the same keys, popups and theme in Herdr, with agent state in a sidebar and conversations that survive a restart
 
 ## Project Summary
 

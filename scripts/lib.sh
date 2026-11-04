@@ -21,7 +21,8 @@ wb_backend() {
 # is also what Herdr reads. The second argument is the default.
 tmux_option() {
     local name=${1#@} value=""
-    if [ "$(wb_backend)" = tmux ]; then
+    if [ "$(wb_backend)" != herdr ]; then
+        # Also from a plain shell or a hook: a reachable tmux server answers.
         value=$(tmux show-option -gqv "@$name" 2>/dev/null) || value=""
     elif [ -r "$TMUX_USER_DIR/options.env" ]; then
         value=$(awk -F '=' -v key="$name" '$1 == key { sub(/^[^=]*=/, ""); print; exit }' "$TMUX_USER_DIR/options.env")
@@ -47,4 +48,49 @@ managed_tools() {
 
 brew_tools() {
     awk -F '\t' -v profile="${1:-desktop}" 'NR > 1 && $2 != "-" && ($4 == "all" || profile != "server") {print $2}' "$TMUX_CONFIG_DIR/tools.tsv"
+}
+
+# Herdr CLI. Inside a Herdr pane HERDR_BIN_PATH names the binary that owns
+# the session; WB_HERDR_SESSION lets tests aim every call at a named session.
+herdr() {
+    if [ -n "${WB_HERDR_SESSION:-}" ]; then
+        "${HERDR_BIN_PATH:-herdr}" --session "$WB_HERDR_SESSION" "$@"
+    else
+        "${HERDR_BIN_PATH:-herdr}" "$@"
+    fi
+}
+
+# The pane a popup or key command was opened over. Herdr tells custom
+# commands through HERDR_ACTIVE_PANE_ID and plugin panes through the context
+# JSON; a plain pane knows itself; the last resort is the focused pane.
+herdr_active_pane() {
+    if [ -n "${HERDR_ACTIVE_PANE_ID:-}" ]; then printf '%s' "$HERDR_ACTIVE_PANE_ID"; return; fi
+    if [ -n "${HERDR_PLUGIN_CONTEXT_JSON:-}" ]; then
+        local pane
+        pane=$(printf '%s' "$HERDR_PLUGIN_CONTEXT_JSON" | python3 -c '
+import json, sys
+context = json.load(sys.stdin)
+for key in ("active_pane_id", "focused_pane_id", "pane_id"):
+    if context.get(key): print(context[key], end=""); break
+else:
+    pane = context.get("pane") or context.get("focused_pane") or {}
+    print(pane.get("pane_id", "") if isinstance(pane, dict) else pane, end="")' 2>/dev/null)
+        [ -z "$pane" ] || { printf '%s' "$pane"; return; }
+    fi
+    if [ -n "${HERDR_PANE_ID:-}" ]; then printf '%s' "$HERDR_PANE_ID"; return; fi
+    herdr pane list 2>/dev/null | python3 -c '
+import json, sys
+try:
+    panes = json.load(sys.stdin)["result"]["panes"]
+except Exception:
+    sys.exit(1)
+print(next((p["pane_id"] for p in panes if p.get("focused")), ""), end="")'
+}
+
+# Does a registry row with this hosts field apply to the running backend?
+# Fields: all, tmux, herdr. A plain shell counts as tmux for the help text.
+wb_host_match() {
+    local hosts=${1:-all} backend
+    backend=$(wb_backend); [ "$backend" != none ] || backend=tmux
+    [ "$hosts" = all ] || [ "$hosts" = "$backend" ]
 }

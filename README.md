@@ -11,6 +11,7 @@ This repo is the tmux and terminal side of the setup. It gives you:
 - the same keys on your servers: `C-a s` installs the config over SSH and, while a remote tmux is in front, your bindings act there
 - shell prompt and CLI tooling bootstrap scripts
 - integration with the separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config
+- the same keys, popups and theme in [Herdr](docs/herdr.md), the multiplexer that shows which coding agent needs you
 
 The root README is intentionally lean. Full documentation lives in [`docs/`](docs/README.md).
 
@@ -75,6 +76,8 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 | `C-a s` / `C-a P` | SSH to a server (new window / split pane), set it up if needed, attach its tmux |
 | `F12` | hand the keys to the remote tmux, or take them back |
 | `C-a C-u` | update everything in a popup |
+| `C-a $` | LLM usage and limits for Claude Code and Codex |
+| `herdr` | the same setup in Herdr, with the agent sidebar (`install.sh --herdr`) |
 | `dotup` | update repos, plugins, gh extensions, and CLI tools (on a server: `~/.config/tmux/update.sh`, or the curl one-liner in the [installation guide](docs/installation.md#updating)) |
 
 ## Full Documentation
@@ -84,6 +87,7 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 - [Usage and keybindings](docs/usage.md)
 - [Features and project layout](docs/features.md)
 - [Customization and diagnostics](docs/customization.md)
+- [Herdr](docs/herdr.md)
 
 ## Related Repo
 
