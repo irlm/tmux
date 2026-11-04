@@ -108,11 +108,6 @@ and friends read the same cached sample, so four entries still measure once).
 A stock Herdr rejects that config, which `herdr config check` reports before
 anything is installed.
 
-`C-a i` draws a small image beside the system information when the terminal
-can show one (Ghostty, kitty, WezTerm; Herdr passes it through). Put your own
-PNG at `~/.config/tmux-user/logo.png` or name one with `info_logo=` in
-`options.env`; otherwise macOS converts a system icon once into the cache.
-
 ## Personal settings
 
 | File | Purpose |

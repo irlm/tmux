@@ -30,54 +30,15 @@ list_actions() {
         printf '%s\tC-a %-4s %-32s [%s]\n' "$id" "$key" "$label" "$state"
     done < "$registry"
 }
-# An image for the system info popup, drawn with the Kitty graphics protocol
-# when the terminal in front can show one. Only looked up when C-a i runs.
-# @info_logo names a PNG; otherwise macOS converts a system icon once into
-# the cache and Linux uses the distribution logo when one is installed.
-info_logo() {
-    local logo
-    logo=$(tmux_option @info_logo)
-    [ -n "$logo" ] || logo="$TMUX_USER_DIR/logo.png"
-    case "$(wb_backend)" in
-        herdr) ;;
-        *) case "${TERM_PROGRAM:-}${KITTY_WINDOW_ID:+kitty}" in ghostty|kitty|WezTerm) ;; *) return 0 ;; esac ;;
-    esac
-    [ ! -f "$logo" ] || { printf '%s' "$logo"; return 0; }
-    if command -v sips >/dev/null 2>&1; then
-        logo="$TMUX_CACHE_DIR/logo.png"
-        if [ ! -f "$logo" ]; then
-            private_dir "$TMUX_CACHE_DIR" || return 0
-            local icon=/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/com.apple.macbook-retina-space-gray.icns
-            [ -f "$icon" ] || return 0
-            sips -s format png -Z 256 "$icon" --out "$logo" >/dev/null 2>&1 || { rm -f -- "$logo"; return 0; }
-        fi
-        printf '%s' "$logo"; return 0
-    fi
-    for logo in /usr/share/pixmaps/*-logo.png /usr/share/pixmaps/*logo*.png; do
-        [ ! -f "$logo" ] || { printf '%s' "$logo"; return 0; }
-    done
-}
-
 run_action() {
-    local id=$1 query output rc logo
+    local id=$1 query output rc
     case "$id" in
         git) "$SCRIPT_DIR/lazygit.sh" ;;
         github) "$SCRIPT_DIR/popup.sh" --gh-ext gh-dash -- 'gh dash' ;;
         docker) "$SCRIPT_DIR/popup.sh" lazydocker ;;
         top) "$SCRIPT_DIR/popup.sh" --any btop htop ;;
         shell) "${SHELL:-/bin/sh}" ;;
-        info) if command -v fastfetch >/dev/null 2>&1; then
-                  logo=$(info_logo)
-                  # The image is sent by kitty_image.py (fastfetch itself would need an
-                  # image decoder); fastfetch then writes beside a blank logo of the
-                  # same size. Straight to the terminal: a pager would eat the image.
-                  if [ -n "$logo" ]; then
-                      printf '\033[2J\033[H'
-                      python3 "$SCRIPT_DIR/kitty_image.py" "$logo" 28 14
-                      printf '\033[H'
-                      fastfetch --logo-type data-raw --logo "$(printf '%28s\n' '' '' '' '' '' '' '' '' '' '' '' '' '' '')" --logo-padding-right 2
-                      pause_close
-                  else fastfetch --pipe false | less -R; fi
+        info) if command -v fastfetch >/dev/null 2>&1; then fastfetch --pipe false | less -R;
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
         llm) python3 "$SCRIPT_DIR/llm_usage.py" ;;
