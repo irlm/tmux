@@ -25,7 +25,7 @@ private_dir "$TMUX_CACHE_DIR" || exit 0
 read -r now today <<< "$(date '+%s %F')"
 # Both from the Material set of the Nerd Fonts, like the battery glyphs; the
 # Octicons cpu glyph is missing from several patched fonts.
-cpu_icon="󰻠"; ram_icon="󰍛"
+cpu_icon="󰘚"; ram_icon="󰍛"
 sep=" | "
 
 # Readings are joined with sep in a fixed order; --part picks one back out by
