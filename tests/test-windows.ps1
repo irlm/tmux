@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path $PSScriptRoot
 foreach ($file in @('install.ps1', 'setup-windows.ps1', 'scripts\herdr-config.ps1')) {
     $tokens = $null; $errors = $null

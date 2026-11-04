@@ -1,4 +1,4 @@
-# ─── Tmux-like Shell Bootstrap for Windows ──────────────
+﻿# ─── Tmux-like Shell Bootstrap for Windows ──────────────
 # Run in PowerShell (Admin recommended):
 #   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 #   .\setup-windows.ps1

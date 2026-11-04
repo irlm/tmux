@@ -1,4 +1,4 @@
-# dotfiles installer for Windows (PowerShell)
+﻿# dotfiles installer for Windows (PowerShell)
 # Run as Administrator:  irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 
 Set-StrictMode -Version Latest

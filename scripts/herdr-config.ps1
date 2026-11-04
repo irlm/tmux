@@ -1,4 +1,4 @@
-# Render the Herdr configuration on Windows from this repo's template, the
+﻿# Render the Herdr configuration on Windows from this repo's template, the
 # action registry and the user's own additions, then validate and install it.
 # The PowerShell twin of herdr-config.sh.
 #
