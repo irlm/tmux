@@ -42,10 +42,13 @@ $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 $stats = Get-NetAdapterStatistics | Measure-Object -Property ReceivedBytes, SentBytes -Sum
 $rx = ($stats | Where-Object Property -eq 'ReceivedBytes').Sum; $tx = ($stats | Where-Object Property -eq 'SentBytes').Sum
 $net = ''
-# Per-process CPU seconds are cumulative; the busiest process over the last
-# interval is the largest increase since the previous sample.
+# CPU first: the process table is only walked while the load is high, since
+# listing every process is the slow part of this script.
+$load = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
 $procs = @{}
-foreach ($proc in Get-Process) { if ($proc.CPU) { $procs[[string]$proc.Id] = @{ n = $proc.ProcessName; c = [double]$proc.CPU } } }
+if ($null -ne $load -and $load -ge $ProcessThreshold) {
+    foreach ($proc in Get-Process) { if ($proc.CPU) { $procs[[string]$proc.Id] = @{ n = $proc.ProcessName; c = [double]$proc.CPU } } }
+}
 $busiest = ''
 if (Test-Path $cache) {
     $prev = Get-Content $cache -Raw | ConvertFrom-Json
@@ -67,7 +70,6 @@ if (Test-Path $cache) {
 @{ t = $now; rx = $rx; tx = $tx; p = $procs } | ConvertTo-Json -Compress -Depth 3 | Set-Content $cache
 if ($net) { $parts += @{ kind = 'net'; text = $net } }
 # CPU: the processors' current load, with the busiest process when it is high.
-$load = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
 if ($null -ne $load) {
     $cpu = '{0} {1:N1}%' -f $cpuIcon, $load
     if ($busiest -and $load -ge $ProcessThreshold) { $cpu += ' ' + $busiest.Substring(0, [Math]::Min(14, $busiest.Length)) }

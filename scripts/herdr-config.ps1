@@ -156,10 +156,10 @@ function Render-Config {
         if (-not $themes.PSObject.Properties[$identifier]) { $identifier = 'nord' }
         $colors = $themes.$identifier.colors
         $status = (@(@('net', 'magenta'), @('cpu', 'accent'), @('ram', 'yellow'), @('battery', 'green')) | ForEach-Object {
-            "  { type = `"command`", command = $(TomlString "$statusCommand -Part $($_[0])"), interval_seconds = 10, timeout_seconds = 5, color = `"$($colors.($_[1]))`" },"
+            "  { type = `"command`", command = $(TomlString "$statusCommand -Part $($_[0])"), interval_seconds = 15, timeout_seconds = 20, color = `"$($colors.($_[1]))`" },"
         }) -join "`n"
     } else {
-        $status = "  { type = `"command`", command = $(TomlString $statusCommand), interval_seconds = 10, timeout_seconds = 5 },"
+        $status = "  { type = `"command`", command = $(TomlString $statusCommand), interval_seconds = 15, timeout_seconds = 20 },"
     }
     foreach ($line in Get-Content $Template) {
         if ($line -match '@@THEME@@') { [void]$out.AppendLine($theme); continue }
