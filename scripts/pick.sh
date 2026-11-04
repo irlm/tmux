@@ -19,17 +19,7 @@ pane_text() {
     esac
 }
 
-copy() {
-    if command -v pbcopy >/dev/null 2>&1; then pbcopy
-    elif command -v wl-copy >/dev/null 2>&1; then wl-copy
-    elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard
-    elif command -v xsel >/dev/null 2>&1; then xsel --clipboard --input
-    elif command -v clip.exe >/dev/null 2>&1; then clip.exe                 # Windows (Git Bash, WSL)
-    else
-        # OSC 52: the terminal keeps the clipboard when no tool is installed.
-        printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
-    fi
-}
+copy() { "$SCRIPT_DIR/clipboard.sh"; }
 
 # The extractor is kept in a variable so python reads the pane text from
 # stdin rather than its own source.

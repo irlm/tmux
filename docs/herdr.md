@@ -55,7 +55,7 @@ Everything from `C-a ?` applies. The differences from tmux:
 | `C-n` `C-p` `C-o` | next / previous agent, jump to what just notified |
 | `b` | show or hide the sidebar |
 | `F1` `C-s` | Herdr's live key list and settings |
-| `Space` `u` | pick text to copy, pick a URL (stand-ins for tmux-thumbs and fzf-url) |
+| `Space` `u` | pick text to copy, pick a URL (the same pickers as under tmux) |
 | `$` | LLM usage and limits |
 | `C-f` | open a `file:line` the pane mentions in your editor |
 | `!` | editor cheatsheet |

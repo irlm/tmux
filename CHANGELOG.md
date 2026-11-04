@@ -4,6 +4,10 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Plugins
+
+- Seven tmux plugins are gone, replaced by this repo's own lines: copy mode copies through `scripts/clipboard.sh` (tmux-yank), `ctrl+hjkl` navigation is in `tmux.conf` and still hands the key to Neovim (vim-tmux-navigator), `C-a Space` and `C-a u` run `scripts/pick.sh` under tmux as well as Herdr (tmux-thumbs, which needed a Rust build, and the URL binding that had no plugin behind it), and the unused tmux-sensible, tmux-cpu, tmux-fzf and nord-tmux. Only tpm, tmux-resurrect and tmux-continuum remain; `dotup` removes the rest.
+
 ### Editor
 
 - Helix is the editor every installer sets up, configured from `helix/config.toml` for reviewing beside coding agents: `-a` sends the selection or line into the agent's input, `-f` opens a `file:line` the pane mentions, `-g` opens lazygit, `-r` reloads files an agent changed, `]c` `[c` walk the changes. The shell integration points `EDITOR` at `hx`; `C-a !` shows a Helix cheatsheet.

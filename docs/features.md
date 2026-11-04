@@ -25,7 +25,7 @@ Helix is the managed editor (`helix/config.toml`); the optional Neovim configura
 - Helix with this repo's review keys: `-a` sends the selection to the agent pane, `-f` opens a `file:line` from the pane, `-g` lazygit, `]c` next change
 - `C-a C-f` picks any `file:line` the pane mentions and opens it in `$EDITOR`
 - lazygit diffs through `delta` when installed (syntax colours, line numbers)
-- optional Neovim (`--nvim`) with tmux/Neovim navigation through `vim-tmux-navigator`
+- optional Neovim (`--nvim`); `ctrl+hjkl` reach into it from tmux and Herdr alike
 - installer scripts clone both repos together
 - markdown preview: inline rendering (`Space mr`) and live browser preview (`Space mp`)
 
@@ -62,18 +62,17 @@ The repo includes popup helpers for:
 
 ## Plugin Stack
 
-The tmux config enables these plugins:
+Only session persistence is a plugin:
 
 - `tmux-plugins/tpm`
-- `tmux-plugins/tmux-sensible`
-- `christoomey/vim-tmux-navigator`
-- `tmux-plugins/tmux-yank`
 - `tmux-plugins/tmux-resurrect`
 - `tmux-plugins/tmux-continuum`
-- `tmux-plugins/tmux-cpu`
-- `sainnhe/tmux-fzf`
-- `fcsonline/tmux-thumbs`
-- `arcticicestudio/nord-tmux`
+
+Copy mode copies through `scripts/clipboard.sh` (pbcopy, wl-copy, xclip, xsel,
+clip.exe or OSC 52), `ctrl+hjkl` navigation is a few lines in `tmux.conf`
+that hand the key to Neovim when it runs in the pane, `C-a Space` and `C-a u`
+are `scripts/pick.sh`, the status readings come from `scripts/status_right.sh`
+and the theme from `scripts/appearance.py`. Nothing needs compiling.
 
 ## File Layout
 

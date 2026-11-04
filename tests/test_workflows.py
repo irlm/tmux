@@ -556,6 +556,15 @@ else exec ''' + shlex_quote(real_git) + ''' "$@"; fi''')
         self.assertNotIn('nvim', server)
         self.assertNotIn('delta', server)
 
+    def test_clipboard_falls_back_to_osc52_without_a_clipboard_tool(self):
+        tools = self.root / 'tools-only'; tools.mkdir()
+        for name in ('base64', 'tr'):
+            (tools / name).symlink_to(shutil.which(name))
+        env = dict(self.env, PATH=str(tools)); env.pop('TMUX', None)
+        result = subprocess.run([BASH, str(REPO / 'scripts/clipboard.sh')], env=env, input='hello', capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('\x1b]52;c;aGVsbG8=\x07', result.stdout)
+
     def test_helix_config_is_linked_and_a_personal_one_backed_up(self):
         home = self.root / 'helix'; home.mkdir()
         (home / 'config.toml').write_text('theme = "mine"\n')

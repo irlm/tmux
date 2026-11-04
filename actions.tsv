@@ -27,5 +27,5 @@ N	new-session	New session	-	all
 ,	rename-window	Rename window	-	all	
 C-t	themes	Choose theme	python3&fzf	all	
 A	special-days	Special day art	python3&fzf	all	
-Space	pick	Pick and copy text	fzf	herdr	
-u	urls	Pick a URL from the pane	fzf	herdr	
+Space	pick	Pick and copy text	fzf	all	
+u	urls	Pick a URL from the pane	fzf	all	

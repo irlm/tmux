@@ -147,8 +147,8 @@ Enter copy mode with `C-a [`.
 | Key | Action |
 |-----|--------|
 | `I` | install tmux plugins |
-| `u` | open `fzf` URL picker |
-| `Space` | `tmux-thumbs` text hints |
+| `u` | pick a URL from the pane and open it |
+| `Space` | pick a path, URL, hash or token from the pane and copy it |
 | `C-s` | save session |
 | `C-r` | restore session |
 | `r` | reload config |

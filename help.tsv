@@ -2,6 +2,7 @@ section	key	description	hosts
 Panes	|	Split side by side	all
 Panes	-	Split top and bottom	all
 Panes	h j k l	Move left/down/up/right	all
+Panes	C-h C-j C-k C-l	Move between panes without the prefix (Neovim-aware)	all
 Panes	Arrows	Move between panes too	all
 Panes	H J K L	Resize left/down/up/right	all
 Panes	z	Zoom or unzoom pane	all
@@ -31,8 +32,6 @@ Copy mode (no prefix)	Esc	Exit copy mode	all
 Remote	F12	Switch local/remote keys (no prefix)	tmux
 Help & plugins	r	Reload tmux configuration	all
 Help & plugins	I	Install tmux plugins	tmux
-Help & plugins	Space	Pick and copy text hints	tmux
-Help & plugins	u	Pick a URL from the pane	tmux
 Help & plugins	C-s	Save sessions	tmux
 Help & plugins	C-r	Restore sessions	tmux
 Help & plugins	C-l	Clear pane history	tmux
