@@ -251,7 +251,8 @@ def quota_windows(timeout=15):
         state = entry.get('state') or {}
         note = ''
         if state.get('status') == 'auth_required':
-            note = 'run once: ' + (state.get('remedyCommand') or 'quota-axi --allow-keychain-prompt')
+            remedy = state.get('remedyCommand')
+            note = ('run once: ' + remedy) if remedy and remedy != 'none' else (state.get('error') or 'sign-in required')
         elif state.get('stale'):
             note = 'stale reading'
         if rows or note:
@@ -374,10 +375,12 @@ def gather(days, limits=True):
             totals = collect(key, directory, pattern, globals()[parser], since, cache)
         else:
             totals = {'days': defaultdict(int), 'models': defaultdict(int), 'limits': None, 'files': 0}
-        present = key in ('claude', 'codex') or totals['files'] or key in SETUP
+        rows, note = windows.get(key, ([], ''))
+        # A tab needs something to show: transcripts in the window or live
+        # limit windows. "Set up but not signed in" stays out of the way.
+        present = key in ('claude', 'codex') or totals['files'] or rows
         if not present:
             continue
-        rows, note = windows.get(key, ([], ''))
         if key == 'codex':
             rows = rows or codex_windows(totals.get('limits'))
         if key == 'claude' and not rows and not note and not shutil.which('quota-axi'):
