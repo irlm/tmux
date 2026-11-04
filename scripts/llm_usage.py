@@ -14,6 +14,7 @@ import argparse
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 import json
+import re
 import os
 from pathlib import Path
 import shutil
@@ -24,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE_DIR = Path(os.environ.get('TMUX_CACHE_DIR', str(Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'tmux')))
 RESET = '\033[0m'
 PLANS = {}  # provider -> plan name reported by quota-axi
+SETUP = set()  # providers quota-axi reports as set up on this machine
 BOLD = '\033[1m'
 DIM = '\033[2m'
 
@@ -157,6 +159,54 @@ def parse_codex(file):
     return {'days': days, 'models': models, 'limits': limits}
 
 
+def parse_antigravity(file):
+    """Antigravity CLI steps carry input/cache/output tokens; the model is
+    announced in the conversation when the user picks one."""
+    days, models = defaultdict(int), defaultdict(int)
+    model = 'antigravity'
+    picked = re.compile(r'`Model Selection` from .*? to ([^\n.]+?)(?: \((?:High|Medium|Low)\))?\.')
+    with file.open(encoding='utf-8', errors='replace') as stream:
+        for line in stream:
+            if 'MODEL' not in line and 'Model Selection' not in line:
+                continue
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            content = record.get('content') or ''
+            if 'Model Selection' in content:
+                match = picked.search(content)
+                if match:
+                    model = match.group(1).strip()
+            if record.get('source') != 'MODEL':
+                continue
+            tokens = sum(int(record.get(key) or 0) for key in ('input_tokens', 'cache_read_tokens', 'output_tokens'))
+            day = local_day(record.get('created_at', ''))
+            if day and tokens:
+                days[day] += tokens
+                models[model] += tokens
+    return {'days': days, 'models': models}
+
+
+# Every agent this can account for. Transcript-less providers still get a
+# tab when quota-axi knows them, with their live windows only.
+PROVIDERS = (
+    ('claude', 'Claude Code', ('CLAUDE_CONFIG_DIR', '~/.claude', 'projects'), '*.jsonl', 'parse_claude'),
+    ('codex', 'Codex', ('CODEX_HOME', '~/.codex', 'sessions'), '*.jsonl', 'parse_codex'),
+    ('agy', 'Antigravity', ('ANTIGRAVITY_HOME', '~/.gemini/antigravity-cli', 'brain'), 'transcript.jsonl', 'parse_antigravity'),
+    ('grok', 'Grok', ('GROK_HOME', '~/.grok', ''), None, None),
+    ('copilot', 'Copilot', ('COPILOT_HOME', '~/.copilot', ''), None, None),
+    ('cursor', 'Cursor', ('CURSOR_HOME', '~/.cursor', ''), None, None),
+    ('kimi', 'Kimi', ('KIMI_HOME', '~/.kimi-code', ''), None, None),
+)
+
+
+def provider_dir(spec):
+    env, default, sub = spec
+    base = Path(os.environ.get(env, os.path.expanduser(default)))
+    return base / sub if sub else base
+
+
 def collect(provider, directory, pattern, parse, since, cache):
     totals = {'days': defaultdict(int), 'models': defaultdict(int), 'limits': None, 'files': 0}
     keep = set()
@@ -176,7 +226,8 @@ def collect(provider, directory, pattern, parse, since, cache):
 
 
 def quota_windows(timeout=15):
-    """Live windows from quota-axi: {provider: ([(label, used%, resets_at)], note)}."""
+    """Live windows from quota-axi: {provider: ([(label, used%, resets_at)], note)}.
+    Fills PLANS and SETUP for every provider the tool knows."""
     if not shutil.which('quota-axi'):
         return {}
     try:
@@ -188,6 +239,8 @@ def quota_windows(timeout=15):
     for entry in report.get('providers') or []:
         name = entry.get('provider')
         rows = []
+        if not entry.get('notSetUp', False):
+            SETUP.add(name)
         if entry.get('plan'):
             PLANS[name] = str(entry['plan'])
         for window in entry.get('windows') or []:
@@ -266,7 +319,7 @@ class Painter:
 
 def render(providers, windows, days, width, painter):
     width = max(40, width)
-    label_width = 12
+    label_width = 18
     lines = []
     today = date.today()
     day_keys = [(today - timedelta(days=offset)).isoformat() for offset in range(days - 1, -1, -1)]
@@ -276,7 +329,7 @@ def render(providers, windows, days, width, painter):
         lines.append(painter.paint('LIMITS', 'muted', True))
         if limit_rows:
             for label, used, resets in limit_rows:
-                lines.append(f'  {label.capitalize():<{label_width}} {painter.bar(used / 100, width - label_width - 12)} {used:5.1f}%')
+                lines.append(f'  {label[:1].upper() + label[1:]:<{label_width}} {painter.bar(used / 100, width - label_width - 12)} {used:5.1f}%')
                 lines.append('  ' + painter.paint(' ' * label_width + ' ' + resets_in(resets), 'muted'))
         else:
             lines.append('  ' + painter.paint(note or 'no live window data', 'muted'))
@@ -308,26 +361,42 @@ def render(providers, windows, days, width, painter):
 
 
 def gather(days, limits=True):
-    """Both providers' aggregates and live windows, ready to draw."""
+    """Every agent present on this machine: aggregates and live windows.
+    An agent shows up when it left transcripts in the window or quota-axi
+    says it is set up; Claude Code and Codex always do."""
     since = (datetime.now() - timedelta(days=days + 1)).timestamp()
     cache = Cache(CACHE_DIR / 'llm-usage.json')
-    claude_dir = Path(os.environ.get('CLAUDE_CONFIG_DIR', str(Path.home() / '.claude'))) / 'projects'
-    codex_dir = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'sessions'
-    claude = collect('claude', claude_dir, '*.jsonl', parse_claude, since, cache)
-    codex = collect('codex', codex_dir, '*.jsonl', parse_codex, since, cache)
     windows = quota_windows() if limits else {}
-    claude_rows, claude_note = windows.get('claude', ([], 'quota-axi not installed' if not shutil.which('quota-axi') else ''))
-    codex_rows, codex_note = windows.get('codex', ([], ''))
-    codex_rows = codex_rows or codex_windows(codex.get('limits'))
-    claude['plan'] = PLANS.get('claude', '')
-    codex['plan'] = PLANS.get('codex', '')
-    providers = [('Claude Code', claude, claude_rows, claude_note), ('Codex', codex, codex_rows, codex_note)]
+    providers = []
+    for key, title, spec, pattern, parser in PROVIDERS:
+        directory = provider_dir(spec)
+        if parser:
+            totals = collect(key, directory, pattern, globals()[parser], since, cache)
+        else:
+            totals = {'days': defaultdict(int), 'models': defaultdict(int), 'limits': None, 'files': 0}
+        present = key in ('claude', 'codex') or totals['files'] or key in SETUP
+        if not present:
+            continue
+        rows, note = windows.get(key, ([], ''))
+        if key == 'codex':
+            rows = rows or codex_windows(totals.get('limits'))
+        if key == 'claude' and not rows and not note and not shutil.which('quota-axi'):
+            note = 'quota-axi not installed'
+        if not parser and not rows:
+            note = note or 'no transcripts to read on this machine'
+        totals['plan'] = PLANS.get(key, '')
+        providers.append((title, totals, rows, note))
     return providers, windows
 
 
 ICONS = {
     'Claude Code': ['  ╲ ╷ ╱  ', '  ─ ✦ ─  ', '  ╱ ╵ ╲  '],
     'Codex': ['  ╭───╮  ', '  │ ◇ │  ', '  ╰───╯  '],
+    'Antigravity': ['   ▲ ▲   ', '  ╱ ◠ ╲  ', '  ‾‾‾‾‾  '],
+    'Grok': ['  ╲   ╱  ', '    ╳    ', '  ╱   ╲  '],
+    'Copilot': ['  ╭─◠─╮  ', '  │◉ ◉│  ', '  ╰───╯  '],
+    'Cursor': ['  ◤      ', '  █▶     ', '  ◣      '],
+    'Kimi': ['  ╭───╮  ', '  │ ✧ │  ', '  ╰───╯  '],
 }
 
 
@@ -413,9 +482,9 @@ class Screen:
         self.put(y + 1, x + 10, plan or 'last %d days' % self.days, 'muted')
         y += 4
         # tabs
-        tab_width = (inner - 2) // len(self.providers)
+        tab_width = max(8, (inner - 2 * (len(self.providers) - 1)) // len(self.providers))
         for index, (name, *_) in enumerate(self.providers):
-            label = name.center(tab_width - 2)
+            label = name[:tab_width - 2].center(tab_width - 2)
             style = 'tab' if index == self.tab else 'muted'
             self.put(y, x + index * (tab_width + 2), '[' + label + ']' if index != self.tab else ' ' + label + ' ', style, bold=(index == self.tab))
         y += 2
@@ -424,7 +493,7 @@ class Screen:
         self.put(y, x, 'LIMITS', 'muted', bold=True); y += 1
         if limit_rows:
             for label, used, resets in limit_rows:
-                self.put(y, x, label.capitalize(), 'text', bold=True)
+                self.put(y, x, label[:1].upper() + label[1:], 'text', bold=True)
                 self.put(y, x + inner - 5, f'{used:4.0f}%', 'text'); y += 1
                 self.bar(y, x, inner, used / 100); y += 1
                 self.put(y, x, resets_in(resets), 'muted'); y += 1
@@ -474,13 +543,12 @@ class Screen:
             key = self.stdscr.getch()
             if key in (ord('q'), 27):
                 return
-            if key in (9, curses.KEY_RIGHT, ord('l'), ord('2'), curses.KEY_BTAB, curses.KEY_LEFT, ord('h'), ord('1')):
-                if key in (ord('1'),):
-                    self.tab = 0
-                elif key in (ord('2'),):
-                    self.tab = min(1, len(self.providers) - 1)
-                else:
-                    self.tab = (self.tab + 1) % len(self.providers)
+            if ord('1') <= key <= ord('9'):
+                self.tab = min(key - ord('1'), len(self.providers) - 1)
+            elif key in (9, curses.KEY_RIGHT, ord('l')):
+                self.tab = (self.tab + 1) % len(self.providers)
+            elif key in (curses.KEY_BTAB, curses.KEY_LEFT, ord('h')):
+                self.tab = (self.tab - 1) % len(self.providers)
             elif key == ord('r'):
                 self.providers = self.refresh()
             elif key == curses.KEY_RESIZE:
@@ -504,9 +572,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.json:
         providers, windows = gather(args.days, limits=not args.no_limits)
-        claude, codex = providers[0][1], providers[1][1]
-        print(json.dumps({'claude': {k: v for k, v in claude.items() if k != 'limits'},
-                          'codex': {k: v for k, v in codex.items()}, 'windows': windows}, default=str, indent=1))
+        print(json.dumps({title: totals for title, totals, _, _ in providers} | {'windows': windows}, default=str, indent=1))
         return 0
     interactive_terminal = not args.plain and sys.stdin.isatty() and sys.stdout.isatty() and not args.no_limits
     palette = {}

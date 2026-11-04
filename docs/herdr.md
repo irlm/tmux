@@ -71,9 +71,12 @@ puts its agents in the same sidebar; see Herdr's own documentation.
 
 ## LLM usage (`C-a $`)
 
-`scripts/llm_usage.py` reads the Claude Code and Codex transcripts touched in
-the last week, caches one aggregate per file, and shows tokens by day and by
-model for each agent. Live rate-limit windows come from
+`scripts/llm_usage.py` opens a card with one tab per agent on the machine:
+Claude Code, Codex and Antigravity from their transcripts of the last week
+(one cached aggregate per file), plus Grok, Copilot, Cursor and Kimi when
+`quota-axi` reports them set up, with their live windows only. Each tab shows
+the limit windows with their reset time, tokens by day and tokens by model.
+Tab, the arrows or the digits switch tabs, `r` refreshes, `q` closes. Live rate-limit windows come from
 `quota-axi` when it is installed;
 the first Claude reading needs `quota-axi --allow-keychain-prompt` once so it
 may read the credential from the Keychain. Nothing runs until the popup opens.

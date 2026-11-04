@@ -233,6 +233,19 @@ class UsageTests(unittest.TestCase):
         self.assertEqual(sum(parsed['models'].values()), 2230)
         self.assertEqual(parsed['models']['claude-opus-5-5'], 1115)
 
+    def test_antigravity_transcripts_count_model_steps_under_the_picked_model(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            file = Path(scratch) / 'transcript.jsonl'
+            file.write_text('\n'.join([
+                json.dumps({'source': 'USER_EXPLICIT', 'type': 'USER_INPUT', 'created_at': '2026-11-03T10:00:00Z',
+                            'content': 'The user changed setting `Model Selection` from None to Gemini 4 Argon (High). No need'}),
+                json.dumps({'source': 'MODEL', 'type': 'PLANNER_RESPONSE', 'created_at': '2026-11-03T10:00:01Z',
+                            'input_tokens': 7000, 'cache_read_tokens': 500, 'output_tokens': 170}),
+                json.dumps({'source': 'MODEL', 'type': 'GENERIC', 'created_at': '2026-11-03T10:00:06Z', 'content': 'tool output'}),
+            ]) + '\n')
+            parsed = llm_usage.parse_antigravity(file)
+        self.assertEqual(parsed['models'], {'Gemini 4 Argon': 7670})
+
     def test_codex_transcripts_attribute_turns_to_the_current_model(self):
         with tempfile.TemporaryDirectory() as scratch:
             file = Path(scratch) / 'rollout.jsonl'
