@@ -37,26 +37,78 @@ toml_string() {  # escape for a basic TOML string
     printf '"%s"' "${s//\"/\\\"}"
 }
 
-# [theme] for the palette saved by C-a C-t. Nord and Catppuccin map onto
-# Herdr's own themes; High contrast is Nord with brighter tokens. overlay1 is
-# what Herdr paints the tab bar status with, so it gets the palette's muted
-# (secondary text) colour, tested at 4.5:1 or better on both surfaces.
+# [theme]: by default the palette saved by C-a C-t. Nord and Catppuccin map
+# onto Herdr's own themes; High contrast is Nord with brighter tokens; the
+# palette's muted (secondary text) colour replaces overlay1, the token Herdr
+# paints the tab bar status with, which its themes keep too dim to read.
+#
+# A theme picked in Herdr's own settings wins until the next C-a C-t: Herdr
+# writes it into the rendered file, this notices the change, records it as
+# herdr_theme in options.env, and keeps emitting it with only overlay1 raised
+# to that theme's own secondary text colour.
 render_theme() {
-    python3 - "$SCRIPT_DIR" <<'PY'
-import sys
+    python3 - "$SCRIPT_DIR" "$TARGET" "$TMUX_USER_DIR/options.env" "$MARK" <<'PY'
+import os, re, sys
 sys.path.insert(0, sys.argv[1])
 from appearance import current_theme
+target, options_path, mark = sys.argv[2], sys.argv[3], sys.argv[4]
+# Secondary text of each built-in Herdr theme (src/app/state.rs, v0.9.5).
+NATIVE = {
+    'catppuccin': '#a6adc8', 'catppuccin-latte': '#6c6f85', 'tokyo-night': '#a9b1d6',
+    'tokyo-night-day': '#6172b0', 'dracula': '#d2d2dc', 'nord': '#d8dee9', 'gruvbox': '#d5c4a1',
+    'gruvbox-light': '#504945', 'one-dark': '#969ca8', 'one-light': '#686b77', 'solarized': '#839496',
+    'solarized-light': '#839496', 'kanagawa': '#c8c3aa', 'kanagawa-lotus': '#43436c',
+    'rose-pine': '#c8c5dc', 'rose-pine-dawn': '#797593', 'vesper': '#a0a0a0', 'terminal': None,
+}
 identifier, theme = current_theme()
 colors = theme['colors']
-base = 'catppuccin' if identifier == 'catppuccin' else 'nord'
+derived = 'catppuccin' if identifier == 'catppuccin' else 'nord'
+
+options = []
+try:
+    options = open(options_path, encoding='utf-8').read().splitlines()
+except OSError:
+    pass
+recorded = next((line.split('=', 1)[1].strip() for line in options if line.startswith('herdr_theme=')), '')
+
+installed = ''
+try:
+    with open(target, encoding='utf-8') as stream:
+        text = stream.read()
+    if text.startswith(mark):
+        match = re.search(r'^\[theme\]\s*\n(?:[^\[\n]*\n)*?name\s*=\s*"([^"]*)"', text, re.M)
+        installed = match.group(1) if match else ''
+except OSError:
+    pass
+chosen = recorded
+if installed and installed != derived and installed != recorded and installed in NATIVE:
+    chosen = installed   # picked inside Herdr since the last render: keep it
+if chosen != recorded:
+    kept = [line for line in options if not line.startswith('herdr_theme=')]
+    if chosen:
+        kept.append('herdr_theme=' + chosen)
+    try:
+        os.makedirs(os.path.dirname(options_path), exist_ok=True)
+        with open(options_path, 'w', encoding='utf-8') as stream:
+            stream.write(''.join(line + '\n' for line in kept))
+    except OSError:
+        pass
+
 print('[theme]')
-print(f'name = "{base}"')
-print('')
-print('[theme.custom]')
-for token, role in (('text', 'foreground'), ('subtext0', 'muted'), ('overlay1', 'muted'),
-                    ('accent', 'accent'), ('blue', 'blue'), ('teal', 'cyan'), ('green', 'green'),
-                    ('yellow', 'yellow'), ('red', 'red'), ('mauve', 'magenta')):
-    print(f'{token} = "{colors[role]}"')
+if chosen in NATIVE:
+    print(f'name = "{chosen}"')
+    if NATIVE[chosen]:
+        print('')
+        print('[theme.custom]')
+        print(f'overlay1 = "{NATIVE[chosen]}"')
+else:
+    print(f'name = "{derived}"')
+    print('')
+    print('[theme.custom]')
+    for token, role in (('text', 'foreground'), ('subtext0', 'muted'), ('overlay1', 'muted'),
+                        ('accent', 'accent'), ('blue', 'blue'), ('teal', 'cyan'), ('green', 'green'),
+                        ('yellow', 'yellow'), ('red', 'red'), ('mauve', 'magenta')):
+        print(f'{token} = "{colors[role]}"')
 PY
 }
 
