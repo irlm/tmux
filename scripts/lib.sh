@@ -38,8 +38,8 @@ private_dir() {
 }
 
 pause_close() {
-    printf '\nPress Enter to close...'
-    IFS= read -r _ || true
+    printf '\nPress any key to close...'
+    IFS= read -rsn1 _ || true
 }
 
 managed_tools() {

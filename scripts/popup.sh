@@ -30,7 +30,7 @@ fail() {  # $1 = what is missing, $2 = how to fix
     echo "  $1 on $(hostname -s 2>/dev/null || hostname)."
     echo ""
     [ -n "${2:-}" ] && { echo "  $2"; echo ""; }
-    read -rp "  Press Enter to close..." _
+    read -rsn1 -p "  Press any key to close..." _ || true
     exit 127
 }
 

@@ -17,7 +17,7 @@ REMOTE_MODE="$SCRIPT_DIR/remote-mode.sh"
 # The window closes when this script ends, so errors have to wait for a key.
 pause_exit() {
     echo ""
-    read -rp "Press Enter to close..." _
+    read -rsn1 -p "Press any key to close..." _ || true
     exit "${1:-0}"
 }
 

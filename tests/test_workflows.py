@@ -177,7 +177,7 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         result = self.run_script('scripts/ai-ask.sh', query, input='\n')
         self.assertEqual(result.returncode, 42)
         self.assertIn('authentication failed', result.stdout)
-        self.assertIn('Press Enter', result.stdout)
+        self.assertIn('Press any key', result.stdout)
         self.assertEqual(calls.read_text(), query)
         self.assertFalse((REPO / 'NEVER').exists())
 
