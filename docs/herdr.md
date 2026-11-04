@@ -82,13 +82,13 @@ may read the credential from the Keychain. Nothing runs until the popup opens.
 
 The theme chosen with `C-a C-t` carries over: Nord and Catppuccin map onto
 Herdr's own themes, High contrast onto Nord with brighter tokens, and the
-palette's secondary text colour replaces Herdr's dim status token so the tab
-bar's date and readings pass the same contrast check as the tmux status line.
+palette's full text colour replaces Herdr's dim status token so the tab bar's
+date and readings read like the tmux status line.
 
 Herdr's own picker (`C-a C-s`, theme) still works: Herdr writes the choice
 into the rendered file, the next render notices it, records it as
 `herdr_theme` in `options.env`, and keeps it with only the status token raised
-to that theme's secondary text. The next `C-a C-t` pick replaces it. Themes
+to that theme's text colour. The next `C-a C-t` pick replaces it. Themes
 are client-side in Herdr, so after any change press `C-a r` inside Herdr:
 `herdr server reload-config`, which the renderer runs, refreshes the server
 but not the colours you are looking at.
