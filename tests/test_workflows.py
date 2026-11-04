@@ -35,7 +35,8 @@ class WorkflowTests(unittest.TestCase):
         self.env = dict(os.environ, PATH=f'{self.bin}:' + os.environ['PATH'],
                         TMUX_CONFIG_DIR=str(REPO), TMUX_DATA_DIR=str(self.root / 'data'),
                         TMUX_CACHE_DIR=str(self.root / 'cache'), TMUX=str(self.root / 'socket') + ',1,0',
-                        TMUX_LOCAL_CONF=str(self.root / 'local.conf'), TMUX_THEME_DIR=str(self.root / 'theme'))
+                        TMUX_LOCAL_CONF=str(self.root / 'local.conf'), TMUX_THEME_DIR=str(self.root / 'theme'),
+                        HELIX_CONFIG_HOME=str(self.root / 'helix'))
 
     def executable(self, name, body):
         path = self.bin / name
@@ -535,6 +536,41 @@ else exec ''' + shlex_quote(real_git) + ''' "$@"; fi''')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((nvim / 'lazy-lock.json').read_text(), generated)
         self.assertEqual(git(nvim, 'stash', 'list'), '')
+
+
+class EditorTests(WorkflowTests):
+    def tools(self, profile, nvim_dir):
+        env = dict(self.env, NVIM_CONFIG_DIR=str(nvim_dir))
+        result = subprocess.run([BASH, '-c', f'source "{REPO}/scripts/lib.sh"; managed_tools {profile}'], env=env,
+                                capture_output=True, text=True, timeout=10)
+        return result.stdout.split()
+
+    def test_neovim_tools_follow_the_optional_checkout(self):
+        nvim = self.root / 'nvim'; nvim.mkdir()
+        self.assertNotIn('nvim', self.tools('desktop', nvim))
+        self.assertIn('hx', self.tools('desktop', nvim))
+        self.assertIn('delta', self.tools('desktop', nvim))
+        (nvim / 'init.lua').write_text('')
+        self.assertIn('nvim', self.tools('desktop', nvim))
+        self.assertIn('tree-sitter', self.tools('desktop', nvim))
+        server = self.tools('server', nvim)
+        self.assertIn('hx', server)
+        self.assertNotIn('nvim', server)
+        self.assertNotIn('delta', server)
+
+    def test_helix_config_is_linked_and_a_personal_one_backed_up(self):
+        home = self.root / 'helix'; home.mkdir()
+        (home / 'config.toml').write_text('theme = "mine"\n')
+        script = f'source "{REPO}/scripts/install-lib.sh"; install_helix_config "{REPO}/helix/config.toml"'
+        result = subprocess.run([BASH, '-c', script], env=self.env, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(os.readlink(home / 'config.toml'), str(REPO / 'helix/config.toml'))
+        backups = list(home.glob('config.toml.backup.*'))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_text(), 'theme = "mine"\n')
+        result = subprocess.run([BASH, '-c', script], env=self.env, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(list(home.glob('config.toml.backup.*'))), 1)
 
 
 class TmuxIntegrationTests(unittest.TestCase):

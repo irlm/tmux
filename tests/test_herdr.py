@@ -33,7 +33,8 @@ class HerdrFixture(unittest.TestCase):
         self.env = dict(env, PATH=f'{self.bin}:' + env['PATH'], TMUX_CONFIG_DIR=str(REPO),
                         TMUX_DATA_DIR=str(self.root / 'data'), TMUX_CACHE_DIR=str(self.root / 'cache'),
                         TMUX_THEME_DIR=str(self.user), HERDR_ENV='1', HERDR_BIN_PATH=str(self.bin / 'herdr'),
-                        HERDR_CONFIG_PATH=str(self.root / 'herdr' / 'config.toml'))
+                        HERDR_CONFIG_PATH=str(self.root / 'herdr' / 'config.toml'),
+                        HELIX_CONFIG_HOME=str(self.root / 'helix'), NVIM_CONFIG_DIR=str(self.root / 'no-nvim'))
 
     def fake_herdr(self, body='exit 0'):
         path = self.bin / 'herdr'
@@ -191,6 +192,28 @@ esac''')
         self.assertIn('pane read w1:p1 --source recent-unwrapped --lines 2000', self.calls())
         self.assertEqual((self.root / 'data/clip').read_text(), '4f3a2b1c')
 
+    def test_file_picker_opens_an_existing_file_at_its_line(self):
+        target = self.root / 'src' / 'app.py'; target.parent.mkdir(); target.write_text('x = 1\n')
+        self.fake_herdr('case "$*" in *"pane read"*) printf "see %s:12 then missing.py:3 and %s\\n" "$TARGET" "$TARGET" ;; esac')
+        (self.bin / 'fzf').write_text('#!/bin/bash\ncat | head -1\n'); (self.bin / 'fzf').chmod(0o755)
+        (self.bin / 'hx').write_text('#!/bin/bash\necho "hx $*" > "$TMUX_DATA_DIR/opened"\n'); (self.bin / 'hx').chmod(0o755)
+        (self.root / 'data').mkdir()
+        env = dict(self.env, HERDR_ACTIVE_PANE_ID='w1:p1', TARGET=str(target), EDITOR='hx')
+        result = self.run_script('scripts/pick.sh', 'files', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'data/opened').read_text().strip(), f'hx {target}:12')
+
+    def test_agent_send_types_into_the_agent_pane_of_this_workspace(self):
+        self.fake_herdr('''case "$*" in
+  *"agent list"*) echo '{"result":{"agents":[{"pane_id":"w2:p1","workspace_id":"w2"},{"pane_id":"w1:p3","workspace_id":"w1"}]}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        env = dict(self.env, HERDR_WORKSPACE_ID='w1')
+        result = self.run_script('scripts/agent-send.sh', input='review this hunk\n', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('pane send-text w1:p3 review this hunk', self.calls())
+        self.assertNotIn('pane send-text w2:p1 review this hunk', self.calls())
+
     def test_sessionizer_focuses_an_existing_workspace_and_creates_new_ones(self):
         project = self.root / 'projects/api'; (project / '.git').mkdir(parents=True)
         other = self.root / 'projects/web'; (other / '.git').mkdir(parents=True)
@@ -251,6 +274,10 @@ class HelpTests(unittest.TestCase):
         self.assertNotIn('Restore sessions', herdr)
         self.assertIn('LLM usage and limits', herdr)
         self.assertIn('LLM usage and limits', tmux)
+        for text in (herdr, tmux):
+            self.assertIn('Helix (no prefix)', text)
+            self.assertIn('Send selection or line to the agent', text)
+            self.assertIn('Open a file:line from the pane', text)
 
 
 class UsageTests(unittest.TestCase):

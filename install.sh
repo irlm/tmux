@@ -5,20 +5,26 @@
 # Server (light): bash install.sh --server
 #
 # --full:   multi-distro, shell config, nerd font, zsh plugins, dev toolchain, Docker
-# --server: minimal — tmux, neovim (no LSPs), fzf, bat, btop, ripgrep
+# --server: minimal — tmux, Helix, fzf, bat, btop, ripgrep
 # --herdr:  also install Herdr (herdr.dev) with this repo's keys, popups and plugin;
 #           an already installed Herdr is configured without the flag
+# --nvim:   also install Neovim with the irlm/nvim config (optional second editor;
+#           an existing ~/.config/nvim checkout keeps being updated without the flag)
 set -euo pipefail
 
 MODE="default"
 WANT_HERDR=0
+WANT_NVIM=0
+[ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/init.lua" ] || WANT_NVIM=1
 for arg in "$@"; do
     case "$arg" in
         --full|-f)   MODE="full" ;;
         --server|-s) MODE="server" ;;
         --herdr)     WANT_HERDR=1 ;;   # also install Herdr and configure it from this repo
+        --nvim)      WANT_NVIM=1 ;;    # also install Neovim and its config
     esac
 done
+export WANT_NVIM
 
 # ─── Helper: bootstrap curl ──────────────────────────────
 ensure_curl() {
@@ -118,9 +124,9 @@ if [ "$MODE" = "server" ]; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq curl git tmux htop jq build-essential w3m python3 fd-find
+            sudo apt-get install -y -qq curl git tmux htop jq build-essential w3m python3 fd-find xz-utils
             # neovim (apt version is too old for LazyVim on Ubuntu < 24.04)
-            if ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; then
+            if [ "$WANT_NVIM" = 1 ] && { ! command -v nvim &>/dev/null || [ "$(nvim --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)" -lt 10 ] 2>/dev/null; }; then
                 echo "  Installing neovim via appimage..."
                 sudo apt-get remove -y neovim neovim-runtime 2>/dev/null || true
                 NVIM_ARCH=$(uname -m); [ "$NVIM_ARCH" = "aarch64" ] && NVIM_ARCH="arm64"
@@ -129,12 +135,16 @@ if [ "$MODE" = "server" ]; then
                 sudo mv /tmp/nvim.appimage /usr/local/bin/nvim
             fi
         elif command -v dnf &>/dev/null; then
-            sudo dnf install -y -q curl git tmux jq neovim gcc make w3m python3 fd-find
+            sudo dnf install -y -q curl git tmux jq gcc make w3m python3 fd-find xz
+            [ "$WANT_NVIM" != 1 ] || sudo dnf install -y -q neovim
         elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm --needed curl git tmux jq neovim base-devel w3m python fd
+            sudo pacman -S --noconfirm --needed curl git tmux jq base-devel w3m python fd xz
+            [ "$WANT_NVIM" != 1 ] || sudo pacman -S --noconfirm --needed neovim
         elif command -v zypper &>/dev/null; then
-            sudo zypper install -y curl git tmux jq neovim gcc make w3m python3
+            sudo zypper install -y curl git tmux jq gcc make w3m python3 xz
+            [ "$WANT_NVIM" != 1 ] || sudo zypper install -y neovim
         fi
+        install_helix_linux || true
 
         # GitHub-first installs (latest versions, package manager fallback)
         ARCH=$(uname -m)
@@ -187,14 +197,16 @@ if [ "$MODE" = "server" ]; then
     fi
 
     clone_config tmux "$HOME/.config/tmux"
-    clone_config nvim "$HOME/.config/nvim"
+    install_helix_config "$HOME/.config/tmux/helix/config.toml"
+    if [ "$WANT_NVIM" = 1 ]; then
+        clone_config nvim "$HOME/.config/nvim"
+        # Mark nvim as server mode (disables LSPs, heavy treesitter, Mason packages)
+        touch "$HOME/.config/nvim/.server"
+    fi
 
     install_tmux_plugins "$HOME/.config/tmux"
 
     install_shell_integration server
-
-    # Mark nvim as server mode (disables LSPs, heavy treesitter, Mason packages)
-    touch "$HOME/.config/nvim/.server"
 
     # Data dirs
     mkdir -p "$HOME/.local/share/tmux" "$HOME/.local/bin"
@@ -209,9 +221,11 @@ if [ "$MODE" = "server" ]; then
     echo "Next steps:"
     echo "  1. Start tmux: tmux"
     echo "  2. Install tmux plugins: C-a I"
-    echo "  3. Open nvim (plugins auto-install on first launch)"
-    echo "     Note: LSPs won't install without dev toolchains — that's expected on servers."
-    echo "     nvim still works great for editing scripts, configs, and logs."
+    echo "  3. Edit with hx (Helix: this repo's config, no plugins to install)"
+    if [ "$WANT_NVIM" = 1 ]; then
+        echo "  4. Open nvim (plugins auto-install on first launch)"
+        echo "     Note: LSPs won't install without dev toolchains — that's expected on servers."
+    fi
     echo ""
     exit 0
 fi
@@ -219,8 +233,9 @@ fi
 # ─── Default install mode ────────────────────────────────
 echo "=== dotfiles installer ==="
 echo "    --full    multi-distro setup with shell config, nerd font, dev toolchain"
-echo "    --server  lightweight server install (tmux, nvim, fzf, bat, btop)"
+echo "    --server  lightweight server install (tmux, hx, fzf, bat, btop)"
 echo "    --herdr   also install Herdr and configure it from this repo"
+echo "    --nvim    also install Neovim with the irlm/nvim config"
 echo ""
 
 # Detect OS
@@ -269,10 +284,13 @@ if [ "$OS" = "Darwin" ]; then
     done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux nodejs npm golang-go default-jdk python3 build-essential w3m jq
+    sudo apt-get install -y tmux nodejs npm golang-go default-jdk python3 build-essential w3m jq xz-utils
+    install_helix_linux || true
     # neovim via appimage (apt version is too old for LazyVim, needs 0.10+)
     install_nvim=false
-    if ! command -v nvim &>/dev/null; then
+    if [ "$WANT_NVIM" != 1 ]; then
+        :
+    elif ! command -v nvim &>/dev/null; then
         install_nvim=true
     else
         nvim_ver=$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
@@ -309,6 +327,7 @@ elif [ "$OS" = "Linux" ]; then
     install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
     install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
     install_gh_binary "cli/cli" "gh" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
+    install_gh_binary "dandavison/delta" "delta" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
 
     # zoxide (official install script)
     command -v zoxide &>/dev/null || curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
@@ -343,15 +362,20 @@ echo "Setting up configs..."
 
 
 clone_config tmux "$HOME/.config/tmux"
-clone_config nvim "$HOME/.config/nvim"
-rm -f -- "$HOME/.config/nvim/.server"
+install_helix_config "$HOME/.config/tmux/helix/config.toml"
+if [ "$WANT_NVIM" = 1 ]; then
+    clone_config nvim "$HOME/.config/nvim"
+    rm -f -- "$HOME/.config/nvim/.server"
+fi
 
 # ─── TPM plugins ──────────────────────────────────────────
 echo ""
 echo "Installing tmux plugins..."
 install_tmux_plugins "$HOME/.config/tmux"
 
-# ─── Neovim language toolchain ───────────────────────────
+# ─── Language toolchains ─────────────────────────────────
+# Helix and Neovim both find these language servers; the toolchains are
+# installed either way so the agents' code can be built and run here.
 echo ""
 echo "Setting up neovim language dependencies..."
 
@@ -450,7 +474,8 @@ echo "Next steps:"
 echo "  1. Open a new terminal (its font should be 'JetBrainsMono Nerd Font'; Ghostty was set up for it)"
 echo "  2. Run: tmux"
 echo "  3. Press C-a I to install tmux plugins"
-echo "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
+echo "  4. Edit with hx (Helix, configured from this repo; hx --tutor teaches the keys)"
+[ "$WANT_NVIM" != 1 ] || echo "     Or nvim (plugins + LSPs auto-install on first launch)"
 if command -v herdr >/dev/null 2>&1; then echo "  5. Or run: herdr (same keys, agent sidebar; see docs/herdr.md)"; fi
 echo ""
 echo "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"

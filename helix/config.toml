@@ -1,0 +1,57 @@
+# Managed by irlm/tmux (helix/config.toml); linked to ~/.config/helix/config.toml.
+# Helix for the review desk: the Nord palette, relative numbers, and a few keys
+# for working beside coding agents. ctrl+h/j/k/l are left to Herdr and tmux,
+# which move between panes; Helix's own windows use C-w as usual. On Windows
+# the installer copies this file and points [editor] shell at Git Bash.
+theme = "nord"
+
+[editor]
+line-number = "relative"
+cursorline = true
+bufferline = "multiple"
+color-modes = true
+true-color = true
+rulers = [100]
+idle-timeout = 150
+completion-trigger-len = 2
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name", "file-modification-indicator", "read-only-indicator"]
+center = ["diagnostics"]
+right = ["version-control", "position", "file-encoding", "file-type"]
+
+[editor.lsp]
+display-inlay-hints = false
+display-messages = true
+
+[editor.indent-guides]
+render = true
+character = "│"
+
+[editor.file-picker]
+hidden = false
+
+# The review leader is - (minus): one plain key on every keyboard layout.
+[keys.normal."-"]
+a = ":pipe-to bash ~/.config/tmux/scripts/agent-send.sh"   # selection (or line) to the agent pane
+y = ":clipboard-yank"
+g = ":sh ~/.config/tmux/scripts/actions.sh open git"        # lazygit in a popup (Herdr or tmux)
+f = ":sh ~/.config/tmux/scripts/actions.sh open open-file"  # open a file:line an agent mentioned
+r = ":reload-all"
+
+[keys.select."-"]
+a = ":pipe-to bash ~/.config/tmux/scripts/agent-send.sh"
+y = ":clipboard-yank"
+
+# Agent-style jumps: next/previous change in the file, next/previous diagnostic.
+[keys.normal."]"]
+c = "goto_next_change"
+e = "goto_next_diag"
+[keys.normal."["]
+c = "goto_prev_change"
+e = "goto_prev_diag"

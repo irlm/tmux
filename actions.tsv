@@ -7,7 +7,7 @@ t	top	System monitor	btop|htop	all
 d	docker	Docker dashboard	lazydocker	all	
 i	info	System information	-	all	100x36
 ?	help	Tmux keybindings	python3&less	all	
-!	nvim-help	Neovim keybindings	less	all	
+!	editor-help	Editor keybindings (Helix, Neovim)	less	all	
 n	notes	Notes	fzf	all	
 o	projects	Projects and sessions	fzf	all	
 /	history	Search pane history	fzf	all	
@@ -19,6 +19,7 @@ C	cheat	Cheat.sh reference	curl&python3	all
 V	tldr	tldr reference	tldr	all	
 C-u	update	Update environment	-	all	
 $	llm	LLM usage and limits	python3	all	
+C-f	open-file	Open a file:line from the pane	fzf	all	
 s	ssh	SSH in new window	ssh	all	
 P	ssh-split	SSH in split pane	ssh	all	
 N	new-session	New session	-	all	

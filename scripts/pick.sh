@@ -5,6 +5,7 @@
 #
 #   pick.sh hints    paths, URLs, hashes, UUIDs, addresses and long tokens -> clipboard
 #   pick.sh urls     URLs -> browser
+#   pick.sh files    file[:line] mentions that exist here -> $EDITOR at that line
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -37,6 +38,19 @@ import re, sys
 mode = sys.argv[1]
 text = sys.stdin.read()
 url = r'(?:https?|ftp|ssh|git)://[^\s<>"\')\]]+'
+if mode == 'files':
+    # path[:line[:col]] as agents and compilers print them; only existing files.
+    import os
+    seen = []
+    for match in re.finditer(r'(?<![\w/])((?:~|\.{1,2})?/?(?:[\w.@+-]+/)*[\w.@+-]+\.[A-Za-z0-9]{1,8})(?::(\d+))?', text):
+        path, line = match.group(1), match.group(2)
+        candidate = os.path.expanduser(path)
+        if os.path.isfile(candidate):
+            token = path + (':' + line if line else '')
+            if token not in seen:
+                seen.append(token)
+    sys.stdout.write('\n'.join(seen) + ('\n' if seen else ''))
+    sys.exit(0)
 patterns = [url] if mode == 'urls' else [
     url,
     r'(?:~|\.\.?)?/(?:[\w.@+-]+/)*[\w.@+-]+',          # paths
@@ -80,6 +94,15 @@ case "$mode" in
         chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --prompt='URL > ' --header='Enter: open in browser | Esc: quit') || exit 0
         [ -n "$chosen" ] || exit 0
         open_url "$chosen" ;;
+    files)
+        chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --prompt='Open > ' --header='Enter: open at that line in $EDITOR | Esc: quit') || exit 0
+        [ -n "$chosen" ] || exit 0
+        file=${chosen%%:*}; line=${chosen#"$file"}; line=${line#:}
+        editor=${EDITOR:-nvim}
+        case "$editor" in
+            *hx*) exec "$editor" "$chosen" ;;
+            *) if [ -n "$line" ]; then exec "$editor" "+$line" "$file"; else exec "$editor" "$file"; fi ;;
+        esac ;;
     *)
         chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --multi --prompt='Copy > ' --header='Tab: select several | Enter: copy | Esc: quit') || exit 0
         [ -n "$chosen" ] || exit 0

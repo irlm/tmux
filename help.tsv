@@ -44,6 +44,14 @@ Shell (full setup)	Alt-c	Find directories	all
 Shell (full setup)	dotup	Update environment	all
 Shell (full setup)	dotcheck	Check environment	all
 Shell (full setup)	ta	Attach or create tmux session	all
+Helix (no prefix)	- a	Send selection or line to the agent	all
+Helix (no prefix)	- f	Open a file:line the pane mentions	all
+Helix (no prefix)	- g	Lazygit	all
+Helix (no prefix)	- y	Copy selection to the clipboard	all
+Helix (no prefix)	- r	Reload files the agent changed	all
+Helix (no prefix)	] c [ c	Next / previous change	all
+Helix (no prefix)	] e [ e	Next / previous diagnostic	all
+Helix (no prefix)	Space f	File picker	all
 Lazygit (no prefix)	Space	Stage / unstage	all
 Lazygit (no prefix)	c	Commit	all
 Lazygit (no prefix)	p P	Push / pull	all

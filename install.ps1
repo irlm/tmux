@@ -60,8 +60,14 @@ if ($manifestPath -and (Test-Path $manifestPath)) {
 } else {
     $toolManifest = (Invoke-RestMethod "https://raw.githubusercontent.com/irlm/tmux/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
 }
-$required = @($toolManifest | Where-Object { $_.scoop -ne "-" } | ForEach-Object { $_.scoop })
+# Neovim is the optional second editor (Helix is the managed one): set
+# INSTALL_NVIM=1, or keep an existing %LOCALAPPDATA%\nvim checkout, to get it.
+$nvimPath = "$env:LOCALAPPDATA\nvim"
+$wantNvim = ($env:INSTALL_NVIM -eq "1") -or (Test-Path "$nvimPath\init.lua")
+$required = @($toolManifest | Where-Object { $_.scoop -ne "-" -and $_.profile -ne "nvim" } | ForEach-Object { $_.scoop })
+$nvimTools = @($toolManifest | Where-Object { $_.scoop -ne "-" -and $_.profile -eq "nvim" } | ForEach-Object { $_.scoop })
 $extras = @("nodejs", "go", "openjdk")   # language toolchains: wanted, not required
+if ($wantNvim) { $extras = $nvimTools + $extras }
 # Windows on ARM: Neovim compiles its treesitter parsers with gcc, which only
 # exists for x86_64 there, and the tree-sitter tool must match the parsers it
 # loads. The x86_64 Neovim and tree-sitter run under emulation, consistently.
@@ -136,28 +142,28 @@ foreach ($wt in @("$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d
     break
 }
 
-# ─── Neovim language toolchain ──────────────────────────
-# Wanted for the editor's LSPs, not required for the terminal setup: a
-# failure here is reported and skipped.
+# ─── Language toolchains ─────────────────────────────────
+# Wanted for the editors' language servers, not required for the terminal
+# setup: a failure here is reported and skipped.
 Write-Host ""
-Write-Host "Installing neovim language dependencies..."
+Write-Host "Installing language toolchains..."
 
 # Scoop puts new shims on the user PATH; this process needs them now.
 function Refresh-Path {
     $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User") + ";$env:USERPROFILE\scoop\shims"
 }
 
-try {
-    # Treesitter parsers are compiled on this machine: a C compiler and the
-    # tree-sitter CLI, both from Scoop's main bucket.
-    foreach ($pkg in @("gcc", "tree-sitter")) {
-        if (-not (scoop list $pkg 2>$null | Select-String $pkg)) {
-            Write-Host "  Installing $pkg (treesitter parsers)..."
-            if ($pkg -in $x64Only) { scoop install $pkg --arch 64bit } else { scoop install $pkg }
+if ($wantNvim) {
+    try {
+        # Neovim compiles its treesitter parsers on this machine: a C compiler
+        # beside the tree-sitter CLI, both from Scoop's main bucket.
+        if (-not (scoop list gcc 2>$null | Select-String gcc)) {
+            Write-Host "  Installing gcc (treesitter parsers)..."
+            scoop install gcc
         }
-    }
-    Refresh-Path
-} catch { Write-Host "  Skipped the treesitter toolchain: $_" -ForegroundColor Yellow }
+        Refresh-Path
+    } catch { Write-Host "  Skipped the treesitter toolchain: $_" -ForegroundColor Yellow }
+}
 
 try {
     # Rust: install rustup + rust-analyzer (rustup reports progress on stderr)
@@ -212,7 +218,6 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 Write-Host ""
 $backupDir = "$env:USERPROFILE\.config\dotfiles-backup\$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
-$nvimPath = "$env:LOCALAPPDATA\nvim"
 $tmuxPath = "$env:USERPROFILE\.config\tmux"
 
 # Backup PowerShell profile
@@ -259,10 +264,37 @@ function Clone-OrPull {
     }
 }
 
-Clone-OrPull -Repo "nvim.git" -Dest $nvimPath -Name "nvim"
+if ($wantNvim) { Clone-OrPull -Repo "nvim.git" -Dest $nvimPath -Name "nvim" }
 
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.config" -Force | Out-Null
 Clone-OrPull -Repo "tmux.git" -Dest $tmuxPath -Name "tmux"
+
+# ─── Helix config ────────────────────────────────────────
+# The repo's Helix config, with its commands handed to Git Bash so the review
+# keys run the same scripts as on macOS and Linux.
+$helixDir = Join-Path $env:APPDATA "helix"
+$helixConfig = Join-Path $helixDir "config.toml"
+$helixSource = Join-Path $tmuxPath "helix\config.toml"
+if (Test-Path $helixSource) {
+    New-Item -ItemType Directory -Path $helixDir -Force | Out-Null
+    $existing = if (Test-Path $helixConfig) { Get-Content $helixConfig -Raw } else { "" }
+    if ($existing -and $existing -notmatch "Managed by irlm/tmux") {
+        New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+        Copy-Item $helixConfig "$backupDir\helix-config.toml"
+        Write-Host "  Backed up your Helix config to $backupDir\"
+    }
+    $bashExe = $null
+    foreach ($candidate in @("$env:ProgramFiles\Git\bin\bash.exe", "${env:ProgramFiles(x86)}\Git\bin\bash.exe", "$env:USERPROFILE\scoop\apps\git\current\bin\bash.exe")) {
+        if ($candidate -and (Test-Path $candidate)) { $bashExe = $candidate; break }
+    }
+    $rendered = Get-Content $helixSource -Raw
+    if ($bashExe) {
+        $shellLine = 'shell = ["' + ($bashExe -replace '\\', '\\') + '", "-c"]'
+        $rendered = $rendered -replace '(?m)^\[editor\]\r?$', ("[editor]`n" + $shellLine)
+    }
+    [System.IO.File]::WriteAllText($helixConfig, $rendered, (New-Object System.Text.UTF8Encoding $false))
+    Write-Host "  Helix config written to $helixConfig"
+}
 
 # ─── PowerShell profile ──────────────────────────────────
 Write-Host ""
@@ -325,7 +357,11 @@ if ($profileContent -notmatch "lazygit") {
     Add-Content $PROFILE "Set-Alias -Name lg -Value lazygit"
     Add-Content $PROFILE "Set-Alias -Name ld -Value lazydocker"
     Add-Content $PROFILE "Set-Alias -Name g -Value git"
-    Add-Content $PROFILE "Set-Alias -Name vim -Value nvim"
+    Add-Content $PROFILE "Set-Alias -Name vim -Value hx"
+}
+if ($profileContent -notmatch 'env:EDITOR') {
+    Add-Content $PROFILE "`n# ─── editor (Helix; nvim when installed with INSTALL_NVIM=1) ───"
+    Add-Content $PROFILE 'if (-not $env:EDITOR) { $env:EDITOR = "hx" }'
 }
 
 # ─── Herdr (optional) ────────────────────────────────────
@@ -360,13 +396,14 @@ Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal"
 Write-Host "  2. Windows Terminal's default font is JetBrainsMono Nerd Font (set here unless it had one); other terminals: pick it in their settings"
 Write-Host "  3. Launch Docker Desktop"
-Write-Host "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
+Write-Host "  4. Edit with hx (Helix, configured from this repo; hx --tutor teaches the keys)"
+if ($wantNvim) { Write-Host "     Or nvim (plugins + LSPs auto-install on first launch)" }
 Write-Host "  5. Run: lazygit, lazydocker, btop, fastfetch"
 Write-Host "  6. For tmux: install WSL ('wsl --install' in admin PowerShell)"
 if (Get-Command herdr -ErrorAction SilentlyContinue) { Write-Host "  7. Run: herdr (same keys as tmux, agent sidebar; docs\herdr.md)" }
 Write-Host ""
 Write-Host "What was installed:" -ForegroundColor Cyan
-Write-Host "  Editor:      neovim (LazyVim with LSP for 9 languages)"
+Write-Host "  Editor:      Helix (hx) with this repo's review keys$(if ($wantNvim) { '; Neovim (LazyVim) too' })"
 Write-Host "  Dev tools:   Rust, Go, Python, Node.js, Java, Scala (Metals)"
 Write-Host "  Git:         lazygit, gh (GitHub CLI)"
 Write-Host "  Containers:  Docker Desktop, lazydocker"

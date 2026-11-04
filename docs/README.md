@@ -15,7 +15,7 @@ The root [`README.md`](../README.md) is the quick-start version. Use the guides 
 
 ## Project Summary
 
-This repo owns the tmux configuration, shell integration, helper scripts, and installer scripts. It pairs with the separate [irlm/nvim](https://github.com/irlm/nvim) repo for the Neovim configuration.
+This repo owns the tmux configuration, shell integration, helper scripts, and installer scripts. It ships the Helix config and pairs optionally with the separate [irlm/nvim](https://github.com/irlm/nvim) repo for the Neovim configuration.
 
 If you are new to the project, the best path is:
 

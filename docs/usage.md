@@ -24,7 +24,7 @@ If you just installed the project, these are the commands and keys you will prob
 | `C-a o` | open the sessionizer/project switcher |
 | `C-a g` | open `lazygit` |
 | `C-a r` | reload the tmux config |
-| `nvim` | open Neovim |
+| `hx` | open Helix |
 
 ## Popups
 
@@ -180,6 +180,6 @@ These are the aliases documented for the shell setup that ships with the project
 | `dotcheck` | report what is outdated or missing, change nothing |
 | `C-a C-u` | same update, in a tmux popup |
 | `C-a ?` | open the on-screen cheatsheet |
-| `nvim` | open the paired Neovim setup |
+| `hx` | open Helix (or `nvim` when installed with `--nvim`) |
 
 Personal settings, project roots, profile options and diagnostics are documented in [Customization and diagnostics](customization.md).

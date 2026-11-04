@@ -85,7 +85,7 @@ PATH_BLOCK
         if [ "$profile" != full ]; then
             printf 'command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init %s)"\n' "$target"
         fi
-        printf 'export EDITOR="${EDITOR:-nvim}"\nexport VISUAL="${VISUAL:-$EDITOR}"\n'
+        printf 'if [ -z "${EDITOR:-}" ]; then for _ed in hx nvim vim vi; do command -v "$_ed" >/dev/null 2>&1 && EDITOR=$_ed && break; done; unset _ed; fi\nexport EDITOR VISUAL="${VISUAL:-$EDITOR}"\n'
         printf "alias dotup='~/.config/tmux/update.sh'\nalias dotcheck='~/.config/tmux/update.sh --check'\n"
         printf '[ ! -f "$HOME/.config/tmux/shell/theme-env.sh" ] || . "$HOME/.config/tmux/shell/theme-env.sh"\n'
         printf 'true\n'
@@ -122,11 +122,23 @@ install_shell_integration() {
     printf 'Shell integration: %s (%s)\n' "$rc" "$target"
 }
 
+# tools.tsv scopes: all, desktop (not on servers) and nvim (only when the
+# optional Neovim config is wanted or already checked out, never on servers).
+tool_in_scope() {
+    local profile=$1 scope=$2
+    case "$scope" in
+        all) return 0 ;;
+        desktop) [ "$profile" != server ] ;;
+        nvim) [ "$profile" != server ] && { [ "${WANT_NVIM:-0}" = 1 ] || [ -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/init.lua" ]; } ;;
+        *) return 1 ;;
+    esac
+}
+
 install_brew_tools() {
     local profile=$1 assets=$2 command formula _ scope
     while IFS=$'\t' read -r command formula _ scope; do
         [ "$command" != command ] || continue
-        [ "$profile" != server ] || [ "$scope" = all ] || continue
+        tool_in_scope "$profile" "${scope%$'\r'}" || continue
         [ "$formula" != - ] || continue
         command -v "$command" >/dev/null 2>&1 || brew install "$formula"
     done < "$assets/tools.tsv"
@@ -154,13 +166,47 @@ check_install_tools() {
     local profile=$1 assets=$2 command _ scope missing=""
     while IFS=$'\t' read -r command _ _ scope; do
         [ "$command" != command ] || continue
-        [ "$profile" != server ] || [ "$scope" = all ] || continue
+        tool_in_scope "$profile" "${scope%$'\r'}" || continue
         command -v "$command" >/dev/null 2>&1 || missing="$missing $command"
     done < "$assets/tools.tsv"
     if [ -n "$missing" ]; then
         printf 'Install incomplete. Required tools missing:%s\nRun ~/.config/tmux/update.sh --fix after resolving the errors above.\n' "$missing" >&2
         return 1
     fi
+}
+
+# Helix: the managed editor. One archive carries the binary and its runtime,
+# so Linux takes the GitHub release into ~/.local/share/helix; macOS uses brew.
+install_helix_linux() {
+    command -v hx >/dev/null 2>&1 && return 0
+    local arch url tmp
+    arch=$(uname -m)
+    echo "  Installing Helix from GitHub (helix-editor/helix)..."
+    url=$(curl -fsSL https://api.github.com/repos/helix-editor/helix/releases/latest \
+        | grep browser_download_url | grep -E "helix-[0-9.]+-${arch}-linux\.tar\.xz\"" | head -1 | cut -d '"' -f 4) || true
+    [ -n "$url" ] || { echo "    Could not find a Helix release for $arch" >&2; return 1; }
+    tmp=$(mktemp -d)
+    if ! curl -fsSL "$url" | tar xJ -C "$tmp" --strip-components=1; then rm -rf "$tmp"; return 1; fi
+    [ -x "$tmp/hx" ] || { echo '    Helix archive had no hx binary' >&2; rm -rf "$tmp"; return 1; }
+    rm -rf "$HOME/.local/share/helix.new"; mv "$tmp" "$HOME/.local/share/helix.new"
+    rm -rf "$HOME/.local/share/helix"; mv "$HOME/.local/share/helix.new" "$HOME/.local/share/helix"
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$HOME/.local/share/helix/hx" "$HOME/.local/bin/hx"
+    echo '    hx installed to ~/.local/bin (runtime in ~/.local/share/helix)'
+}
+
+# Link this repo's Helix config; a hand-written one is backed up first.
+install_helix_config() {
+    local source=$1 dest="${HELIX_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/helix}/config.toml"
+    [ -f "$source" ] || return 0
+    mkdir -p "$(dirname "$dest")"
+    if [ -L "$dest" ]; then
+        [ "$(readlink "$dest")" = "$source" ] && return 0
+    elif [ -f "$dest" ] && ! head -3 "$dest" | grep -qF 'Managed by irlm/tmux'; then
+        mv -- "$dest" "$dest.backup.$(date +%Y%m%d-%H%M%S)"
+        printf 'Previous Helix config saved beside it as a .backup file\n'
+    fi
+    ln -sfn "$source" "$dest"
 }
 
 # Herdr: render this repo's config and plugin for it and wire the agent

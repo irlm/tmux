@@ -86,10 +86,14 @@ done
 export PATH
 profile=desktop
 [ ! -f "$NVIM_DIR/.server" ] || profile=server
-before_nvim=$failures
-update_repo nvim "$NVIM_DIR"
-nvim_repo_ready=1
-[ "$failures" -eq "$before_nvim" ] || nvim_repo_ready=0
+nvim_repo_ready=0
+if [ -f "$NVIM_DIR/init.lua" ]; then
+    # Neovim is the optional second editor: only an existing checkout is updated.
+    before_nvim=$failures
+    update_repo nvim "$NVIM_DIR"
+    [ "$failures" -ne "$before_nvim" ] || nvim_repo_ready=1
+fi
+
 if [ "$MODE" = check ]; then
     "$ASSET_DIR/scripts/doctor.sh" || failed 'environment health check'
     [ "$failures" -eq 0 ] || exit 1
@@ -99,6 +103,10 @@ fi
 private_dir "$TMUX_DATA_DIR" || exit 1
 LOG_DIR="$TMUX_DATA_DIR/update-logs"
 private_dir "$LOG_DIR" || exit 1
+# shellcheck source=scripts/install-lib.sh
+source "$ASSET_DIR/scripts/install-lib.sh"
+printf '\n── Helix ──\n'
+if install_helix_config "$ASSET_DIR/helix/config.toml"; then echo '  OK: config linked'; else failed 'Helix config link'; fi
 run_logged() {
     local name=$1; shift
     if "$@" > "$LOG_DIR/$name.log" 2>&1; then printf '  OK: %s\n' "$name";

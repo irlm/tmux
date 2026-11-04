@@ -1,4 +1,4 @@
-# Tmux + Neovim Dev Environment
+# Tmux + Herdr Dev Environment
 
 Cross-platform terminal setup for a consistent development environment on macOS, Linux, and Windows.
 
@@ -10,7 +10,7 @@ This repo is the tmux and terminal side of the setup. It gives you:
 - helper popups for tools like `lazygit`, `lazydocker`, notes, and project switching
 - the same keys on your servers: `C-a s` installs the config over SSH and, while a remote tmux is in front, your bindings act there
 - shell prompt and CLI tooling bootstrap scripts
-- integration with the separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config
+- Helix as the editor, configured for reviewing beside coding agents; the separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config stays available with `--nvim`
 - the same keys, popups and theme in [Herdr](docs/herdr.md), the multiplexer that shows which coding agent needs you
 
 The root README is intentionally lean. Full documentation lives in [`docs/`](docs/README.md).
@@ -47,7 +47,7 @@ For tmux on Windows, use WSL: `wsl --install`
 1. The installer installs `JetBrainsMono Nerd Font` and points Ghostty or Windows Terminal at it; any other terminal, pick that font in its settings.
 2. Start tmux with `tmux`.
 3. Install tmux plugins with `C-a I`.
-4. Open Neovim with `nvim` and let plugins/LSPs finish installing on first launch.
+4. Edit with `hx` (Helix, configured from this repo; `hx --tutor` teaches the keys).
 5. Press `C-a C-t` (Ctrl-a, then Ctrl-t) to preview and save a theme.
 
 ## Update an Existing Install
@@ -64,7 +64,7 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 | Command / Key | What it does |
 |---------------|--------------|
 | `tmux` | start tmux |
-| `nvim` | open Neovim |
+| `hx` | open Helix |
 | `C-a c` | create a new tmux window |
 | `C-a \|` / `C-a -` | split the current pane |
 | `C-a h j k l` | move between panes |
@@ -91,4 +91,4 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 
 ## Related Repo
 
-- [irlm/nvim](https://github.com/irlm/nvim) for the Neovim/LazyVim configuration
+- [irlm/nvim](https://github.com/irlm/nvim) for the optional Neovim/LazyVim configuration

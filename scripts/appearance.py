@@ -66,6 +66,11 @@ def atomic_write(path, content):
 
 def lazygit_theme(theme):
     c = theme['colors']
+    # delta gives the diff pane syntax colours and line numbers (git-delta);
+    # without it lazygit falls back to git's own colouring.
+    pager = {}
+    if shutil.which('delta'):
+        pager = {'paging': {'colorArg': 'always', 'pager': 'delta --dark --paging=never --line-numbers --syntax-theme Nord'}}
     styles = {
         'activeBorderColor': [c['accent'], 'bold'],
         'inactiveBorderColor': [c['muted']],
@@ -81,7 +86,10 @@ def lazygit_theme(theme):
         'markedBaseCommitFgColor': [c['background']],
         'markedBaseCommitBgColor': [c['yellow']],
     }
-    return {'gui': {'colorScheme': 'dark', 'theme': styles, 'darkTheme': styles}}
+    config = {'gui': {'colorScheme': 'dark', 'theme': styles, 'darkTheme': styles}}
+    if pager:
+        config['git'] = pager
+    return config
 
 
 def fzf_colors(theme):

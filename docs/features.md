@@ -9,7 +9,7 @@ This repository is the tmux and terminal side of the environment. It includes:
 - helper scripts for popups, search, notes, prompts, and status bar segments
 - shell-oriented quality-of-life setup
 
-The Neovim configuration lives in a separate repo: [irlm/nvim](https://github.com/irlm/nvim).
+Helix is the managed editor (`helix/config.toml`); the optional Neovim configuration lives in a separate repo: [irlm/nvim](https://github.com/irlm/nvim).
 
 ## Main Features
 
@@ -20,10 +20,12 @@ The Neovim configuration lives in a separate repo: [irlm/nvim](https://github.co
 - popup-driven workflow for `lazygit`, `lazydocker`, system info, notes, and search
 - session and window helpers for switching, renaming, detaching, and remote work
 
-### Neovim Integration
+### Editor Integration
 
-- designed to pair with the separate LazyVim-based Neovim config
-- tmux/Neovim navigation through `vim-tmux-navigator`
+- Helix with this repo's review keys: `-a` sends the selection to the agent pane, `-f` opens a `file:line` from the pane, `-g` lazygit, `]c` next change
+- `C-a C-f` picks any `file:line` the pane mentions and opens it in `$EDITOR`
+- lazygit diffs through `delta` when installed (syntax colours, line numbers)
+- optional Neovim (`--nvim`) with tmux/Neovim navigation through `vim-tmux-navigator`
 - installer scripts clone both repos together
 - markdown preview: inline rendering (`Space mr`) and live browser preview (`Space mp`)
 
@@ -121,7 +123,7 @@ The tmux config enables these plugins:
 | Repo | Purpose |
 |------|---------|
 | [irlm/tmux](https://github.com/irlm/tmux) | tmux config, scripts, and installers |
-| [irlm/nvim](https://github.com/irlm/nvim) | Neovim / LazyVim configuration |
+| [irlm/nvim](https://github.com/irlm/nvim) | optional Neovim / LazyVim configuration |
 
 ## Reliability and Customization
 

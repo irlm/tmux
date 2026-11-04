@@ -47,12 +47,22 @@ pause_close() {
     IFS= read -rsn1 _ || true
 }
 
+# tools.tsv scopes: all (every profile), desktop (not servers), nvim (only
+# when the optional Neovim config is checked out on a desktop).
+tool_scope_filter() {
+    local profile=${1:-desktop} nvim=0
+    [ "$profile" = server ] || [ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/init.lua" ] || nvim=1
+    printf -- '-v profile=%s -v nvim=%s' "$profile" "$nvim"
+}
+
 managed_tools() {
-    awk -F '\t' -v profile="${1:-desktop}" 'NR > 1 && ($4 == "all" || profile != "server") {print $1}' "$TMUX_CONFIG_DIR/tools.tsv"
+    # shellcheck disable=SC2046
+    awk -F '\t' $(tool_scope_filter "$1") 'NR > 1 && ($4 == "all" || (profile != "server" && $4 == "desktop") || (nvim && $4 == "nvim")) {print $1}' "$TMUX_CONFIG_DIR/tools.tsv"
 }
 
 brew_tools() {
-    awk -F '\t' -v profile="${1:-desktop}" 'NR > 1 && $2 != "-" && ($4 == "all" || profile != "server") {print $2}' "$TMUX_CONFIG_DIR/tools.tsv"
+    # shellcheck disable=SC2046
+    awk -F '\t' $(tool_scope_filter "$1") 'NR > 1 && $2 != "-" && ($4 == "all" || (profile != "server" && $4 == "desktop") || (nvim && $4 == "nvim")) {print $2}' "$TMUX_CONFIG_DIR/tools.tsv"
 }
 
 # Herdr CLI. Inside a Herdr pane HERDR_BIN_PATH names the binary that owns

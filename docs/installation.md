@@ -12,10 +12,10 @@ installed checkout clean and put personal settings in `~/.config/tmux-user/local
 
 | Mode | Best for | Entry point | Notes |
 |------|----------|-------------|-------|
-| Default | quick workstation setup on macOS or Debian/Ubuntu-style Linux | `install.sh` | installs the core environment, clones tmux + Neovim configs, and sets up a full local dev machine |
+| Default | quick workstation setup on macOS or Debian/Ubuntu-style Linux | `install.sh` | installs the core environment and Helix with this repo's config, and sets up a full local dev machine; add `--nvim` for Neovim too |
 | Full (`--full`) | broader Linux distro support and a more complete shell setup | `install.sh --full` | delegates to `setup.sh` for multi-distro support, shell config, extra polish, and WSL-aware behavior |
-| Server (`--server`) | remote hosts, minimal systems, or lightweight personal boxes | `install.sh --server` | keeps tmux + Neovim light, skips Docker and oh-my-posh, and avoids heavy language-server setup |
-| Windows | PowerShell workstation setup | `install.ps1` | installs Neovim, CLI tools, fonts, and Docker Desktop; for tmux itself, use WSL |
+| Server (`--server`) | remote hosts, minimal systems, or lightweight personal boxes | `install.sh --server` | keeps tmux + Helix light, skips Docker and oh-my-posh, and avoids heavy language-server setup; `--nvim` adds a light Neovim |
+| Windows | PowerShell workstation setup | `install.ps1` | installs Helix, CLI tools, fonts, and Docker Desktop (`INSTALL_NVIM=1` adds Neovim); for tmux itself, use WSL |
 
 ## macOS / Linux
 
@@ -50,7 +50,7 @@ curl -sL https://raw.githubusercontent.com/irlm/tmux/main/install.sh | bash -s -
 
 Use this when you want:
 
-- tmux, Neovim and lazygit without a full desktop-style dev bootstrap
+- tmux, Helix and lazygit without a full desktop-style dev bootstrap
 - a lightweight shell prompt instead of oh-my-posh
 - no Docker installation
 - no heavy LSP/toolchain expectations
@@ -59,9 +59,15 @@ Use this when you want:
 
 You rarely need to run this by hand: `C-a s` from a workstation that has this config offers to run it on any server that does not (see [usage: SSH and Remote Servers](usage.md#ssh-and-remote-servers)). Once installed, the server's tmux announces itself to the tmux you connect from, so your local keys act on the server.
 
+## Editors
+
+Helix (`hx`) is the editor every install mode sets up: one package with its language support built in, configured from `helix/config.toml` in this repo (linked to `~/.config/helix/config.toml`, copied to `%APPDATA%\helix` on Windows). It is the review desk beside the coding agents: `-a` sends a selection to the agent pane, `-f` opens a `file:line` an agent printed, `-g` opens lazygit, and `]c` walks the changes. `hx --tutor` teaches the editing model in an hour; `C-a !` shows the cheatsheet.
+
+Neovim with the paired [irlm/nvim](https://github.com/irlm/nvim) config is the optional second editor: `install.sh --nvim`, or `INSTALL_NVIM=1` before `install.ps1`. An existing `~/.config/nvim` checkout keeps being updated without the flag. Its treesitter parsers need a C compiler and the `tree-sitter` tool, which the installers add only with Neovim.
+
 ## Windows on ARM
 
-On an ARM64 Windows machine the installer takes the x86_64 Neovim and tree-sitter builds, run under emulation, because Neovim compiles its treesitter parsers with gcc and gcc exists only for x86_64 on Windows; the parsers, the tree-sitter tool and the editor then share one architecture. Everything else is native. Intel machines are unaffected.
+With Neovim requested on an ARM64 Windows machine, the installer takes the x86_64 Neovim and tree-sitter builds, run under emulation, because Neovim compiles its treesitter parsers with gcc and gcc exists only for x86_64 on Windows; the parsers, the tree-sitter tool and the editor then share one architecture. Everything else is native. Intel machines are unaffected.
 
 ## Herdr
 
@@ -80,8 +86,8 @@ irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
 
 The Windows installer uses Scoop plus winget to set up:
 
-- Neovim
-- `lazygit`, `lazydocker`, `gh`, `fzf`, `zoxide`, `bat`, `btop`, `fastfetch`, `oh-my-posh`
+- Helix (`hx`) with this repo's config; Neovim with `INSTALL_NVIM=1`
+- `lazygit` (with `delta` for the diffs), `lazydocker`, `gh`, `fzf`, `zoxide`, `bat`, `btop`, `fastfetch`, `oh-my-posh`
 - `gh-dash` (installed as a `gh` extension: `gh extension install dlvhdr/gh-dash`)
 - Rust, Go, Python, Node.js, Java, and Scala tooling
 - Docker Desktop
@@ -102,10 +108,10 @@ The default installer is the quick workstation path. It:
 
 - installs core terminal tools (including `w3m` for terminal web search)
 - installs the `gh-dash` GitHub CLI extension that backs the `C-a G` popup (run `gh auth login` once for it to show data)
-- installs or upgrades Neovim when needed
-- installs development toolchains for Neovim extras
+- installs Helix and links its config; with `--nvim`, installs or upgrades Neovim too
+- installs development toolchains for the editors' language servers
 - installs Docker when missing
-- clones `~/.config/tmux` and `~/.config/nvim`
+- clones `~/.config/tmux` (and `~/.config/nvim` with `--nvim`)
 - installs tmux plugins
 
 ### Full
@@ -121,14 +127,14 @@ The full installer is the most complete path. It adds:
 
 Server mode keeps things intentionally lean. It:
 
-- installs tmux, Neovim, and a smaller CLI set
+- installs tmux, Helix, and a smaller CLI set
 - uses a lightweight shell prompt from this repo
-- creates `~/.config/nvim/.server` so Neovim stays lighter
+- with `--nvim`, creates `~/.config/nvim/.server` so Neovim stays lighter
 - skips Docker, fonts, and oh-my-posh
 
 ## Existing Configs and Backups
 
-The installers clone this repo into `~/.config/tmux` and the Neovim repo into `~/.config/nvim`.
+The installers clone this repo into `~/.config/tmux` and, when Neovim is requested, the Neovim repo into `~/.config/nvim`.
 
 All Unix install modes and the Windows installer stage a new clone before replacing custom configs. Existing configs move to a sibling `.backup.*` directory after the clone succeeds. Clone failures preserve the existing config in place.
 
@@ -140,7 +146,7 @@ Shell integration uses the selected Bash or Zsh shell and preserves personal rc 
 2. Set your terminal font to a Nerd Font.
 3. Start tmux with `tmux`.
 4. Install tmux plugins with `C-a I`.
-5. Open Neovim with `nvim` and let the first-run setup finish.
+5. Open a file with `hx`; run `hx --tutor` once if Helix is new to you. With `--nvim`, open `nvim` and let its first-run setup finish.
 6. If Docker was installed, launch Docker Desktop on macOS or Windows, or re-log on Linux if Docker group membership changed.
 7. Run `gh auth login` so the `C-a G` GitHub dashboard popup can load your PRs and issues.
 8. Press `C-a C-t` (Ctrl-a, then Ctrl-t) to preview and save a theme. Reopen lazygit with `C-a g` to see it; open a new shell for the updated prompt.
@@ -182,7 +188,7 @@ The script pulls the repo first and, if `update.sh` itself changed, re-executes 
 What the script does:
 
 - updates the tmux repo, then continues with the newest installed `update.sh`
-- updates the Neovim repo while preserving local changes, including lock files
+- relinks the Helix config and, when Neovim is installed, updates its repo while preserving local changes, including lock files
 - installs TPM if missing, then installs, updates and cleans tmux plugins
 - reloads tmux when running and syncs Neovim plugins, including in `--quick` mode
 - upgrades GitHub extensions and the managed Homebrew terminal tools
@@ -205,6 +211,6 @@ Use `desktop` for the default installer, `full` for a full install, or `server` 
 ## Related Repos
 
 - [irlm/tmux](https://github.com/irlm/tmux): tmux config, scripts, and installers
-- [irlm/nvim](https://github.com/irlm/nvim): Neovim / LazyVim config
+- [irlm/nvim](https://github.com/irlm/nvim): the optional Neovim / LazyVim config
 
 Update failures now return a nonzero exit status and link to component logs. Local Neovim lock changes are preserved. `--quick` also updates Neovim plugins. See [Customization and diagnostics](customization.md#health-checks-and-updates) for the diagnostic commands and their limits.

@@ -51,6 +51,14 @@ if [ "$profile" != server ]; then
            fi ;;
     esac
 fi
+if command -v hx >/dev/null 2>&1 && [ -f "$TMUX_CONFIG_DIR/helix/config.toml" ]; then
+    helix_config="${HELIX_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/helix}/config.toml"
+    if [ -L "$helix_config" ] && [ "$(readlink "$helix_config")" = "$TMUX_CONFIG_DIR/helix/config.toml" ]; then
+        echo '  Helix: config linked from this repo.'
+    else
+        fail "Helix config not linked from $TMUX_CONFIG_DIR/helix — run update.sh."
+    fi
+fi
 if command -v infocmp >/dev/null 2>&1 && ! infocmp tmux-256color >/dev/null 2>&1; then
     fail 'tmux-256color terminfo is missing — install your tmux/terminfo package.'
 fi

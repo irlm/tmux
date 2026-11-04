@@ -1,0 +1,29 @@
+HELIX CHEATSHEET (irlm/tmux config)   select first, then act   leader = -
+────────────────────────────────────────────────────────────────────────────────
+MOVEMENT                    SELECT (then act)           CHANGE
+ h j k l   char/line         x        line (repeat: more)  d      delete selection
+ w / b     word fwd/back     v        extend mode on/off   c      change selection
+ e         word end          %        whole file           y / p  yank / paste
+ f/t <c>   to char           s <re>   sub-select by regex  u / U  undo / redo
+ gg / ge   file top/end      ;        collapse to cursor   >  <   indent / dedent
+ gl / gh   line end/start    ,        keep main selection  .      repeat last change
+ C-u / C-d page up/down      Alt-;    flip anchor          r <c>  replace char
+ C-o / C-i jump back/fwd     Esc      normal mode          i / a  insert before/after
+
+REVIEW (this config)        GOTO                        FIND
+ - a   selection -> agent   gd       definition           /  ?   search fwd/back
+ - f   open file:line       gr       references           n  N   next / previous
+ - g   lazygit              gy       type definition      *      search selection
+ - y   copy to clipboard    gi       implementation       Space / global search
+ - r   reload all files     K        hover docs           Space f  file picker
+ ] c [ c  next/prev change  Space r  rename symbol        Space b  buffer picker
+ ] e [ e  next/prev error   Space a  code action          Space s  symbol picker
+
+WINDOWS & BUFFERS           COMMANDS                    AGENT PANES (prefix)
+ C-w v / s  split            :w  :q  :wq  :q!            C-a C-f  file:line picker
+ C-w h j k l  move window    :o <file>   open            C-a g    lazygit popup
+ C-w q      close window     :reload-all                 C-a $    LLM usage
+ gn / gp    next/prev buffer :sh <cmd>   run command     C-a ?    this help
+ :bc        close buffer     :config-reload              ctrl+hjkl  move between panes
+
+hx --tutor  interactive lesson     :tutor   inside Helix     ? in a picker: its keys

@@ -1,6 +1,7 @@
 command	brew	scoop	profile
 tmux	tmux	-	all
-nvim	neovim	neovim	all
+hx	helix	helix	all
+nvim	neovim	neovim	nvim
 git	git	git	all
 curl	curl	curl	all
 python3	python	python	all
@@ -10,6 +11,7 @@ bat	bat	bat	all
 btop	btop	btop	all
 fastfetch	fastfetch	fastfetch	all
 lazygit	lazygit	lazygit	all
+delta	git-delta	delta	desktop
 rg	ripgrep	ripgrep	all
 fd	fd	fd	all
 jq	jq	jq	all
@@ -18,4 +20,4 @@ tldr	tlrc	tlrc	all
 lazydocker	lazydocker	lazydocker	desktop
 gh	gh	gh	desktop
 oh-my-posh	oh-my-posh	oh-my-posh	desktop
-tree-sitter	tree-sitter-cli	tree-sitter	desktop
+tree-sitter	tree-sitter-cli	tree-sitter	nvim

@@ -4,6 +4,13 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Editor
+
+- Helix is the editor every installer sets up, configured from `helix/config.toml` for reviewing beside coding agents: `-a` sends the selection or line into the agent's input, `-f` opens a `file:line` the pane mentions, `-g` opens lazygit, `-r` reloads files an agent changed, `]c` `[c` walk the changes. The shell integration points `EDITOR` at `hx`; `C-a !` shows a Helix cheatsheet.
+- Neovim and the irlm/nvim config are optional: `install.sh --nvim` or `INSTALL_NVIM=1` on Windows; an existing checkout keeps being updated. Its compiler and tree-sitter tool are installed only with it (`nvim` scope in `tools.tsv`).
+- `C-a C-f` in tmux and Herdr picks any existing `file:line` from the pane and opens it in `$EDITOR`; `scripts/agent-send.sh` pipes text into the first Claude or Codex pane of the workspace.
+- lazygit shows diffs through `delta` (syntax colours, line numbers, Nord) when it is installed; `delta` is a managed desktop tool.
+
 ### Herdr
 
 - Render a Herdr configuration from the tmux key layout and the action registry: `C-a` prefix, `hjkl`, `|` and `-` splits, every popup under its tmux key, the chosen theme, and the status readings in the tab bar. `install.sh --herdr`, `update.sh` and `doctor.sh` install, refresh and check it; personal settings live in `~/.config/tmux-user/options.env` and `herdr.toml`.

@@ -42,6 +42,7 @@ run_action() {
         info) if command -v fastfetch >/dev/null 2>&1; then fastfetch --pipe false | less -R;
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
+        open-file) "$SCRIPT_DIR/pick.sh" files ;;
         llm) if python3 -c 'import curses' 2>/dev/null; then python3 "$SCRIPT_DIR/llm_usage.py"
              else python3 "$SCRIPT_DIR/llm_usage.py" --plain | less -R; fi ;;
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0
@@ -72,7 +73,12 @@ run_action() {
             if [ "$rc" -eq 70 ]; then run_action palette; else return "$rc"; fi ;;
         themes) "$SCRIPT_DIR/themes.sh" ;;
         special-days) python3 "$SCRIPT_DIR/special_days.py" --pick ;;
-        nvim-help) less -KR "$SCRIPT_DIR/../cheatsheet-nvim.txt" ;;
+        editor-help|nvim-help)
+            if [ -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/init.lua" ]; then
+                less -KR "$SCRIPT_DIR/../cheatsheet-helix.txt" "$SCRIPT_DIR/../cheatsheet-nvim.txt"
+            else
+                less -KR "$SCRIPT_DIR/../cheatsheet-helix.txt"
+            fi ;;
         notes|projects) if [ "$id" = notes ]; then output=notes.sh; else output=sessionizer.sh; fi
                         if ! row_available fzf; then "$SCRIPT_DIR/popup.sh" fzf; return $?; fi
                         "$SCRIPT_DIR/$output" ;;
