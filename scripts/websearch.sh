@@ -30,5 +30,6 @@ elif [ -n "${SSH_CONNECTION:-}" ] && [ -z "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; 
 elif command -v wslview >/dev/null 2>&1; then wslview "$url"
 elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$url"
 elif command -v open >/dev/null 2>&1; then open "$url"
+elif command -v explorer.exe >/dev/null 2>&1; then explorer.exe "$url"   # Windows (Git Bash, WSL)
 else "$SCRIPT_DIR/popup.sh" w3m "$url"
 fi

@@ -12,9 +12,18 @@ the glue differs.
 
 ## Install
 
+macOS and Linux:
+
 ```bash
 bash install.sh --herdr          # installs Herdr too, then configures it
 scripts/herdr-config.sh          # Herdr already installed: render and link
+```
+
+Windows (PowerShell):
+
+```powershell
+$env:INSTALL_HERDR = "1"; irm https://raw.githubusercontent.com/irlm/tmux/main/install.ps1 | iex
+pwsh ~\.config\tmux\scripts\herdr-config.ps1   # Herdr already installed: render and link
 ```
 
 `herdr-config.sh` renders `herdr/config.toml`, one popup binding per row of
@@ -112,13 +121,33 @@ anything is installed.
 
 | File | Purpose |
 |------|---------|
-| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `info_logo`, `special_days` |
+| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days` |
 | `~/.config/tmux-user/herdr.toml` | appended verbatim to the rendered config: `[theme.custom.light]`, more `[[keys.command]]`, anything the template does not define |
 | `~/.config/tmux-user/herdr-plugin/` | the generated plugin; linked, not copied |
 
 Rerun `scripts/herdr-config.sh` (or `dotup`) after editing them. `herdr
 config check` reports a conflict as "kept ... disabled ...": the earlier
 binding wins.
+
+## Windows
+
+Herdr runs natively on Windows and `scripts\herdr-config.ps1` renders the same
+file there, into `%APPDATA%\herdr\config.toml`: the keys, the theme, the
+plugin and your `herdr.toml` are identical. The differences come from the
+popups being Bash scripts:
+
+- They run through Git Bash when it is installed (Git for Windows, or Scoop's
+  git, which `install.ps1` installs); `HERDR_BASH` names another bash. Without
+  Git Bash, WSL is used with this repo installed inside the distribution;
+  without either, the popups are left out and the native Herdr keys remain.
+- The tab bar shows the hostname and the clock; the hardware readings need
+  Unix tools.
+- `ctrl+hjkl` navigation works the same way through Git Bash.
+- Tools the popups call (fzf, lazygit, bat, fastfetch, python) come from Scoop
+  through `install.ps1`; `python3` resolves to Scoop's `python`.
+
+Rerunning `install.ps1` updates the checkout and re-renders the Herdr config,
+the way `dotup` does on Unix.
 
 ## What is different from tmux
 
@@ -129,8 +158,6 @@ binding wins.
   integrations) and, with `pane_history`, recent pane contents.
 - `C-a F12` remote mode and the server bootstrap belong to tmux; Herdr's
   `machine add` is the equivalent.
-- Windows: Herdr runs natively there, but these popups are Bash scripts;
-  `install.ps1` does not configure Herdr yet.
 
 ## Checks
 

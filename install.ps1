@@ -246,6 +246,28 @@ if ($profileContent -notmatch "lazygit") {
     Add-Content $PROFILE "Set-Alias -Name vim -Value nvim"
 }
 
+# ─── Herdr (optional) ────────────────────────────────────
+# Set INSTALL_HERDR=1 to install Herdr (herdr.dev) as well; an already
+# installed Herdr is configured from this repo either way: same prefix and
+# keys as tmux, the popups through Git Bash, the Claude and Codex integrations.
+Write-Host ""
+if (-not (Get-Command herdr -ErrorAction SilentlyContinue) -and $env:INSTALL_HERDR -eq "1") {
+    Write-Host "Installing Herdr..."
+    try { Invoke-Expression (Invoke-RestMethod https://herdr.dev/install.ps1) } catch { Write-Host "  Herdr install failed: $_" -ForegroundColor Yellow }
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + $env:Path
+}
+if (Get-Command herdr -ErrorAction SilentlyContinue) {
+    Write-Host "Configuring Herdr from this repo..."
+    try {
+        & pwsh -NoProfile -NonInteractive -File "$tmuxPath\scripts\herdr-config.ps1"
+        foreach ($agent in @("claude", "codex")) {
+            if (Get-Command $agent -ErrorAction SilentlyContinue) { herdr integration install $agent *> $null; Write-Host "  Herdr integration: $agent" }
+        }
+    } catch { Write-Host "  Herdr setup incomplete: $_  (rerun: pwsh $tmuxPath\scripts\herdr-config.ps1)" -ForegroundColor Yellow }
+} else {
+    Write-Host "Herdr not installed. For the same keys with an agent sidebar: set INSTALL_HERDR=1 and rerun, or see https://herdr.dev"
+}
+
 # ─── Done ─────────────────────────────────────────────────
 Write-Host ""
 Write-Host "=== Install complete! ===" -ForegroundColor Green
@@ -259,6 +281,7 @@ Write-Host "  3. Launch Docker Desktop"
 Write-Host "  4. Run: nvim (plugins + LSPs auto-install on first launch)"
 Write-Host "  5. Run: lazygit, lazydocker, btop, fastfetch"
 Write-Host "  6. For tmux: install WSL ('wsl --install' in admin PowerShell)"
+if (Get-Command herdr -ErrorAction SilentlyContinue) { Write-Host "  7. Run: herdr (same keys as tmux, agent sidebar; docs\herdr.md)" }
 Write-Host ""
 Write-Host "What was installed:" -ForegroundColor Cyan
 Write-Host "  Editor:      neovim (LazyVim with LSP for 9 languages)"

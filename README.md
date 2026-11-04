@@ -77,7 +77,7 @@ Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed
 | `F12` | hand the keys to the remote tmux, or take them back |
 | `C-a C-u` | update everything in a popup |
 | `C-a $` | LLM usage and limits for Claude Code and Codex |
-| `herdr` | the same setup in Herdr, with the agent sidebar (`install.sh --herdr`) |
+| `herdr` | the same setup in Herdr, with the agent sidebar (`install.sh --herdr`; Windows: `INSTALL_HERDR=1` with `install.ps1`) |
 | `dotup` | update repos, plugins, gh extensions, and CLI tools (on a server: `~/.config/tmux/update.sh`, or the curl one-liner in the [installation guide](docs/installation.md#updating)) |
 
 ## Full Documentation

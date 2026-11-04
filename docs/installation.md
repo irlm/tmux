@@ -59,6 +59,13 @@ Use this when you want:
 
 You rarely need to run this by hand: `C-a s` from a workstation that has this config offers to run it on any server that does not (see [usage: SSH and Remote Servers](usage.md#ssh-and-remote-servers)). Once installed, the server's tmux announces itself to the tmux you connect from, so your local keys act on the server.
 
+## Herdr
+
+Every mode can also configure [Herdr](herdr.md), the multiplexer with an agent
+sidebar, with the same prefix, keys and popups: `install.sh --herdr` on macOS
+and Linux, `INSTALL_HERDR=1` with `install.ps1` on Windows. An already
+installed Herdr is configured without asking, and `dotup` keeps it current.
+
 ## Windows
 
 Run PowerShell as Administrator:

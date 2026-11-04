@@ -12,6 +12,7 @@ All notable changes to this tmux configuration will be documented in this file.
 - Add `C-a $`: tokens by day and by model for Claude Code and Codex from their transcripts, with live limit windows from quota-axi.
 - Map the saved theme onto Herdr's tokens, replacing its dim status colour with the palette's text colour so the tab bar reads like the tmux status line.
 - Add `--part net|cpu|ram|battery|holiday` to the status renderer and `herdr_status_colors=on` to emit one coloured tab bar entry per reading, for a Herdr whose entries accept a colour (patch proposed upstream; stock Herdr keeps the single entry with icons).
+- Windows: `scripts\herdr-config.ps1` renders the same Herdr config natively, with the popups through Git Bash or WSL; `install.ps1` runs it and installs Herdr with `INSTALL_HERDR=1`.
 - Keep a theme picked in Herdr's own settings until the next `C-a C-t`, raising only its status token to that theme's text colour; `C-a C-t` re-renders Herdr and takes precedence again.
 
 ### Installed update recovery

@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path $PSScriptRoot
-foreach ($file in @('install.ps1', 'setup-windows.ps1')) {
+foreach ($file in @('install.ps1', 'setup-windows.ps1', 'scripts\herdr-config.ps1')) {
     $tokens = $null; $errors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $RepoRoot $file), [ref]$tokens, [ref]$errors)
     if ($errors.Count) { throw ($errors | Out-String) }
@@ -41,5 +41,31 @@ try {
     if (-not (Test-Path (Join-Path $Dest 'managed'))) { throw 'New config was not activated.' }
     Write-Output 'Windows clone failure/success preservation passed'
 } finally {
+    Remove-Item $Scratch -Recurse -Force
+}
+
+# Render the Herdr config the Windows way, without Herdr or Git Bash installed:
+# the keys, the popups through the named bash, the theme, the user's own file.
+$Scratch = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory $Scratch | Out-Null
+try {
+    $env:TMUX_THEME_DIR = $Scratch
+    $env:HERDR_CONFIG_PATH = Join-Path $Scratch 'config.toml'
+    $env:HERDR_BASH = 'C:\Program Files\Git\bin\bash.exe'
+    Set-Content (Join-Path $Scratch 'theme') 'catppuccin'
+    Set-Content (Join-Path $Scratch 'options.env') 'popup_size=70%'
+    Set-Content (Join-Path $Scratch 'herdr.toml') '[theme.custom.light]' -NoNewline
+    $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
+    foreach ($expected in @('prefix = "ctrl+a"', 'split_vertical = "prefix+|"', 'name = "catppuccin"', 'overlay1 = "#cad3f5"',
+                            'key = "prefix+g"', 'bash.exe\" \"', 'actions.sh\" run git', 'width = "70%"', '{ type = "hostname" }',
+                            'herdr-navigate.sh\" left', '[theme.custom.light]')) {
+        if ($rendered -notmatch [regex]::Escape($expected)) { throw "Windows Herdr render is missing: $expected" }
+    }
+    if ($rendered -match 'run new-session' -or $rendered -match '@@') { throw 'Windows Herdr render kept a native prompt or a placeholder.' }
+    $plugin = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -PrintPlugin | Out-String
+    if ($plugin -notmatch 'id = "palette"' -or $plugin -notmatch '"windows"') { throw 'Windows Herdr plugin manifest is incomplete.' }
+    Write-Output 'Windows Herdr render passed'
+} finally {
+    Remove-Item Env:TMUX_THEME_DIR, Env:HERDR_CONFIG_PATH, Env:HERDR_BASH -ErrorAction SilentlyContinue
     Remove-Item $Scratch -Recurse -Force
 }

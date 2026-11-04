@@ -23,6 +23,7 @@ copy() {
     elif command -v wl-copy >/dev/null 2>&1; then wl-copy
     elif command -v xclip >/dev/null 2>&1; then xclip -selection clipboard
     elif command -v xsel >/dev/null 2>&1; then xsel --clipboard --input
+    elif command -v clip.exe >/dev/null 2>&1; then clip.exe                 # Windows (Git Bash, WSL)
     else
         # OSC 52: the terminal keeps the clipboard when no tool is installed.
         printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
@@ -64,6 +65,13 @@ PY
 
 candidates() { python3 -c "$CANDIDATES_PY" "$mode"; }
 
+open_url() {
+    if command -v open >/dev/null 2>&1; then open "$1"
+    elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$1"
+    elif command -v explorer.exe >/dev/null 2>&1; then explorer.exe "$1"   # Windows
+    else printf '%s\n' "$1"; fi
+}
+
 command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/popup.sh" fzf; exit $?; }
 list=$(pane_text | candidates)
 [ -n "$list" ] || { echo 'Nothing to pick on this pane.'; pause_close; exit 0; }
@@ -71,7 +79,7 @@ case "$mode" in
     urls)
         chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --prompt='URL > ' --header='Enter: open in browser | Esc: quit') || exit 0
         [ -n "$chosen" ] || exit 0
-        if command -v open >/dev/null 2>&1; then open "$chosen"; else xdg-open "$chosen"; fi ;;
+        open_url "$chosen" ;;
     *)
         chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --multi --prompt='Copy > ' --header='Tab: select several | Enter: copy | Esc: quit') || exit 0
         [ -n "$chosen" ] || exit 0

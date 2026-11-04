@@ -110,6 +110,7 @@ The tmux config enables these plugins:
 | `scripts/prompt.sh` | lightweight bash prompt |
 | `scripts/prompt.zsh` | lightweight zsh prompt |
 | `scripts/herdr-config.sh` | render, validate and install the Herdr config and plugin |
+| `scripts/herdr-config.ps1` | the same on Windows, with the popups through Git Bash or WSL |
 | `scripts/herdr-navigate.sh` | `ctrl+hjkl` under Herdr: into Neovim when it runs in the pane, else focus the next pane |
 | `scripts/pick.sh` | pick text to copy or a URL to open from the pane behind the popup |
 | `scripts/llm_usage.py` | `C-a $`: tokens by day and model for Claude Code and Codex, plus live limits |

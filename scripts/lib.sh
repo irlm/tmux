@@ -7,6 +7,11 @@ TMUX_PROFILE="${TMUX_PROFILE:-desktop}"
 # User-owned settings live outside the checkout, beside the saved theme.
 TMUX_USER_DIR="${TMUX_THEME_DIR:-$HOME/.config/tmux-user}"
 
+# Windows (Git Bash) installs Python as python.exe only.
+if ! command -v python3 >/dev/null 2>&1 && command -v python >/dev/null 2>&1; then
+    python3() { python "$@"; }
+fi
+
 # Which multiplexer started this script. Herdr strips the TMUX marker from
 # its panes and sets HERDR_ENV, so the two never look alike. "none" covers a
 # plain shell, cron, or a test that runs a script by hand.
