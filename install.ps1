@@ -10,7 +10,7 @@ Write-Host ""
 # ─── Ensure git is available ─────────────────────────────
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git not found. Installing via winget..."
-    winget install Git.Git --accept-package-agreements --accept-source-agreements
+    winget install Git.Git --accept-package-agreements --accept-source-agreements --source winget
     # Refresh PATH from registry (picks up git without restarting terminal)
     $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
     $userPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
@@ -89,7 +89,7 @@ try {
     winget list --name "JetBrainsMono" 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  Registering JetBrains Mono Nerd Font system-wide..."
-        winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements 2>$null
+        winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements 2>$null --source winget
     }
 } catch {}
 
@@ -130,7 +130,7 @@ Write-Host ""
 Write-Host "Checking Docker..."
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Host "  Installing Docker Desktop via winget..."
-    winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements
+    winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --source winget
     Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
 } else {
     Write-Host "  Docker already installed"

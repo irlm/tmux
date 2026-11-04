@@ -46,7 +46,7 @@ foreach ($pkg in $Packages) {
         Ok "$($pkg.Name) already installed"
     } else {
         Info "Installing $($pkg.Name)..."
-        winget install --id $pkg.Id --accept-package-agreements --accept-source-agreements --silent
+        winget install --id $pkg.Id --accept-package-agreements --accept-source-agreements --silent --source winget
         if ($LASTEXITCODE -eq 0) { Ok "$($pkg.Name) installed" }
         else { Warn "Failed to install $($pkg.Name) — install manually" }
     }
