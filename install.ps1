@@ -7,6 +7,20 @@ $ErrorActionPreference = "Continue"
 Write-Host "=== dotfiles installer (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
 
+# ─── Free space ──────────────────────────────────────────
+# Everything below lands on the profile drive (Scoop, the checkout, Docker
+# Desktop's 500 MB installer). A full drive fails half-way with misleading
+# errors, so stop early instead.
+function Get-FreeGB {
+    try { [math]::Round((Get-PSDrive -Name $env:USERPROFILE.Substring(0, 1)).Free / 1GB, 1) } catch { $null }
+}
+$freeGB = Get-FreeGB
+if ($null -ne $freeGB -and $freeGB -lt 2) {
+    Write-Host "Only $freeGB GB free on the $($env:USERPROFILE.Substring(0, 2)) drive; the install needs at least 2 GB (10 GB with Docker Desktop)." -ForegroundColor Red
+    Write-Host "Free some space and run the installer again. Nothing was changed." -ForegroundColor Red
+    return
+}
+
 # ─── Ensure git is available ─────────────────────────────
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git not found. Installing via winget..."
@@ -207,9 +221,19 @@ try {
 Write-Host ""
 Write-Host "Checking Docker..."
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Write-Host "  Installing Docker Desktop via winget..."
-    winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --source winget
-    Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
+    $freeGB = Get-FreeGB
+    if ($null -ne $freeGB -and $freeGB -lt 10) {
+        Write-Host "  Skipped Docker Desktop: $freeGB GB free, its installer and images need about 10 GB (install later with: winget install Docker.DockerDesktop)" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Installing Docker Desktop via winget..."
+        winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --source winget
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
+        } else {
+            # winget refuses an installer whose hash changed upstream when elevated.
+            Write-Host "  Docker Desktop not installed (winget exit $LASTEXITCODE, see above); download it from docker.com/products/docker-desktop" -ForegroundColor Yellow
+        }
+    }
 } else {
     Write-Host "  Docker already installed"
 }
@@ -222,8 +246,12 @@ $tmuxPath = "$env:USERPROFILE\.config\tmux"
 
 # Backup PowerShell profile
 if (Test-Path $PROFILE) {
-    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-    Copy-Item $PROFILE "$backupDir\profile.ps1"
+    try {
+        New-Item -ItemType Directory -Path $backupDir -Force -ErrorAction Stop | Out-Null
+        Copy-Item $PROFILE "$backupDir\profile.ps1" -ErrorAction Stop
+    } catch {
+        throw "Could not back up the PowerShell profile to $backupDir ($_); nothing was changed."
+    }
     Write-Host "Backed up PowerShell profile to $backupDir\profile.ps1"
 }
 
