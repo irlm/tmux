@@ -28,6 +28,8 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Status bar
 
+- Name the process behind a busy CPU reading, above `@cpu_process_threshold` percent (default 30), in both the tmux line and Herdr's tab bar. One `ps` per five-second sample, only while busy.
+
 - Report macOS memory the way Activity Monitor and btop do (app memory plus wired and compressed pages). The previous `memory_pressure` reading treated file cache and inactive pages as free and showed 7% while btop showed 45%.
 
 ### Lower idle cost

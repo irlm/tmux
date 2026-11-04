@@ -80,7 +80,24 @@ fi
 # CPU
 if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
     cpu=$("$CPU_DIR/cpu_percentage.sh")
-    # Without colours (Herdr's tab bar) an icon says which reading is which.
+    # When the CPU is busy, name the process behind it. One ps per sample, only
+# above the threshold (@cpu_process_threshold, percent; 0 shows it always,
+# off never), so a quiet machine costs nothing extra.
+cpu_threshold=$(tmux_option @cpu_process_threshold 30)
+case "$cpu_threshold" in off) cpu_threshold="" ;; ''|*[!0-9]*) cpu_threshold=30 ;; esac
+if [ -n "$cpu" ] && [ -n "$cpu_threshold" ] && [ "${cpu%%.*}" -ge "$cpu_threshold" ] 2>/dev/null; then
+    if [ "$(uname -s)" = Darwin ]; then
+        top_process=$(ps -Aro pcpu=,comm= 2>/dev/null | head -1)
+    else
+        top_process=$(ps -eo pcpu=,comm= --sort=-pcpu 2>/dev/null | head -1)
+    fi
+    top_process=${top_process#"${top_process%%[![:space:]]*}"}   # trim leading spaces
+    top_process=${top_process#* }                               # drop the pcpu column
+    top_process=${top_process##*/}                              # basename of a full path
+    [ -z "$top_process" ] || cpu="$cpu ${top_process:0:14}"
+fi
+
+# Without colours (Herdr's tab bar) an icon says which reading is which.
 if [ "$paint" -eq 0 ] && [ -n "$cpu" ]; then
     if [ "$ascii" = on ]; then cpu="CPU $cpu"; else cpu="$cpu_icon $cpu"; fi
 fi

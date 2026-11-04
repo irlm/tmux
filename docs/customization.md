@@ -37,6 +37,9 @@ set -g @project_depth 6
 
 # Optional executable wrapper receiving one literal question argument.
 set -g @ai_command my-ai-wrapper
+
+# Name the busiest process beside the CPU reading above this percentage (off: never, 0: always)
+set -g @cpu_process_threshold 30
 ```
 
 Under Herdr, where there is no tmux option store, the same names go in `~/.config/tmux-user/options.env` as `popup_size=90%` lines; see [Herdr](herdr.md).
