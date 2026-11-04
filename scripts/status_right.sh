@@ -50,7 +50,11 @@ fi
 # CPU
 if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
     cpu=$("$CPU_DIR/cpu_percentage.sh")
-    [ -n "$cpu" ] && out="${out}${sep}$(paint "$accent" "$cpu")"
+    # Without colours (Herdr's tab bar) an icon says which reading is which.
+if [ "$paint" -eq 0 ] && [ -n "$cpu" ]; then
+    if [ "$ascii" = on ]; then cpu="CPU $cpu"; else cpu=" $cpu"; fi
+fi
+[ -n "$cpu" ] && out="${out}${sep}$(paint "$accent" "$cpu")"
 fi
 
 # RAM (actual usage, not file cache — matches btop/Activity Monitor)
@@ -71,6 +75,9 @@ elif command -v free &>/dev/null; then
     # Linux: use "available" column (free + reclaimable cache)
     # Falls back to used/total if "available" column is missing (older kernels)
     ram=$(free | awk '/Mem/ { if ($7 > 0) printf "%.0f%%", 100 * ($2 - $7) / $2; else printf "%.0f%%", 100 * $3 / $2 }')
+fi
+if [ "$paint" -eq 0 ] && [ -n "$ram" ]; then
+    if [ "$ascii" = on ]; then ram="RAM $ram"; else ram="󰍛 $ram"; fi
 fi
 [ -n "$ram" ] && out="${out}${sep}$(paint "$yellow" "$ram")"
 
