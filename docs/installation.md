@@ -76,7 +76,8 @@ multiplexer: the default and full installs on macOS and Linux and the Windows
 installer install it and configure it with the same prefix, keys, popups and
 theme as tmux. `--no-herdr` (Windows: `INSTALL_HERDR=0`) leaves it out;
 `--server --herdr` adds it to a server. An already installed Herdr is
-configured without asking, and `dotup` keeps it current. tmux is installed on
+configured without asking, and `dotup` keeps it current. Both can run from inside a Herdr pane; the server reloads the
+configuration in place (see [Herdr: while Herdr is running](herdr.md#while-herdr-is-running)). tmux is installed on
 desktops as well, for plain sessions and because the SSH flow uses it.
 
 ## Windows
