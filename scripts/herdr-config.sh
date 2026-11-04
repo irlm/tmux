@@ -167,6 +167,7 @@ name = "nord"'
          { gsub(/@@SCRIPTS@@/, scripts); print }' "$TEMPLATE"
     printf '\n# ─── Popups generated from actions.tsv ───────────────────\n'
     while IFS=$'\t' read -r key id label _ hosts own; do
+        own=${own%$'\r'}
         [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue
         # Herdr prompts for these itself (new_workspace, rename_*).
         case "$id" in new-session|rename-session|rename-window) continue ;; esac
@@ -201,6 +202,7 @@ render_plugin() {
             "$id" "$(toml_string "$label")" "$(toml_string "${HERDR_BIN_PATH:-herdr}")" "$PLUGIN_ID" "$id" "$size" "$size"
     done
     while IFS=$'\t' read -r key id label _ hosts own; do
+        own=${own%$'\r'}
         [ "$key" != key ] && [ -n "$id" ] && [ "${hosts:-all}" != tmux ] || continue
         case "$id" in new-session|rename-session|rename-window) continue ;; esac
         read -r width height <<< "$(popup_dimensions "$size" "$own")"

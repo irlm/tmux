@@ -23,8 +23,9 @@ row_available() {
 }
 list_actions() {
     local key id label tool hosts state
-    while IFS=$'\t' read -r key id label tool hosts; do
+    while IFS=$'\t' read -r key id label tool hosts _; do
         [ "$key" != key ] || continue
+        hosts=${hosts%$'\r'}   # a CRLF checkout must not hide every row
         wb_host_match "$hosts" || continue
         state=ready; row_available "$tool" || state="missing $tool"
         printf '%s\tC-a %-4s %-32s [%s]\n' "$id" "$key" "$label" "$state"
@@ -134,7 +135,8 @@ run_action() {
 }
 case "${1:-palette}" in
     bind)
-        while IFS=$'\t' read -r key id _ _ hosts; do
+        while IFS=$'\t' read -r key id _ _ hosts _; do
+            hosts=${hosts%$'\r'}
             [ "$key" != key ] && [ "${hosts:-all}" != herdr ] || continue
             printf -v command '%q open %q' "$SCRIPT_DIR/actions.sh" "$id"
             tmux bind-key "$key" run-shell "$command"

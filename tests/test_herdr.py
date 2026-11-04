@@ -213,6 +213,23 @@ esac''')
         self.assertIn(f'w2\t{other.resolve()}', (self.root / 'data/herdr-workspaces').read_text())
 
 
+class RegistryTests(HerdrFixture):
+    def test_palette_lists_every_row_for_the_host_despite_extra_columns_and_crlf(self):
+        self.fake_herdr()
+        result = self.run_script('scripts/actions.sh', 'list')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = result.stdout.splitlines()
+        self.assertIn('git', ' '.join(rows)); self.assertIn('pick', ' '.join(rows))
+        self.assertGreater(len(rows), 20)
+        crlf = self.root / 'registry'; crlf.mkdir()
+        (crlf / 'actions.tsv').write_bytes((REPO / 'actions.tsv').read_bytes().replace(b'\n', b'\r\n'))
+        (crlf / 'tools.tsv').write_bytes((REPO / 'tools.tsv').read_bytes())
+        shutil.copytree(REPO / 'scripts', crlf / 'scripts')
+        result = subprocess.run([BASH, str(crlf / 'scripts/actions.sh'), 'list'], env=dict(self.env, TMUX_CONFIG_DIR=str(crlf)),
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(len(result.stdout.splitlines()), len(rows))
+
+
 class HelpTests(unittest.TestCase):
     def test_help_lists_the_keys_of_the_host_it_runs_on(self):
         herdr = help_layout.render(120, host='herdr')
