@@ -68,9 +68,15 @@ run_action() {
         shell) "${SHELL:-/bin/sh}" ;;
         info) if command -v fastfetch >/dev/null 2>&1; then
                   logo=$(info_logo)
-                  # An image only draws straight to the terminal: through a pager
-                  # fastfetch falls back to its ASCII logo.
-                  if [ -n "$logo" ]; then fastfetch --logo-type kitty --logo "$logo" --logo-width 28 --logo-height 14; pause_close
+                  # The image is sent by kitty_image.py (fastfetch itself would need an
+                  # image decoder); fastfetch then writes beside a blank logo of the
+                  # same size. Straight to the terminal: a pager would eat the image.
+                  if [ -n "$logo" ]; then
+                      printf '\033[2J\033[H'
+                      python3 "$SCRIPT_DIR/kitty_image.py" "$logo" 28 14
+                      printf '\033[H'
+                      fastfetch --logo-type data-raw --logo "$(printf '%28s\n' '' '' '' '' '' '' '' '' '' '' '' '' '' '')" --logo-padding-right 2
+                      pause_close
                   else fastfetch --pipe false | less -R; fi
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
