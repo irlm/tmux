@@ -82,8 +82,11 @@ foreach ($pkg in $required + $extras) {
 # `gh dash` (Alt+Shift+G / tmux C-a G) is a gh extension, not part of gh itself.
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     $ghDash = gh extension list 2>$null | Select-String "dlvhdr/gh-dash"
+    gh auth status 2>&1 | Out-Null
     if ($ghDash) {
         Write-Host "  gh-dash already installed"
+    } elseif ($LASTEXITCODE -ne 0) {
+        Write-Host "  gh-dash skipped: run 'gh auth login', then 'gh extension install dlvhdr/gh-dash'" -ForegroundColor Yellow
     } else {
         Write-Host "  Installing gh-dash extension..."
         gh extension install dlvhdr/gh-dash
@@ -95,7 +98,7 @@ if (Get-Command gh -ErrorAction SilentlyContinue) {
 
 # Install Nerd Fonts
 Write-Host "  Installing Nerd Fonts..."
-foreach ($font in @("JetBrainsMono-NF", "MesloLGM-NF")) {
+foreach ($font in @("JetBrainsMono-NF", "Meslo-NF")) {
     try { scoop install "nerd-fonts/$font" 2>$null } catch {}
 }
 # Also install via winget (registers system-wide, shows in Windows Terminal)
@@ -252,9 +255,19 @@ if ($profileContent -notmatch "zoxide") {
     Add-Content $PROFILE "Invoke-Expression (& { (zoxide init powershell | Out-String) })"
 }
 
-# fzf requires the PowerShell wrapper module, not just fzf.exe.
+# fzf requires the PowerShell wrapper module, not just fzf.exe. A fresh
+# Windows asks to install the NuGet provider and to trust the gallery first;
+# answer both here so the step also works without a prompt.
 if (-not (Get-Module -ListAvailable PSFzf)) {
-    Install-Module PSFzf -Scope CurrentUser -Force -ErrorAction Stop
+    try {
+        if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser -Confirm:$false | Out-Null
+        }
+        if ((Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue).InstallationPolicy -ne "Trusted") {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        }
+        Install-Module PSFzf -Scope CurrentUser -Force -Confirm:$false -ErrorAction Stop
+    } catch { Write-Host "  PSFzf module not installed: $_  (run: Install-Module PSFzf -Scope CurrentUser)" -ForegroundColor Yellow }
 }
 if ($profileContent -notmatch "Set-PsFzfOption") {
     Add-Content $PROFILE @'
