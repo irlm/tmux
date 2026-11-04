@@ -59,6 +59,10 @@ Use this when you want:
 
 You rarely need to run this by hand: `C-a s` from a workstation that has this config offers to run it on any server that does not (see [usage: SSH and Remote Servers](usage.md#ssh-and-remote-servers)). Once installed, the server's tmux announces itself to the tmux you connect from, so your local keys act on the server.
 
+## Windows on ARM
+
+On an ARM64 Windows machine the installer takes the x86_64 Neovim and tree-sitter builds, run under emulation, because Neovim compiles its treesitter parsers with gcc and gcc exists only for x86_64 on Windows; the parsers, the tree-sitter tool and the editor then share one architecture. Everything else is native. Intel machines are unaffected.
+
 ## Herdr
 
 Every mode can also configure [Herdr](herdr.md), the multiplexer with an agent

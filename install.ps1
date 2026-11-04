@@ -62,6 +62,10 @@ if ($manifestPath -and (Test-Path $manifestPath)) {
 }
 $required = @($toolManifest | Where-Object { $_.scoop -ne "-" } | ForEach-Object { $_.scoop })
 $extras = @("nodejs", "go", "openjdk")   # language toolchains: wanted, not required
+# Windows on ARM: Neovim compiles its treesitter parsers with gcc, which only
+# exists for x86_64 there, and the tree-sitter tool must match the parsers it
+# loads. The x86_64 Neovim and tree-sitter run under emulation, consistently.
+$x64Only = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { @("neovim", "tree-sitter") } else { @() }
 
 foreach ($pkg in $required + $extras) {
     # Check if already installed via scoop (more reliable than checking command name)
@@ -70,7 +74,7 @@ foreach ($pkg in $required + $extras) {
         Write-Host "  $pkg already installed"
     } else {
         Write-Host "  Installing $pkg..."
-        scoop install $pkg
+        if ($pkg -in $x64Only) { scoop install $pkg --arch 64bit } else { scoop install $pkg }
         if ($LASTEXITCODE -ne 0) {
             if ($pkg -in $required) { throw "Failed to install $pkg. Re-run after resolving the error above." }
             Write-Host "  Skipped $pkg (install it later with: scoop install $pkg)" -ForegroundColor Yellow
@@ -149,7 +153,7 @@ try {
     foreach ($pkg in @("gcc", "tree-sitter")) {
         if (-not (scoop list $pkg 2>$null | Select-String $pkg)) {
             Write-Host "  Installing $pkg (treesitter parsers)..."
-            scoop install $pkg
+            if ($pkg -in $x64Only) { scoop install $pkg --arch 64bit } else { scoop install $pkg }
         }
     }
     Refresh-Path
