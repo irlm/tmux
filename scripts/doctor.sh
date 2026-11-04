@@ -46,7 +46,7 @@ fi
 if [ "$profile" != server ]; then
     case "$(uname -s)" in
         Darwin) ls "$HOME/Library/Fonts"/JetBrainsMono*Nerd* /Library/Fonts/JetBrainsMono*Nerd* >/dev/null 2>&1 || brew list --cask font-jetbrains-mono-nerd-font >/dev/null 2>&1 || fail 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).' ;;
-        *) if command -v fc-list >/dev/null 2>&1 && ! grep -qi microsoft /proc/version 2>/dev/null; then
+        *) if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && command -v fc-list >/dev/null 2>&1 && ! grep -qi microsoft /proc/version 2>/dev/null; then
                fc-list | grep -qi 'JetBrainsMono Nerd' || fail 'JetBrains Mono Nerd Font missing — run install.sh (status icons need it).'
            fi ;;
     esac
