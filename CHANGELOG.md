@@ -12,6 +12,7 @@ All notable changes to this tmux configuration will be documented in this file.
 ### Agents
 
 - `C-a $` says how to get the live limits when `quota-axi` is missing (`npm install -g quota-axi`); the installers install it where `npm` exists.
+- Helix `-d` shows the diff of the file being edited in a split beside it, `-D` the whole repository's, both highlighted as diffs (`scripts/filediff.sh`).
 - `C-a v` opens Helix (`$EDITOR`) in the pane's folder, in a pane beside it, under tmux and Herdr.
 
 - `C-a w` lists every coding agent on the machine (state, workspace, task title, time in that state, directory) with the pane beside it: Enter jumps to it, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes. Under tmux the rows are the panes running `claude` or `codex`.

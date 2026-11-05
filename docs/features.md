@@ -23,7 +23,7 @@ Helix is the managed editor (`helix/config.toml`); the optional Neovim configura
 
 ### Editor Integration
 
-- Helix with this repo's review keys: `-a` sends the selection to the agent pane, `-f` opens a `file:line` from the pane, `-g` lazygit, `]c` next change
+- Helix with this repo's review keys: `-a` sends the selection to the agent pane, `-f` opens a `file:line` from the pane, `-d` the file's diff in a split, `-g` lazygit, `]c` next change
 - `C-a C-f` picks any `file:line` the pane mentions and opens it in `$EDITOR`
 - `C-a w` lists every agent with state and task, `C-a C-d` reviews the changed files with the diff beside each (delta or difftastic) and sends a diff back to the agent, `C-a C-g` opens a worktree per task
 - under Herdr, `scripts/agent-events.sh` turns every agent state change into a journal line and the `$changes` sidebar token

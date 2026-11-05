@@ -43,6 +43,12 @@ y = ":clipboard-yank"
 g = ":sh ~/.config/tmux/scripts/actions.sh open git"        # lazygit in a popup (Herdr or tmux)
 f = ":sh ~/.config/tmux/scripts/actions.sh open open-file"  # open a file:line an agent mentioned
 r = ":reload-all"
+# The diff of this file (-d) or of the whole repository (-D) in a split
+# beside it, highlighted as a diff; close it with :q! (it is a scratch buffer).
+# The stage step runs inside a %sh{} expansion: it is synchronous, unlike :sh,
+# so the split reads a file that is already written.
+d = [":echo %sh{bash ~/.config/tmux/scripts/filediff.sh stage %{buffer_name}}", ":vsplit-new", ":insert-output bash ~/.config/tmux/scripts/filediff.sh show", ":set-language diff", "goto_file_start"]
+D = [":vsplit-new", ":insert-output git diff HEAD --no-color", ":set-language diff", "goto_file_start"]
 
 [keys.select."-"]
 a = ":pipe-to bash ~/.config/tmux/scripts/agent-send.sh"

@@ -169,6 +169,8 @@ from this repo. Inside Helix, `-` (minus) is the review leader:
 | `- g` | lazygit in a popup |
 | `- y` | copy the selection to the clipboard |
 | `- r` | reload every file an agent changed |
+| `- d` / `- D` | the diff of this file / of the whole repository against HEAD, in a split beside it, highlighted as a diff; `:q!` closes it |
+| `] f` `[ f`, `] t` `[ t` | next / previous function, type (tree-sitter, no language server needed) |
 | `] c` `[ c` | next / previous change; `] e` `[ e` next / previous diagnostic |
 
 `C-a v` opens Helix in the pane's folder, in a new pane beside it (`$EDITOR`

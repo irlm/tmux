@@ -458,3 +458,14 @@ esac''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('pane split w1:p2 --direction right --focus', self.calls())
         self.assertIn('pane run w1:p9 hx .', self.calls())
+
+    def test_filediff_stages_the_diff_of_a_tracked_or_new_file(self):
+        repo = self.git_repo()
+        env = dict(self.env, TMPDIR=str(self.root))
+        for name, expect in (('f.txt', '+c'), ('g.txt', '+new'), ('[scratch]', 'No file')):
+            self.assertEqual(subprocess.run([BASH, str(REPO / 'scripts/filediff.sh'), 'stage', name], cwd=repo, env=env).returncode, 0)
+            shown = subprocess.run([BASH, str(REPO / 'scripts/filediff.sh'), 'show'], cwd=repo, env=env, capture_output=True, text=True).stdout
+            self.assertIn(expect, shown, name)
+        subprocess.run(['git', '-C', str(repo), 'checkout', '-q', 'f.txt'])
+        subprocess.run([BASH, str(REPO / 'scripts/filediff.sh'), 'stage', 'f.txt'], cwd=repo, env=env)
+        self.assertIn('no changes', subprocess.run([BASH, str(REPO / 'scripts/filediff.sh'), 'show'], cwd=repo, env=env, capture_output=True, text=True).stdout)

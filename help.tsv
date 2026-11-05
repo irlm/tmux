@@ -48,6 +48,8 @@ Helix (no prefix)	- f	Open a file:line the pane mentions	all
 Helix (no prefix)	- g	Lazygit	all
 Helix (no prefix)	- y	Copy selection to the clipboard	all
 Helix (no prefix)	- r	Reload files the agent changed	all
+Helix (no prefix)	- d / - D	Diff of this file / of the repo in a split (:q! closes)	all
+Helix (no prefix)	] f [ f	Next / previous function (tree-sitter)	all
 Helix (no prefix)	] c [ c	Next / previous change	all
 Helix (no prefix)	] e [ e	Next / previous diagnostic	all
 Helix (no prefix)	Space f	File picker	all

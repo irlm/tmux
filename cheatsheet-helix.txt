@@ -16,8 +16,10 @@ REVIEW (this config)        GOTO                        FIND
  - g   lazygit              gy       type definition      *      search selection
  - y   copy to clipboard    gi       implementation       Space / global search
  - r   reload all files     K        hover docs           Space f  file picker
- ] c [ c  next/prev change  Space r  rename symbol        Space b  buffer picker
- ] e [ e  next/prev error   Space a  code action          Space s  symbol picker
+ - d   diff of this file    Space r  rename symbol        Space b  buffer picker
+ - D   diff of the repo     Space a  code action          Space s  symbol picker
+ ] c [ c  next/prev change  ] f [ f  next/prev function   ] t [ t  next/prev type
+ ] e [ e  next/prev error   (the diff split is scratch: close it with :q!)
 
 WINDOWS & BUFFERS           COMMANDS                    AGENT PANES (prefix)
  C-w v / s  split            :w  :q  :wq  :q!            C-a C-f  file:line picker
