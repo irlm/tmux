@@ -133,6 +133,27 @@ herdr_too_old() {   # prints the message, true when the installed Herdr is older
     printf 'Herdr %s is older than %s, which this configuration needs; run: herdr update\n' "$have" "$WB_HERDR_MIN_VERSION"
 }
 
+# Split beside a pane and run a command in the new pane once its shell is at
+# the prompt (a fresh PowerShell takes a moment; text sent before that is
+# lost). Prints the new pane id; on failure prints Herdr's own message.
+herdr_split_run() {   # <pane> <right|down> <command>
+    local pane=$1 direction=$2 command=$3 output new
+    output=$(herdr pane split "$pane" --direction "$direction" --focus 2>&1) || { printf 'Could not split the pane: %s\n' "$output" >&2; return 1; }
+    new=$(printf '%s' "$output" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin)["result"]["pane"]["pane_id"], end="")
+except Exception: pass' 2>/dev/null)
+    [ -n "$new" ] || { printf 'No pane id in the reply: %s\n' "$output" >&2; return 1; }
+    for _ in $(seq 1 30); do
+        if herdr pane process-info --pane "$new" 2>/dev/null | python3 -c 'import json,sys,re
+try: names = [p.get("name", "") for p in json.load(sys.stdin)["result"]["process_info"]["foreground_processes"]]
+except Exception: sys.exit(1)
+sys.exit(0 if names and all(re.match(r"^(-?)(zsh|bash|fish|sh|dash|nu|pwsh|powershell|cmd)(\.exe)?$", n) for n in names) else 1)'; then break; fi
+        sleep 0.2
+    done
+    output=$(herdr pane run "$new" "$command" 2>&1) || { printf 'Could not run "%s" in %s: %s\n' "$command" "$new" "$output" >&2; return 1; }
+    printf '%s' "$new"
+}
+
 # Does a registry row with this hosts field apply to the running backend?
 # Fields: all, tmux, herdr. A plain shell counts as tmux for the help text.
 wb_host_match() {

@@ -450,6 +450,7 @@ esac''')
     def test_editor_key_splits_beside_the_pane_and_starts_helix_there(self):
         self.fake_herdr('''case "$1 $2" in
   "pane split") echo '{"result":{"pane":{"pane_id":"w1:p9"}}}' ;;
+  "pane process-info") [ "$3" = --pane ] && [ "$4" = w1:p9 ] && echo '{"result":{"process_info":{"foreground_processes":[{"name":"zsh"}]}}}' ;;
   *) echo '{"result":{}}' ;;
 esac''')
         (self.bin / 'hx').write_text('#!/bin/bash\n'); (self.bin / 'hx').chmod(0o755)

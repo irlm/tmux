@@ -48,9 +48,7 @@ run_action() {
             # under tmux `open` already made the split and runs this inside it.
             editor=${EDITOR:-hx}; command -v "$editor" >/dev/null 2>&1 || editor=hx
             if [ "$backend" = herdr ]; then
-                output=$(herdr pane split "$(herdr_active_pane)" --direction right --focus) || { pause_close; return 1; }
-                output=$(printf '%s' "$output" | python3 -c 'import json,sys; print(json.load(sys.stdin)["result"]["pane"]["pane_id"], end="")')
-                herdr pane run "$output" "$editor ." >/dev/null
+                herdr_split_run "$(herdr_active_pane)" right "$editor ." >/dev/null || { pause_close; return 1; }
                 return
             fi
             exec "$editor" . ;;
@@ -147,13 +145,13 @@ run_action() {
                 printf 'SSH host (alias or user@host): '; IFS= read -r query || return 0
                 [ -n "$query" ] || return 0
                 case "$query" in -*|*[[:space:]]*) echo 'Enter a host alias or user@host; put SSH options in ~/.ssh/config.'; pause_close; return 1 ;; esac
-                if [ "$id" = ssh ]; then
-                    output=$(herdr tab create --label "ssh $query" --focus) || { pause_close; return 1; }
-                else
-                    output=$(herdr pane split "$(herdr_active_pane)" --direction right --focus) || { pause_close; return 1; }
+                if [ "$id" = ssh-split ]; then
+                    herdr_split_run "$(herdr_active_pane)" right "ssh $(printf '%q' "$query")" >/dev/null || { pause_close; return 1; }
+                    return
                 fi
-                output=$(printf '%s' "$output" | python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]; print((r.get("root_pane") or r.get("pane"))["pane_id"], end="")')
-                herdr pane run "$output" "ssh $(printf '%q' "$query")" >/dev/null
+                output=$(herdr tab create --label "ssh $query" --focus 2>&1) || { printf 'Could not open a tab: %s\n' "$output"; pause_close; return 1; }
+                output=$(printf '%s' "$output" | python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]; print(r["root_pane"]["pane_id"], end="")')
+                herdr pane run "$output" "ssh $(printf '%q' "$query")" >/dev/null || { pause_close; return 1; }
                 return
             fi
             "$SCRIPT_DIR/ssh-remote.sh" ;;
