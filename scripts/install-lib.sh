@@ -240,6 +240,13 @@ install_herdr_workbench() {
         [ -d "$HOME/.local/bin" ] && case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac
         command -v herdr >/dev/null 2>&1 || { echo '  herdr is not on PATH yet; open a new shell and rerun install.sh --herdr' >&2; return 1; }
     fi
+    if message=$(herdr_too_old); then
+        printf '%s\n  Updating Herdr...\n' "$message"
+        herdr update >/dev/null 2>&1 || { echo '  herdr update failed; run it by hand, then rerun install.sh' >&2; return 1; }
+        hash -r 2>/dev/null
+        if message=$(herdr_too_old); then printf '%s\n' "$message" >&2; return 1; fi
+        echo '  A Herdr that was already running keeps the old binary: detach (prefix q) and start herdr again.'
+    fi
     bash "$assets/scripts/herdr-config.sh" || return 1
     for agent in claude codex; do
         command -v "$agent" >/dev/null 2>&1 || continue

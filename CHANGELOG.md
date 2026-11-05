@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this tmux configuration will be documented in this file.
 
@@ -10,6 +10,7 @@ All notable changes to this tmux configuration will be documented in this file.
 - `C-a C-d` reviews what changed in the repository behind the pane: one row per changed file with the diff beside it through `delta`, or `difftastic` (a new managed desktop tool, syntax-aware) after `C-d`. Enter opens the file in `$EDITOR` at its first changed line and returns to the list; `C-a` sends that file's diff into the agent's input; `C-w` shows the whole diff; `C-y` copies the path; `C-g` opens lazygit.
 - `C-a C-g` gives a task its own worktree: pick an existing one or type a branch name; tmux opens a session, Herdr a workspace grouped under the current one; both keep checkouts in `~/.herdr/worktrees/<repo>/<branch>` (`worktree_dir`).
 - Herdr's sidebar queues agents by urgency (blocked, done, working; `herdr_agent_sort=spaces` restores grouping), shows the task under each Claude Code and Codex row, labels agent panes in their borders, and shows the size of the uncommitted work under each workspace (`3 files +40 -12`). The `irlm.workbench` plugin now runs `scripts/agent-events.sh` on every agent state change, which journals it and reports that token; nothing polls.
+- The installers, `dotup` and `dotcheck` require Herdr 0.9.5: an older binary is updated before the config is rendered, instead of rejecting the file and leaving Herdr on `ctrl+b`. The renderer says when an attached Herdr still holds its previous keys.
 - The installer places Herdr's own agent skill in `~/.claude/skills/herdr` so Claude Code running inside Herdr can coordinate helper agents.
 - The Herdr renderer relinks the plugin when Herdr has it registered from another directory, and the theme test no longer touches the real Herdr (it had linked the live plugin from a temporary folder).
 

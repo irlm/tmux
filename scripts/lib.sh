@@ -110,6 +110,29 @@ except Exception:
 print(next((p["pane_id"] for p in panes if p.get("focused")), ""), end="")'
 }
 
+# The oldest Herdr this configuration renders for (sidebar rows, worktrees,
+# plugin events). An older binary rejects the config, which would leave
+# Herdr on its default ctrl+b prefix.
+WB_HERDR_MIN_VERSION=0.9.5
+herdr_version() { command "${HERDR_BIN_PATH:-herdr}" --version 2>/dev/null | sed -n 's/^herdr \([0-9][0-9.]*\).*/\1/p' | head -1; }
+# version_at_least 0.9.5 0.9.10 -> true when the second is not older.
+version_at_least() {
+    local want=$1 have=$2 a b
+    [ -n "$have" ] || return 0   # unknown (a test stub): do not block
+    IFS=. read -r a1 a2 a3 <<< "$want"; IFS=. read -r b1 b2 b3 <<< "$have"
+    for pair in "${b1:-0}:${a1:-0}" "${b2:-0}:${a2:-0}" "${b3:-0}:${a3:-0}"; do
+        b=${pair%%:*}; a=${pair#*:}
+        [ "$b" -gt "$a" ] 2>/dev/null && return 0
+        [ "$b" -lt "$a" ] 2>/dev/null && return 1
+    done
+    return 0
+}
+herdr_too_old() {   # prints the message, true when the installed Herdr is older than needed
+    local have; have=$(herdr_version)
+    version_at_least "$WB_HERDR_MIN_VERSION" "$have" && return 1
+    printf 'Herdr %s is older than %s, which this configuration needs; run: herdr update\n' "$have" "$WB_HERDR_MIN_VERSION"
+}
+
 # Does a registry row with this hosts field apply to the running backend?
 # Fields: all, tmux, herdr. A plain shell counts as tmux for the help text.
 wb_host_match() {

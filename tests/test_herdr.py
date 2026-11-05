@@ -437,3 +437,12 @@ esac''')
         self.fake_fzf(f'cat >/dev/null; printf "\\n{repo.resolve()}\\tmain x\\n"')   # the main checkout picked
         result = self.run_script('scripts/worktree.sh', str(repo), input='\n')
         self.assertIn('main checkout', result.stdout)
+
+    def test_an_old_herdr_is_refused_with_the_update_hint(self):
+        self.fake_herdr('case "$1" in --version) echo "herdr 0.8.3" ;; esac')
+        result = self.run_script('scripts/herdr-config.sh', '--check')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('Herdr 0.8.3 is older than 0.9.5', result.stderr)
+        self.assertIn('herdr update', result.stderr)
+        self.fake_herdr('case "$1 $2" in "--version ") echo "herdr 0.9.12" ;; "config check") echo "config: ok" ;; esac')
+        self.assertEqual(self.run_script('scripts/herdr-config.sh', '--check').returncode, 0)

@@ -228,6 +228,10 @@ if ($Print) { Write-Output (Render-Config); exit 0 }
 if ($PrintPlugin) { Write-Output (Render-Plugin); exit 0 }
 $herdr = Get-Command herdr -ErrorAction SilentlyContinue
 if (-not $herdr) { Write-Error 'herdr is not installed (https://herdr.dev).'; exit 127 }
+$herdrVersion = ((herdr --version 2>$null) -replace '^herdr\s+', '') -replace '\s.*$', ''
+if ($herdrVersion -and ([version]$herdrVersion -lt [version]'0.9.5')) {
+    Write-Error "Herdr $herdrVersion is older than 0.9.5, which this configuration needs; run: herdr update"; exit 1
+}
 $staged = Join-Path ([System.IO.Path]::GetTempPath()) ("herdr-config-" + [guid]::NewGuid().ToString('N') + '.toml')
 try {
     Set-Content -Path $staged -Value (Render-Config) -NoNewline

@@ -62,6 +62,8 @@ for _rc in "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc"; do
 done
 unset _rc _lines _managed
 if command -v herdr >/dev/null 2>&1 && [ -f "$TMUX_CONFIG_DIR/herdr/config.toml" ]; then
+    if _message=$(herdr_too_old); then fail "$_message (the rendered config is rejected and C-a stays unbound in Herdr)"; fi
+    unset _message
     _linked=$(herdr plugin list --json 2>/dev/null | python3 -c '
 import json, sys
 try:

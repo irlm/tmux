@@ -1,4 +1,4 @@
-# Herdr
+﻿# Herdr
 
 [Herdr](https://herdr.dev) is a terminal workspace manager built for coding
 agents: a sidebar shows which Claude Code or Codex pane is working, blocked or
@@ -29,6 +29,13 @@ pwsh ~\.config\tmux\scripts\herdr-config.ps1   # Windows
 
 `install.sh --no-herdr` (Windows: `INSTALL_HERDR=0`) gives a tmux-only
 desktop; `install.sh --server --herdr` adds Herdr to a server.
+
+The configuration needs Herdr 0.9.5 or newer. The installers and `dotup`
+update an older Herdr first, since an old binary rejects the rendered file
+and would stay on its own `ctrl+b` prefix; `dotcheck` reports it. Keys are
+read by the Herdr client, so one that was already open keeps its previous
+keys until you reload it (`C-a r`, or `ctrl+b shift+r` on a stock config)
+or detach and start `herdr` again.
 
 `herdr-config.sh` renders `herdr/config.toml`, one popup binding per row of
 `actions.tsv`, and your `~/.config/tmux-user/herdr.toml`, validates the result

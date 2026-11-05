@@ -406,6 +406,14 @@ if (-not (Get-Command herdr -ErrorAction SilentlyContinue) -and $env:INSTALL_HER
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + $env:Path
 }
 if (Get-Command herdr -ErrorAction SilentlyContinue) {
+    # An older Herdr rejects the rendered config (sidebar rows, worktrees),
+    # which would leave it on its default ctrl+b prefix: update it first.
+    $herdrVersion = ((herdr --version 2>$null) -replace '^herdr\s+', '') -replace '\s.*$', ''
+    if ($herdrVersion -and ([version]$herdrVersion -lt [version]'0.9.5')) {
+        Write-Host "  Herdr $herdrVersion is older than 0.9.5; updating..."
+        herdr update *> $null
+        Write-Host "  A Herdr that was already running keeps the old binary: detach (prefix q) and start herdr again." -ForegroundColor Yellow
+    }
     Write-Host "Configuring Herdr from this repo..."
     # PowerShell 7 when present, else the Windows PowerShell every machine has.
     $ps = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }

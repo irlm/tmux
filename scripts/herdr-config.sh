@@ -260,6 +260,7 @@ case "$mode" in
     *) printf 'Usage: herdr-config.sh [--print | --check]\n' >&2; exit 2 ;;
 esac
 command -v herdr >/dev/null 2>&1 || { echo 'herdr is not installed (https://herdr.dev).' >&2; exit 127; }
+if message=$(herdr_too_old); then printf '%s\n' "$message" >&2; exit 1; fi
 staged=$(mktemp "${TMPDIR:-/tmp}/herdr-config.XXXXXX") || exit 1
 trap 'rm -f -- "$staged"' EXIT
 render > "$staged"
@@ -280,4 +281,7 @@ printf 'Herdr config written to %s\n' "$TARGET"
 install_plugin || true
 if herdr status server 2>/dev/null | grep -q 'status: running'; then
     herdr server reload-config >/dev/null 2>&1 && echo 'Running Herdr server reloaded.'
+    # Keys and theme are read by the client: an attached Herdr keeps the old
+    # ones (and the old prefix) until it reloads or restarts.
+    echo 'An attached Herdr keeps its previous keys until you reload it (its reload key, C-a r here; ctrl+b shift+r on a stock config) or detach and start herdr again.'
 fi
