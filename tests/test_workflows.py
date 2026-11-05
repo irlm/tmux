@@ -697,7 +697,11 @@ class TmuxIntegrationTests(unittest.TestCase):
         wrapper.write_text('#!/bin/sh\nexec ' + shlex_quote(shutil.which('tmux')) + ' -S ' + shlex_quote(self.socket) + ' "$@"\n')
         wrapper.chmod(0o755)
         directory = self.root / 'theme-switch'
-        env = dict(os.environ, PATH=f'{wrappers}:' + os.environ['PATH'], TMUX_THEME_DIR=str(directory))
+        # appearance.py re-renders the Herdr config when herdr is on PATH:
+        # a fake one and a scratch config path keep the real session out.
+        (wrappers / 'herdr').write_text('#!/bin/sh\nexit 0\n'); (wrappers / 'herdr').chmod(0o755)
+        env = dict(os.environ, PATH=f'{wrappers}:' + os.environ['PATH'], TMUX_THEME_DIR=str(directory),
+                   HERDR_CONFIG_PATH=str(directory / 'herdr.toml'))
         for identifier, background in [('catppuccin', '#24273a'), ('contrast', '#20242e'), ('nord', '#2e3440')]:
             result = subprocess.run([sys.executable, str(REPO / 'scripts/appearance.py'), 'apply', identifier],
                                     env=env, capture_output=True, text=True)

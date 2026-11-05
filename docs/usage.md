@@ -175,6 +175,20 @@ from this repo. Inside Helix, `-` (minus) is the review leader:
 shell, `git diff | ~/.config/tmux/scripts/agent-send.sh` sends text the same
 way. Neovim is the optional second editor (`install.sh --nvim`).
 
+## Agents
+
+The same three keys under tmux and Herdr:
+
+| Key | Action |
+|-----|--------|
+| `w` | every coding agent on this machine: state, workspace, task, time in that state. Enter jumps to it, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes. Under tmux the rows are the panes running `claude` or `codex` |
+| `C-d` | review the changes in the repository behind the pane: one row per changed file, the diff beside it (`delta`; `C-d` switches to `difftastic`). Enter opens the file in `$EDITOR` at its first changed line, `C-a` sends that diff to the agent, `C-w` shows the whole diff, `C-y` copies the path, `C-g` lazygit |
+| `C-g` | a worktree per task: pick an existing worktree or type a branch name. tmux opens it as a session, Herdr as a grouped workspace; both use `~/.herdr/worktrees/<repo>/<branch>` (`@worktree_dir`) |
+
+Under Herdr the sidebar adds the live part: agents queued by urgency, the
+task under each Claude Code or Codex row, and `3 files +40 -12` under each
+workspace; see the [Herdr guide](herdr.md#working-with-agents).
+
 ## Utilities
 
 | Key | Action |

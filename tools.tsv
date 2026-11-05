@@ -12,6 +12,7 @@ btop	btop	btop	all
 fastfetch	fastfetch	fastfetch	all
 lazygit	lazygit	lazygit	all
 delta	git-delta	delta	desktop
+difft	difftastic	difftastic	desktop
 rg	ripgrep	ripgrep	all
 fd	fd	fd	all
 jq	jq	jq	all

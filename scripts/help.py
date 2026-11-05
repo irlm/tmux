@@ -24,6 +24,7 @@ ACTION_GROUPS = {
     **dict.fromkeys(('palette', 'help', 'update', 'themes', 'special-days', 'pick', 'urls', 'editor-help'), 'Help & plugins'),
     **dict.fromkeys(('new-session', 'rename-session', 'rename-window'), 'Windows & sessions'),
     'ssh': 'Remote', 'ssh-split': 'Remote',
+    **dict.fromkeys(('agents', 'review', 'worktree'), 'Agents'),
 }
 
 

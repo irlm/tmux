@@ -157,14 +157,19 @@ render() {
     case "$size" in *[!0-9%]*|'') size=85% ;; esac
     status="bash $(printf '%q' "$SCRIPT_DIR/status_right.sh") --plain 160"
     entries=$(render_status_entries "$status")
+    local sort worktrees
+    sort=$(tmux_option @herdr_agent_sort priority)
+    case "$sort" in spaces|priority) ;; *) sort=priority ;; esac
+    worktrees=$(tmux_option @worktree_dir "~/.herdr/worktrees")
     printf '%s on %s. Do not edit: personal settings belong in %s\n\n' "$MARK" "$(date '+%F %T')" "$USER_TOML"
     theme=$(render_theme) || theme='[theme]
 name = "nord"'
     # The theme block spans lines; macOS awk refuses newlines in -v values.
     WB_THEME="$theme" WB_STATUS_ENTRIES="$entries" awk -v scripts="$(printf '%q' "$SCRIPT_DIR")" \
+        -v sort="$sort" -v worktrees="$(toml_string "$worktrees")" \
         '/@@THEME@@/ { print ENVIRON["WB_THEME"]; next }
          /@@STATUS_ENTRIES@@/ { print ENVIRON["WB_STATUS_ENTRIES"]; next }
-         { gsub(/@@SCRIPTS@@/, scripts); print }' "$TEMPLATE"
+         { gsub(/@@SCRIPTS@@/, scripts); gsub(/@@AGENT_SORT@@/, sort); gsub(/"@@WORKTREE_DIR@@"/, worktrees); print }' "$TEMPLATE"
     printf '\n# ─── Popups generated from actions.tsv ───────────────────\n'
     while IFS=$'\t' read -r key id label _ hosts own; do
         own=${own%$'\r'}
@@ -196,6 +201,9 @@ render_plugin() {
         "id = \"$PLUGIN_ID\"" 'name = "Workbench"' 'version = "0.1.0"' 'min_herdr_version = "0.9.0"' \
         'description = "The irlm/workbench popups: command palette, projects, notes, search, references, themes"' \
         'platforms = ["linux", "macos"]'
+    # Every agent state change: journal it and report the size of the
+    # uncommitted work as the workspace's $changes sidebar token.
+    printf '\n[[events]]\non = "pane.agent_status_changed"\ncommand = ["bash", %s]\n' "$(toml_string "$SCRIPT_DIR/agent-events.sh")"
     for id in palette projects notes help; do
         label=$(awk -F '\t' -v id="$id" '$2 == id {print $3}' "$REGISTRY")
         printf '\n[[actions]]\nid = "%s"\ntitle = %s\ncontexts = ["workspace"]\ncommand = [%s, "plugin", "pane", "open", "--plugin", "%s", "--entrypoint", "%s", "--placement", "popup", "--width", "%s", "--height", "%s"]\n' \
@@ -212,11 +220,30 @@ render_plugin() {
 }
 
 install_plugin() {
+    local linked
     mkdir -p "$PLUGIN_DIR" || return 1
     render_plugin > "$PLUGIN_DIR/herdr-plugin.toml" || return 1
-    if herdr plugin list 2>/dev/null | grep -qF "\"$PLUGIN_ID\""; then
+    # Plugin links are global to the user: find where this id points now.
+    linked=$(herdr plugin list --json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    plugins = json.load(sys.stdin)["result"]["plugins"]
+except Exception:
+    sys.exit(0)
+for plugin in plugins:
+    if plugin.get("plugin_id") == sys.argv[1]:
+        print(plugin.get("plugin_root", ""), end="")' "$PLUGIN_ID")
+    if [ "$linked" = "$PLUGIN_DIR" ]; then
         printf 'Herdr plugin %s refreshed in %s\n' "$PLUGIN_ID" "$PLUGIN_DIR"
-    elif herdr plugin link "$PLUGIN_DIR" >/dev/null 2>&1; then
+        return 0
+    fi
+    if [ -n "$linked" ]; then
+        # Linked from somewhere else (a moved checkout, a stale directory):
+        # point it here, or events and panes silently stop working.
+        herdr plugin unlink "$PLUGIN_ID" >/dev/null 2>&1 || true
+        printf 'Herdr plugin %s was linked from %s\n' "$PLUGIN_ID" "$linked"
+    fi
+    if herdr plugin link "$PLUGIN_DIR" >/dev/null 2>&1; then
         printf 'Herdr plugin %s linked from %s\n' "$PLUGIN_ID" "$PLUGIN_DIR"
     else
         printf 'Could not link the Herdr plugin; run: herdr plugin link %s\n' "$PLUGIN_DIR" >&2

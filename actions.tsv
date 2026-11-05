@@ -20,6 +20,9 @@ V	tldr	tldr reference	tldr	all
 C-u	update	Update environment	-	all	
 $	llm	LLM usage and limits	python3	all	
 C-f	open-file	Open a file:line from the pane	fzf	all	
+w	agents	Agents: state, jump, read, prompt	fzf	all	
+C-d	review	Review changes: diff, open, send	fzf&git	all	
+C-g	worktree	Worktree for a task	fzf&git	all	
 s	ssh	SSH in new window	ssh	all	
 P	ssh-split	SSH in split pane	ssh	all	
 N	new-session	New session	-	all	

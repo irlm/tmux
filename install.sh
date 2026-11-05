@@ -335,6 +335,7 @@ elif [ "$OS" = "Linux" ]; then
     install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
     install_gh_binary "cli/cli" "gh" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
     install_gh_binary "dandavison/delta" "delta" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+    install_gh_binary "Wilfred/difftastic" "difft" "${ARCH}.*linux-gnu\\.tar\\.gz" || true
 
     # zoxide (official install script)
     command -v zoxide &>/dev/null || curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh

@@ -4,6 +4,15 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Agents
+
+- `C-a w` lists every coding agent on the machine (state, workspace, task title, time in that state, directory) with the pane beside it: Enter jumps to it, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes. Under tmux the rows are the panes running `claude` or `codex`.
+- `C-a C-d` reviews what changed in the repository behind the pane: one row per changed file with the diff beside it through `delta`, or `difftastic` (a new managed desktop tool, syntax-aware) after `C-d`. Enter opens the file in `$EDITOR` at its first changed line and returns to the list; `C-a` sends that file's diff into the agent's input; `C-w` shows the whole diff; `C-y` copies the path; `C-g` opens lazygit.
+- `C-a C-g` gives a task its own worktree: pick an existing one or type a branch name; tmux opens a session, Herdr a workspace grouped under the current one; both keep checkouts in `~/.herdr/worktrees/<repo>/<branch>` (`worktree_dir`).
+- Herdr's sidebar queues agents by urgency (blocked, done, working; `herdr_agent_sort=spaces` restores grouping), shows the task under each Claude Code and Codex row, labels agent panes in their borders, and shows the size of the uncommitted work under each workspace (`3 files +40 -12`). The `irlm.workbench` plugin now runs `scripts/agent-events.sh` on every agent state change, which journals it and reports that token; nothing polls.
+- The installer places Herdr's own agent skill in `~/.claude/skills/herdr` so Claude Code running inside Herdr can coordinate helper agents.
+- The Herdr renderer relinks the plugin when Herdr has it registered from another directory, and the theme test no longer touches the real Herdr (it had linked the live plugin from a temporary folder).
+
 ### Herdr by default
 
 - Desktop installs on macOS, Linux and Windows install and configure Herdr without a flag; `--no-herdr` (Windows `INSTALL_HERDR=0`) skips it, and `--server --herdr` adds it to a server. The README and docs lead with Herdr on the desktop and tmux on servers.

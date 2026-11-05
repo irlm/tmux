@@ -61,6 +61,21 @@ for _rc in "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc"; do
     [ -z "$_lines" ] || warn "$_rc line(s) ${_lines% }: older inline shell setup; the managed shell file provides it now, so remove those lines (banner and prompt load twice)."
 done
 unset _rc _lines _managed
+if command -v herdr >/dev/null 2>&1 && [ -f "$TMUX_CONFIG_DIR/herdr/config.toml" ]; then
+    _linked=$(herdr plugin list --json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    plugins = json.load(sys.stdin)["result"]["plugins"]
+except Exception:
+    sys.exit(0)
+print(next((p.get("plugin_root", "") for p in plugins if p.get("plugin_id") == "irlm.workbench"), ""), end="")')
+    if [ -n "$_linked" ] && [ "$_linked" != "$TMUX_USER_DIR/herdr-plugin" ]; then
+        fail "Herdr plugin irlm.workbench is linked from $_linked, not $TMUX_USER_DIR/herdr-plugin — run scripts/herdr-config.sh."
+    elif [ -n "$_linked" ] && [ ! -f "$_linked/herdr-plugin.toml" ]; then
+        fail "Herdr plugin manifest missing in $_linked — run scripts/herdr-config.sh."
+    fi
+    unset _linked
+fi
 if command -v hx >/dev/null 2>&1 && [ -f "$TMUX_CONFIG_DIR/helix/config.toml" ]; then
     helix_config="${HELIX_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/helix}/config.toml"
     if [ -L "$helix_config" ] && [ "$(readlink "$helix_config")" = "$TMUX_CONFIG_DIR/helix/config.toml" ]; then

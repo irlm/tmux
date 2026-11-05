@@ -67,6 +67,10 @@ move_tab_next = "prefix+>"
 
 # ─── Workspaces (tmux sessions) ──────────────────────────
 new_workspace = "prefix+shift+n"
+# Worktrees go through the C-a C-g popup (scripts/worktree.sh), the same
+# key as under tmux; Herdr's own prompts stay reachable from the sidebar.
+new_worktree = ""
+open_worktree = ""
 rename_workspace = "prefix+."
 close_workspace = "prefix+shift+q"
 workspace_picker = "prefix+shift+s"
@@ -141,8 +145,11 @@ description = "focus pane or editor window to the right"
 
 [ui]
 status_indicators = "symbols"
-# Spaces grouped by workspace; blocked and done agents stand out by glyph.
-agent_panel_sort = "spaces"
+# "priority" queues the agents by what needs you: blocked first, then done,
+# then working; herdr_agent_sort=spaces in options.env groups by workspace.
+agent_panel_sort = "@@AGENT_SORT@@"
+# A split pane running an agent says so in its border.
+show_agent_labels_on_pane_borders = true
 confirm_close = true
 prompt_new_tab_name = false
 window_title = "{hostname}: {workspace}"
@@ -158,6 +165,21 @@ tab_bar_right = [
 ]
 tab_bar_right_separator = " | "
 
+# Agent rows: Claude Code and Codex put the task in the terminal title, so a
+# row shows what the agent is on, not only that it is working.
+[ui.sidebar.agents]
+rows = [["state_icon", "machine", "workspace", "tab"], ["agent"]]
+
+[ui.sidebar.agents.rows_by_agent]
+claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+codex = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+
+# Workspace rows: branch, ahead/behind, and the size of the uncommitted work
+# ($changes, "3 files +40 -12") that scripts/agent-events.sh reports whenever
+# an agent in that workspace changes state.
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace"], ["branch", "git_status"], ["$changes"]]
+
 [ui.toast]
 # Desktop notification through the outer terminal when an agent needs you
 # and Herdr is in the background. No polling, no daemon.
@@ -165,6 +187,12 @@ delivery = "terminal"
 
 [ui.sound]
 enabled = true
+
+[worktrees]
+# Where C-a C-g (and Herdr's own "New worktree") put checkouts:
+# <directory>/<repo>/<branch>. worktree_dir in options.env changes it, for
+# tmux as well.
+directory = "@@WORKTREE_DIR@@"
 
 [session]
 # Claude Code and Codex come back into the same conversation after a server

@@ -43,6 +43,9 @@ run_action() {
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
         open-file) "$SCRIPT_DIR/pick.sh" files ;;
+        agents) "$SCRIPT_DIR/agents.sh" ;;
+        review) "$SCRIPT_DIR/review.sh" ;;
+        worktree) "$SCRIPT_DIR/worktree.sh" ;;
         llm) if python3 -c 'import curses' 2>/dev/null; then python3 "$SCRIPT_DIR/llm_usage.py"
              else python3 "$SCRIPT_DIR/llm_usage.py" --plain | less -R; fi ;;
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0

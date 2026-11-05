@@ -91,7 +91,7 @@ irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 The Windows installer uses Scoop plus winget to set up:
 
 - Helix (`hx`) with this repo's config; Neovim with `INSTALL_NVIM=1`
-- `lazygit` (with `delta` for the diffs), `lazydocker`, `gh`, `fzf`, `zoxide`, `bat`, `btop`, `fastfetch`, `oh-my-posh`
+- `lazygit` (with `delta` and `difftastic` for the diffs), `lazydocker`, `gh`, `fzf`, `zoxide`, `bat`, `btop`, `fastfetch`, `oh-my-posh`
 - `gh-dash` (installed as a `gh` extension: `gh extension install dlvhdr/gh-dash`)
 - Rust, Go, Python, Node.js, Java, and Scala tooling
 - Docker Desktop (skipped, with a note, when the drive has less than 10 GB free; the installer stops before changing anything below 2 GB)

@@ -76,6 +76,7 @@ Windows & sessions	1-9	Switch tab	herdr
 Windows & sessions	q	Detach; everything keeps running	herdr
 Agents	C-n C-p	Next / previous agent	herdr
 Agents	C-o	Jump to what just notified	herdr
+Agents	sidebar	State per agent, task title, $changes per workspace	herdr
 Agents	b	Show or hide the sidebar	herdr
 Agents	F1	Herdr's own key list	herdr
 Agents	C-s	Herdr settings	herdr

@@ -161,9 +161,14 @@ function Render-Config {
     } else {
         $status = "  { type = `"command`", command = $(TomlString $statusCommand), interval_seconds = 15, timeout_seconds = 20 },"
     }
+    $sort = Get-Option 'herdr_agent_sort' 'priority'
+    if ($sort -notin @('spaces', 'priority')) { $sort = 'priority' }
+    $worktrees = Get-Option 'worktree_dir' '~/.herdr/worktrees'
     foreach ($line in Get-Content $Template) {
         if ($line -match '@@THEME@@') { [void]$out.AppendLine($theme); continue }
         if ($line -match '@@STATUS_ENTRIES@@') { [void]$out.AppendLine($status); continue }
+        if ($line -match '@@AGENT_SORT@@') { [void]$out.AppendLine($line.Replace('@@AGENT_SORT@@', $sort)); continue }
+        if ($line -match '"@@WORKTREE_DIR@@"') { [void]$out.AppendLine($line.Replace('"@@WORKTREE_DIR@@"', (TomlString $worktrees))); continue }
         if ($line -match '^command = "bash @@SCRIPTS@@/(\S+) (\w+)"$') {
             $command = ScriptCommand $bash $Matches[1] $Matches[2]
             if (-not $command) { $command = 'rem no bash for the navigation helper' }
@@ -205,6 +210,9 @@ function Render-Plugin {
                'description = "The irlm/workbench popups: command palette, projects, notes, search, references, themes"',
                'platforms = ["linux", "macos", "windows"]')
     if (-not $bash -or $bash.kind -ne 'gitbash') { return ($lines -join "`n") }
+    $events = (Join-Path $Root 'scripts\agent-events.sh')
+    $lines += ''; $lines += '[[events]]'; $lines += 'on = "pane.agent_status_changed"'
+    $lines += "command = [$(TomlString $bash.path), $(TomlString $events)]"
     foreach ($row in Import-Csv $Registry -Delimiter "`t") {
         if (-not $row.id -or $row.hosts -eq 'tmux' -or $row.id -in @('new-session', 'rename-session', 'rename-window')) { continue }
         $script = (Join-Path $Root 'scripts\actions.sh')

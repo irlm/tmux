@@ -245,6 +245,22 @@ install_herdr_workbench() {
         command -v "$agent" >/dev/null 2>&1 || continue
         herdr integration install "$agent" >/dev/null 2>&1 && printf 'Herdr integration: %s\n' "$agent"
     done
+    install_herdr_skill
+}
+
+# Herdr's own skill file for Claude Code: with it, a Claude running in a
+# Herdr pane can split panes, start a helper agent beside itself, prompt it
+# and wait for it. Only Herdr's copy is written or refreshed; a file the
+# user changed is left alone.
+install_herdr_skill() {
+    local dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/herdr" fresh
+    command -v claude >/dev/null 2>&1 && command -v herdr >/dev/null 2>&1 || return 0
+    fresh=$(herdr --skill 2>/dev/null) && [ -n "$fresh" ] || return 0
+    if [ -f "$dir/SKILL.md" ]; then
+        [ "$(cat "$dir/SKILL.md")" != "$fresh" ] || return 0
+        grep -q 'Control Herdr, a terminal multiplexer' "$dir/SKILL.md" || return 0
+    fi
+    mkdir -p "$dir" && printf '%s\n' "$fresh" > "$dir/SKILL.md" && printf 'Herdr skill for Claude Code: %s\n' "$dir/SKILL.md"
 }
 
 # The Nerd Font every glyph in the status lines, popups and prompts assumes.

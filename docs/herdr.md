@@ -89,6 +89,36 @@ one runs in the pane (`scripts/herdr-navigate.sh`), and the paired
 edge. Shells lose `ctrl+l` for clear, as they already do
 under tmux; type `clear`.
 
+## Working with agents
+
+The loop this setup is built for: an agent works in a pane, the sidebar says
+when it needs you or is done, you jump there, review what changed, and send
+the next instruction.
+
+| Key | What it does |
+|-----|--------------|
+| sidebar | agents queued by urgency (blocked, done, working); under each Claude Code or Codex row the task it is on; under each workspace its branch and `3 files +40 -12`, the uncommitted work |
+| `C-a C-o` | jump to the agent that just notified |
+| `C-a C-n` `C-a C-p` | next / previous agent |
+| `C-a w` | every agent on this machine in a popup: state, workspace, task, how long in that state, directory; the pane shown beside. Enter jumps, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes |
+| `C-a C-d` | what changed in the repository behind the pane: one row per file with the diff beside it. Enter opens the file in Helix at its first changed line and comes back to the list; `C-a` sends that file's diff into the agent's input with "About your change in ..."; `C-w` the whole diff; `C-d` switches the diff between `delta` and `difftastic` (syntax-aware); `C-y` copies the path; `C-g` lazygit |
+| `C-a C-g` | a worktree per task: pick an existing worktree of this repository or type a branch name. Herdr opens it as a workspace grouped under this one; checkouts live in `~/.herdr/worktrees/<repo>/<branch>` (`worktree_dir` in `options.env`) |
+| `- a` in Helix | send the selection, or the line, into the agent's input |
+
+The sidebar information comes from `scripts/agent-events.sh`, which the
+`irlm.workbench` plugin runs on every agent state change: it journals the
+change (`~/.local/share/tmux/agent-journal.tsv`, what `C-a w` uses for the
+time in state) and reports the size of the uncommitted work in that pane's
+repository as the workspace's `$changes` token. Nothing polls.
+
+`herdr_agent_sort=spaces` in `options.env` groups the sidebar by workspace
+instead of by urgency.
+
+The installer also puts Herdr's own skill file in `~/.claude/skills/herdr`,
+so a Claude Code running in a Herdr pane can split panes, start a helper
+agent beside itself, prompt it and wait for it (the skill only acts when
+`HERDR_ENV=1`). `herdr --skill` prints the copy matching the installed Herdr.
+
 ## Popups and the plugin
 
 Every `actions.tsv` row becomes a `[[keys.command]]` popup sized by
@@ -145,7 +175,7 @@ anything is installed.
 
 | File | Purpose |
 |------|---------|
-| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days` |
+| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days`, `herdr_agent_sort` (`priority` or `spaces`), `worktree_dir` |
 | `~/.config/tmux-user/herdr.toml` | appended verbatim to the rendered config: `[theme.custom.light]`, more `[[keys.command]]`, anything the template does not define |
 | `~/.config/tmux-user/herdr-plugin/` | the generated plugin; linked, not copied |
 

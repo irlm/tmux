@@ -335,3 +335,105 @@ class UsageTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AgentWorkbenchTests(HerdrFixture):
+    """C-a w, C-a C-d, C-a C-g and the event hook behind the sidebar token."""
+
+    def git_repo(self, name='repo'):
+        repo = self.root / name; repo.mkdir()
+        git = ['git', '-C', str(repo), '-c', 'user.email=t@t', '-c', 'user.name=t']
+        subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+        (repo / 'f.txt').write_text('a\nb\n')
+        subprocess.run([*git, 'add', 'f.txt'], check=True)
+        subprocess.run([*git, 'commit', '-q', '-m', 'one'], check=True)
+        (repo / 'f.txt').write_text('a\nc\nd\n')
+        (repo / 'g.txt').write_text('new\n')
+        return repo
+
+    def fake_fzf(self, body):
+        (self.bin / 'fzf').write_text('#!/bin/bash\n' + body + '\n'); (self.bin / 'fzf').chmod(0o755)
+
+    def test_rendered_config_queues_agents_and_shows_the_changes_token(self):
+        self.fake_herdr()
+        (self.user / 'options.env').write_text('worktree_dir=~/Projects/worktrees\n')
+        rendered = self.run_script('scripts/herdr-config.sh', '--print').stdout
+        self.assertIn('agent_panel_sort = "priority"', rendered)
+        self.assertIn('show_agent_labels_on_pane_borders = true', rendered)
+        self.assertIn('["$changes"]', rendered)
+        self.assertIn('claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]', rendered)
+        self.assertIn('directory = "~/Projects/worktrees"', rendered)
+        self.assertIn('key = "prefix+ctrl+d"', rendered)
+        (self.user / 'options.env').write_text('herdr_agent_sort=spaces\n')
+        self.assertIn('agent_panel_sort = "spaces"', self.run_script('scripts/herdr-config.sh', '--print').stdout)
+        manifest = self.run_script('scripts/herdr-config.sh', '--print-plugin').stdout
+        self.assertIn('[[events]]\non = "pane.agent_status_changed"\ncommand = ["bash", "' + str(REPO / 'scripts/agent-events.sh') + '"]', manifest)
+
+    def test_a_plugin_linked_from_elsewhere_is_relinked_here(self):
+        self.fake_herdr('''case "$1 $2" in
+  "config check") echo "config: ok" ;;
+  "plugin list") echo '{"result":{"plugins":[{"plugin_id":"irlm.workbench","plugin_root":"/tmp/stale/herdr-plugin"}]}}' ;;
+esac''')
+        result = self.run_script('scripts/herdr-config.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('plugin unlink irlm.workbench', self.calls())
+        self.assertIn(f'plugin link {self.user}/herdr-plugin', self.calls())
+        self.assertIn('was linked from /tmp/stale/herdr-plugin', result.stdout)
+
+    def test_agents_picker_lists_by_urgency_and_focuses_the_pick(self):
+        self.fake_herdr('''case "$1 $2" in
+  "agent list") echo '{"result":{"agents":[{"pane_id":"w1:p1","workspace_id":"w1","tab_id":"w1:t1","agent":"claude","agent_status":"working","cwd":"/x","terminal_title_stripped":"Fix tests"},{"pane_id":"w2:p3","workspace_id":"w2","tab_id":"w2:t2","agent":"codex","agent_status":"blocked","cwd":"/y"}]}}' ;;
+  "workspace list") echo '{"result":{"workspaces":[{"workspace_id":"w1","label":"api"},{"workspace_id":"w2","label":"web"}]}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        env = dict(self.env, HERDR_WORKSPACE_ID='w1')
+        listed = self.run_script('scripts/agents.sh', '--list', env=env)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        rows = listed.stdout.splitlines()
+        self.assertTrue(rows[0].startswith('w2:p3\t▲ blocked'), rows)   # blocked first
+        self.assertIn('web/t2\tcodex', rows[0])
+        self.assertIn('Fix tests', rows[1])
+        self.fake_fzf('cat | head -1')
+        result = self.run_script('scripts/agents.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('agent focus w2:p3', self.calls())
+
+    def test_review_opens_the_picked_file_at_its_first_changed_line(self):
+        repo = self.git_repo()
+        self.fake_herdr()
+        self.fake_fzf('grep -F "f.txt" | head -1')
+        (self.bin / 'hx').write_text('#!/bin/bash\necho "hx $PWD $*" > "$TMUX_DATA_DIR/opened"\n'); (self.bin / 'hx').chmod(0o755)
+        (self.root / 'data').mkdir()
+        # after the editor the list comes back; a second fzf run ends it
+        self.fake_fzf('if [ -f "$TMUX_DATA_DIR/opened" ]; then exit 130; fi; grep -F "f.txt" | head -1')
+        env = dict(self.env, EDITOR='hx', PATH=self.env['PATH'])
+        result = self.run_script('scripts/review.sh', str(repo), env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'data/opened').read_text().strip(), f'hx {repo.resolve()} f.txt:2')
+        preview = self.run_script('scripts/review.sh', '--preview', str(repo), 'g.txt', env=dict(env, PATH=self.env['PATH']))
+        self.assertIn('new', preview.stdout)
+
+    def test_agent_event_journals_the_change_and_reports_the_workspace_token(self):
+        repo = self.git_repo()
+        self.fake_herdr('case "$1 $2" in "pane get") printf \'{"result":{"pane":{"workspace_id":"w1","cwd":"%s"}}}\\n\' "$REPO" ;; esac')
+        event = json.dumps({'type': 'pane.agent_status_changed', 'pane_id': 'w1:p2', 'agent': 'claude', 'agent_status': 'done'})
+        env = dict(self.env, HERDR_PLUGIN_EVENT_JSON=event, REPO=str(repo))
+        result = self.run_script('scripts/agent-events.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('workspace report-metadata w1 --source workbench --token changes=2 files +2 -1', self.calls())
+        journal = (self.root / 'data/agent-journal.tsv').read_text().splitlines()
+        self.assertEqual(journal[-1].split('\t')[1:], ['w1', 'w1:p2', 'claude', 'done'])
+        subprocess.run(['git', '-C', str(repo), 'checkout', '-q', 'f.txt']); (repo / 'g.txt').unlink()
+        self.run_script('scripts/agent-events.sh', env=env)
+        self.assertIn('workspace report-metadata w1 --source workbench --token changes=clean', self.calls())
+
+    def test_worktree_popup_creates_a_branch_worktree_under_herdr(self):
+        repo = self.git_repo()
+        self.fake_herdr()
+        self.fake_fzf('cat >/dev/null; printf "feature-x\\n"; exit 1')   # a typed name, nothing picked
+        result = self.run_script('scripts/worktree.sh', str(repo))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'worktree create --cwd {repo.resolve()} --branch feature-x --focus', self.calls())
+        self.fake_fzf(f'cat >/dev/null; printf "\\n{repo.resolve()}\\tmain x\\n"')   # the main checkout picked
+        result = self.run_script('scripts/worktree.sh', str(repo), input='\n')
+        self.assertIn('main checkout', result.stdout)
