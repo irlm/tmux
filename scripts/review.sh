@@ -81,7 +81,7 @@ open_in_editor() {
     line=$(first_changed_line "$root" "$file")
     case "$editor" in
         *hx*) (cd "$root" && "$editor" "$file:$line") ;;
-        *vim*|*nvim*|*vi) (cd "$root" && "$editor" "+$line" "$file") ;;
+        *vim*|*vi) (cd "$root" && "$editor" "+$line" "$file") ;;
         *) (cd "$root" && "$editor" "$file") ;;
     esac
 }
@@ -116,8 +116,8 @@ while :; do
     case "$key" in
         ctrl-a) [ -n "$file" ] && send_to_agent "$root" "$file" ;;
         ctrl-w) git -C "$root" diff HEAD --color=always | { command -v delta >/dev/null 2>&1 && delta --paging=always --line-numbers || less -KR; } ;;
-        ctrl-d) if [ "$WB_DIFF_TOOL" = difft ]; then WB_DIFF_TOOL=delta; else WB_DIFF_TOOL=difft; fi
-                command -v difft >/dev/null 2>&1 || [ "$WB_DIFF_TOOL" != difft ] || { echo 'difft is not installed (difftastic).'; sleep 1; WB_DIFF_TOOL=delta; }
+        ctrl-d) if [ "$WB_DIFF_TOOL" = difft ]; then WB_DIFF_TOOL='delta'; else WB_DIFF_TOOL='difft'; fi
+                command -v difft >/dev/null 2>&1 || [ "$WB_DIFF_TOOL" != difft ] || { echo 'difft is not installed (difftastic).'; sleep 1; WB_DIFF_TOOL='delta'; }
                 export WB_DIFF_TOOL ;;
         ctrl-y) [ -n "$file" ] && printf '%s' "$file" | "$SCRIPT_DIR/clipboard.sh" ;;
         ctrl-g) (cd "$root" && "$SCRIPT_DIR/lazygit.sh") ;;
