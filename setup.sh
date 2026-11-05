@@ -223,7 +223,8 @@ install_prerequisites() {
 
 install_prerequisites
 
-INSTALL_ASSETS="${TMUX_INSTALL_ASSETS:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+# Piped into bash there is no script path ($0 is "bash", or "-bash" under WSL).
+INSTALL_ASSETS="${TMUX_INSTALL_ASSETS:-$(cd "$(dirname -- "${BASH_SOURCE[0]:-$0}" 2>/dev/null || echo /)" 2>/dev/null && pwd)}"
 if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/tools.tsv" ]; then
   INSTALL_ASSETS=$(mktemp -d)
   trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT

@@ -97,7 +97,8 @@ install_gh_binary() {
 }
 
 # Load shared assets locally, or bootstrap them for the curl one-liner.
-INSTALL_ASSETS="${TMUX_INSTALL_ASSETS:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+# Piped into bash there is no script path ($0 is "bash", or "-bash" under WSL).
+INSTALL_ASSETS="${TMUX_INSTALL_ASSETS:-$(cd "$(dirname -- "${BASH_SOURCE[0]:-$0}" 2>/dev/null || echo /)" 2>/dev/null && pwd)}"
 if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/tools.tsv" ]; then
     ensure_curl
     INSTALL_ASSETS=$(mktemp -d)
@@ -248,6 +249,11 @@ fi
 
 # ─── Default install mode ────────────────────────────────
 echo "=== dotfiles installer ==="
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "Running inside WSL: this installs the Linux workbench (tmux, Helix, the tools) in this distribution."
+    echo "For Windows itself, run in PowerShell: irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex"
+    echo ""
+fi
 echo "    --full    multi-distro setup with shell config, nerd font, dev toolchain"
 echo "    --server  lightweight server install (tmux, hx, fzf, bat, btop)"
 echo "    --no-herdr  tmux only; by default Herdr is installed and configured too"
