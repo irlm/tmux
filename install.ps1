@@ -251,7 +251,9 @@ if ($wantFull) {
     Write-Host "Checking Docker..."
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
         $freeGB = Get-FreeGB
-        if ($null -ne $freeGB -and $freeGB -lt 10) {
+        if (-not $elevated) {
+            Write-Host "  Skipped Docker Desktop: needs an Administrator PowerShell (winget install Docker.DockerDesktop)" -ForegroundColor Yellow
+        } elseif ($null -ne $freeGB -and $freeGB -lt 10) {
             Write-Host "  Skipped Docker Desktop: $freeGB GB free, its installer and images need about 10 GB (install later with: winget install Docker.DockerDesktop)" -ForegroundColor Yellow
         } else {
             Write-Host "  Installing Docker Desktop via winget..."

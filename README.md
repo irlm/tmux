@@ -35,7 +35,7 @@ Flags: `--no-herdr` for a tmux-only desktop, `--nvim` for Neovim as a second edi
 
 ### Windows (PowerShell)
 
-Run PowerShell as Administrator:
+In PowerShell (Administrator is optional: only the system-wide font registration and Docker Desktop need it):
 
 ```powershell
 irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex

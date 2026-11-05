@@ -82,7 +82,7 @@ desktops as well, for plain sessions and because the SSH flow uses it.
 
 ## Windows
 
-Run PowerShell as Administrator:
+In PowerShell. Administrator is optional: the install is per user through Scoop, and only the system-wide font registration and Docker Desktop (`INSTALL_FULL=1`) need an elevated window. `C-a C-u` from a Herdr started without one therefore updates cleanly.
 
 ```powershell
 irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
