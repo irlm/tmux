@@ -24,7 +24,7 @@ done
 failures=0
 failed() { printf '  FAILED: %s\n' "$*" >&2; failures=$((failures + 1)); }
 update_repo() {
-    local name=$1 dir=$2 remote head changes managed alias
+    local name=$1 dir=$2 remote head changes managed alias deleted
     printf '\n── %s ──\n' "$name"
     if [ ! -d "$dir/.git" ] && [ ! -f "$dir/.git" ]; then failed "$name repo missing — run install.sh"; return; fi
     remote=$(git -C "$dir" remote get-url origin 2>/dev/null) || { failed "$name has no origin remote"; return; }
@@ -63,6 +63,10 @@ update_repo() {
         fi
         # All other local edits retain normal Git merge protection.
         git -C "$dir" -c http.lowSpeedLimit=100 -c http.lowSpeedTime=15 pull --ff-only origin main || failed "$name pull; resolve local changes in $dir"
+        # A tracked file that went missing (a failed rewrite on Windows, a
+        # stray delete) breaks every popup; nothing here is edited by hand.
+        deleted=$(git -C "$dir" ls-files --deleted 2>/dev/null | tr '\n' ' ')
+        if [ -n "$deleted" ] && git -C "$dir" checkout -- $deleted; then printf '  Restored missing files: %s\n' "${deleted% }"; fi
     fi
 }
 

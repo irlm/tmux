@@ -11,6 +11,9 @@ profile=${TMUX_PROFILE:-desktop}
 ! wb_server_install || profile=server
 printf 'Health check (%s)\n' "$profile"
 [ -r "$TMUX_CONFIG_DIR/tools.tsv" ] || fail "Tool manifest missing — update or reinstall $TMUX_CONFIG_DIR."
+_deleted=$(git -C "$TMUX_CONFIG_DIR" ls-files --deleted 2>/dev/null | tr '\n' ' ')
+[ -z "$_deleted" ] || fail "Files missing from the checkout: ${_deleted% } — run: git -C $TMUX_CONFIG_DIR checkout -- ."
+unset _deleted
 while IFS= read -r tool; do
     command -v "$tool" >/dev/null 2>&1 || fail "$tool missing — run $TMUX_CONFIG_DIR/update.sh --fix"
 done < <(managed_tools "$profile")

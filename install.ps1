@@ -306,6 +306,14 @@ function Clone-OrPull {
         if ($remote -in $managed) {
             git -C $Dest pull --ff-only
             if ($LASTEXITCODE -ne 0) { throw "Failed to update $Name; existing config preserved." }
+            # A file Git could not rewrite (open in a popup, held by a
+            # scanner) ends up missing and every popup then fails. Nothing in
+            # this checkout is edited by hand, so put it back.
+            $deleted = @(git -C $Dest ls-files --deleted 2>$null | Where-Object { $_ })
+            if ($deleted.Count) {
+                git -C $Dest checkout -- $deleted
+                Write-Host "  Restored missing files in ${Name}: $($deleted -join ', ')"
+            }
             return
         }
     }
