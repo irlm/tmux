@@ -121,7 +121,7 @@ repository as the workspace's `$changes` token. Nothing polls.
 `herdr_agent_sort=spaces` in `options.env` groups the sidebar by workspace
 instead of by urgency.
 
-The installer also puts Herdr's own skill file in `~/.claude/skills/herdr`,
+The installers (`install.sh`, `dotup`, `install.ps1`) also put Herdr's own skill file in `~/.claude/skills/herdr`,
 so a Claude Code running in a Herdr pane can split panes, start a helper
 agent beside itself, prompt it and wait for it (the skill only acts when
 `HERDR_ENV=1`). `herdr --skill` prints the copy matching the installed Herdr.

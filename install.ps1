@@ -422,6 +422,26 @@ if (Get-Command herdr -ErrorAction SilentlyContinue) {
         foreach ($agent in @("claude", "codex")) {
             if (Get-Command $agent -ErrorAction SilentlyContinue) { herdr integration install $agent *> $null; Write-Host "  Herdr integration: $agent" }
         }
+        # Herdr's own skill for Claude Code, so a Claude in a Herdr pane can
+        # drive helper agents. Only Herdr's copy is written or refreshed; a
+        # file you edited is left alone.
+        if (Get-Command claude -ErrorAction SilentlyContinue) {
+            $skillDir = Join-Path ($(if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { "$HOME\.claude" })) "skills\herdr"
+            $skill = Join-Path $skillDir "SKILL.md"
+            $fresh = (herdr --skill 2>$null) -join "`n"
+            if ($fresh) {
+                $write = -not (Test-Path $skill)
+                if (-not $write) {
+                    $current = (Get-Content $skill -Raw).TrimEnd("`r", "`n")
+                    $write = ($current -ne $fresh) -and ($current -match 'Control Herdr, a terminal multiplexer')
+                }
+                if ($write) {
+                    New-Item -ItemType Directory -Force $skillDir | Out-Null
+                    [System.IO.File]::WriteAllText($skill, $fresh + "`n", (New-Object System.Text.UTF8Encoding $false))
+                    Write-Host "  Herdr skill for Claude Code: $skill"
+                }
+            }
+        }
     } catch { Write-Host "  Herdr setup incomplete: $_  (rerun: $ps $tmuxPath\scripts\herdr-config.ps1)" -ForegroundColor Yellow }
 } else {
     Write-Host "Herdr not installed (INSTALL_HERDR=0, or its installer failed). Rerun without it, or see https://herdr.dev"
