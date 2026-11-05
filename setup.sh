@@ -311,7 +311,9 @@ install_core_packages() {
   install_helix_linux || warn "Helix not installed — see https://helix-editor.com"
   # ── GitHub-first installs (latest versions, no repo lag) ──
   install_from_github "dandavison/delta" "delta" \
-    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || true
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" ||
+    install_from_github "dandavison/delta" "delta" \
+    "$(gh_arch x86_64 aarch64).*linux.*gnu.*\\.tar\\.gz" || true
   install_from_github "Wilfred/difftastic" "difft" \
     "$(gh_arch x86_64 aarch64).*linux-gnu\\.tar\\.gz" || true
   install_from_github "junegunn/fzf" "fzf" \

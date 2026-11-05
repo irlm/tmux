@@ -298,7 +298,8 @@ if [ "$OS" = "Darwin" ]; then
     install_brew_tools desktop "$INSTALL_ASSETS"
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux python3 w3m jq xz-utils
+    # unzip: the oh-my-posh installer needs it; curl and git: a bare image.
+    sudo apt-get install -y curl git tmux python3 w3m jq xz-utils unzip
     # Neovim compiles its treesitter parsers here.
     [ "$WANT_NVIM" != 1 ] || sudo apt-get install -y build-essential
     install_helix_linux || true
@@ -343,13 +344,15 @@ elif [ "$OS" = "Linux" ]; then
     install_gh_binary "jesseduffield/lazygit" "lazygit" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
     install_gh_binary "jesseduffield/lazydocker" "lazydocker" "Linux_${LZ_ARCH}\\.tar\\.gz" || true
     install_gh_binary "cli/cli" "gh" "linux_${GH_ARCH_GO}.*\\.tar\\.gz" || true
-    install_gh_binary "dandavison/delta" "delta" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
+    # delta ships musl builds for x86_64 only; arm64 has the gnu one.
+    install_gh_binary "dandavison/delta" "delta" "${ARCH}.*linux.*musl.*\\.tar\\.gz" ||
+        install_gh_binary "dandavison/delta" "delta" "${ARCH}.*linux.*gnu.*\\.tar\\.gz" || true
     install_gh_binary "Wilfred/difftastic" "difft" "${ARCH}.*linux-gnu\\.tar\\.gz" || true
 
     # zoxide (official install script)
     command -v zoxide &>/dev/null || curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
     # oh-my-posh (official install script)
-    command -v oh-my-posh &>/dev/null || curl -s https://ohmyposh.dev/install.sh | bash -s
+    command -v oh-my-posh &>/dev/null || curl -s https://ohmyposh.dev/install.sh | bash -s || echo "  Skipped oh-my-posh (install it later: curl -s https://ohmyposh.dev/install.sh | bash -s)"
     # tlrc (GitHub release)
     if ! command -v tldr &>/dev/null; then
         install_gh_binary "tldr-pages/tlrc" "tldr" "${ARCH}.*linux.*musl.*\\.tar\\.gz" || true
