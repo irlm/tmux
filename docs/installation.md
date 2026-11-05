@@ -12,10 +12,10 @@ installed checkout clean and put personal settings in `~/.config/tmux-user/local
 
 | Mode | Best for | Entry point | Notes |
 |------|----------|-------------|-------|
-| Default | quick workstation setup on macOS or Debian/Ubuntu-style Linux | `install.sh` | installs Herdr, tmux, Helix with this repo's config and the tools, and sets up a full local dev machine; `--no-herdr` for tmux only, `--nvim` for Neovim too |
-| Full (`--full`) | broader Linux distro support and a more complete shell setup | `install.sh --full` | delegates to `setup.sh` for multi-distro support, shell config, extra polish, and WSL-aware behavior |
+| Default (`--agent`) | the workbench on macOS or Debian/Ubuntu-style Linux | `install.sh` | Herdr, tmux, Helix with this repo's config, the tools, popups and agent keys, the shell integration and the font; no toolchains, no Docker. `--no-herdr` for tmux only, `--nvim` for Neovim too |
+| Full (`--full`) | a complete dev machine | `install.sh --full` | the default plus the toolchains (Rust, Go, Node, Java, Scala with Metals), Docker and the complete shell setup, through `setup.sh` (multi-distro, WSL-aware) |
 | Server (`--server`) | remote hosts, minimal systems, or lightweight personal boxes | `install.sh --server` | keeps tmux + Helix light, skips Docker and oh-my-posh, and avoids heavy language-server setup; `--nvim` adds a light Neovim |
-| Windows | PowerShell workstation setup | `install.ps1` | installs Helix, CLI tools, fonts, and Docker Desktop (`INSTALL_NVIM=1` adds Neovim); for tmux itself, use WSL |
+| Windows | PowerShell workstation setup | `install.ps1` | the same default: Herdr, Helix, CLI tools, fonts; `$env:INSTALL_FULL = "1"` adds the toolchains and Docker Desktop, `INSTALL_NVIM=1` adds Neovim; for tmux itself, use WSL |
 
 ## macOS / Linux
 
@@ -25,7 +25,7 @@ installed checkout clean and put personal settings in `~/.config/tmux-user/local
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash
 ```
 
-Use this when you want the fastest path to a working local setup. On macOS it uses Homebrew. On Linux it is aimed at apt-based systems.
+The workbench itself: Herdr, tmux, Helix, the tools behind the popups, the agent keys, the shell integration and the font. Nothing heavy: no language toolchains, no Docker. On macOS it uses Homebrew. On Linux it is aimed at apt-based systems. `--agent` is the same thing, named.
 
 ### Full install
 
@@ -33,7 +33,7 @@ Use this when you want the fastest path to a working local setup. On macOS it us
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 ```
 
-Use this when you want broader distro coverage and more opinionated shell setup. The full installer supports:
+Everything the default installs, plus the toolchains (Rust with rust-analyzer, Go, Node, Java, Scala with Metals), Docker and the complete shell setup with the zsh plugins and the banner. It also covers more distributions:
 
 - macOS
 - Ubuntu / Debian family
@@ -93,8 +93,7 @@ The Windows installer uses Scoop plus winget to set up:
 - Helix (`hx`) with this repo's config; Neovim with `INSTALL_NVIM=1`
 - `lazygit` (with `delta` and `difftastic` for the diffs), `lazydocker`, `gh`, `fzf`, `zoxide`, `bat`, `btop`, `fastfetch`, `oh-my-posh`
 - `gh-dash` (installed as a `gh` extension: `gh extension install dlvhdr/gh-dash`)
-- Rust, Go, Python, Node.js, Java, and Scala tooling
-- Docker Desktop (skipped, with a note, when the drive has less than 10 GB free; the installer stops before changing anything below 2 GB)
+- with `$env:INSTALL_FULL = "1"` set before the command: Rust, Go, Node.js, Java and Scala tooling, and Docker Desktop (skipped, with a note, when the drive has less than 10 GB free; the installer stops before changing anything below 2 GB)
 - Nerd Fonts
 - PowerShell profile aliases and integrations
 
@@ -108,20 +107,23 @@ wsl --install
 
 ### Default
 
-The default installer is the quick workstation path. It:
+The default installer is the workbench. It:
 
-- installs core terminal tools (including `w3m` for terminal web search)
+- installs core terminal tools (including `w3m` for terminal web search, `delta` and `difftastic` for the diffs)
 - installs the `gh-dash` GitHub CLI extension that backs the `C-a G` popup (run `gh auth login` once for it to show data)
 - installs Helix and links its config; with `--nvim`, installs or upgrades Neovim too
-- installs development toolchains for the editors' language servers
-- installs Docker when missing
+- installs and configures Herdr, with the Claude Code skill
 - clones `~/.config/tmux` (and `~/.config/nvim` with `--nvim`)
-- installs tmux plugins
+- installs tmux plugins, the shell integration and the font
+
+It installs no language toolchains and no Docker; the language servers Helix and Neovim look for come with `--full`.
 
 ### Full
 
 The full installer is the most complete path. It adds:
 
+- the toolchains: Rust with rust-analyzer, Go, Node, Java, Scala with Metals
+- Docker (Docker Desktop on macOS)
 - broader Linux distro support
 - more complete shell integration
 - additional CLI tooling and package-manager-specific handling

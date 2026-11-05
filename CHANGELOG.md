@@ -4,6 +4,10 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Install modes
+
+- The default install is the workbench only: Herdr, tmux, Helix, the tools, popups and agent keys, the shell integration and the font. The language toolchains (Rust, Go, Node, Java, Scala) and Docker moved under `--full`, which already carried the complete shell setup; `--agent` names the default. On Windows, `$env:INSTALL_FULL = "1"` before the one-liner does the same. A default run says where the rest went. Nothing is removed from machines that already have them.
+
 ### Agents
 
 - `C-a w` lists every coding agent on the machine (state, workspace, task title, time in that state, directory) with the pane beside it: Enter jumps to it, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes. Under tmux the rows are the panes running `claude` or `codex`.

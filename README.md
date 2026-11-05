@@ -24,14 +24,14 @@ Install commands and `dotup` follow **`main`**. Changes pushed to another branch
 # Desktop: Herdr, tmux, Helix, the tools and the popups
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash
 
-# Full desktop: also shell config, zsh plugins, dev toolchains, Docker
+# Full: also the dev toolchains (Rust, Go, Node, Java, Scala), Docker and the complete shell setup
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 
 # Server: tmux, Helix and the light tool set (add --herdr for Herdr there too)
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash -s -- --server
 ```
 
-Flags: `--no-herdr` for a tmux-only desktop, `--nvim` for Neovim as a second editor.
+Flags: `--no-herdr` for a tmux-only desktop, `--nvim` for Neovim as a second editor, `--agent` names the default. Nothing heavy arrives without `--full`.
 
 ### Windows (PowerShell)
 
@@ -41,7 +41,7 @@ Run PowerShell as Administrator:
 irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 ```
 
-Windows gets Herdr, Helix and the tools; set `INSTALL_HERDR=0` first to skip Herdr. For tmux itself on Windows, use WSL: `wsl --install`.
+Windows gets Herdr, Helix and the tools; `$env:INSTALL_FULL = "1"` first adds the toolchains and Docker Desktop, `INSTALL_HERDR=0` skips Herdr. For tmux itself on Windows, use WSL: `wsl --install`.
 
 ## First Run
 

@@ -78,9 +78,12 @@ if ($manifestPath -and (Test-Path $manifestPath)) {
 # INSTALL_NVIM=1, or keep an existing %LOCALAPPDATA%\nvim checkout, to get it.
 $nvimPath = "$env:LOCALAPPDATA\nvim"
 $wantNvim = ($env:INSTALL_NVIM -eq "1") -or (Test-Path "$nvimPath\init.lua")
+# The default is the workbench (Herdr, Helix, the tools, popups and agent
+# keys). INSTALL_FULL=1 adds the language toolchains and Docker Desktop.
+$wantFull = ($env:INSTALL_FULL -eq "1")
 $required = @($toolManifest | Where-Object { $_.scoop -ne "-" -and $_.profile -ne "nvim" } | ForEach-Object { $_.scoop })
 $nvimTools = @($toolManifest | Where-Object { $_.scoop -ne "-" -and $_.profile -eq "nvim" } | ForEach-Object { $_.scoop })
-$extras = @("nodejs", "go", "openjdk")   # language toolchains: wanted, not required
+$extras = if ($wantFull) { @("nodejs", "go", "openjdk") } else { @() }   # language toolchains: wanted, not required
 if ($wantNvim) { $extras = $nvimTools + $extras }
 # Windows on ARM: Neovim compiles its treesitter parsers with gcc, which only
 # exists for x86_64 there, and the tree-sitter tool must match the parsers it
@@ -160,7 +163,7 @@ foreach ($wt in @("$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d
 # Wanted for the editors' language servers, not required for the terminal
 # setup: a failure here is reported and skipped.
 Write-Host ""
-Write-Host "Installing language toolchains..."
+if ($wantFull) { Write-Host "Installing language toolchains..." }
 
 # Scoop puts new shims on the user PATH; this process needs them now.
 function Refresh-Path {
@@ -179,63 +182,67 @@ if ($wantNvim) {
     } catch { Write-Host "  Skipped the treesitter toolchain: $_" -ForegroundColor Yellow }
 }
 
-try {
-    # Rust: install rustup + rust-analyzer (rustup reports progress on stderr)
-    if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
-        Write-Host "  Installing Rust via rustup..."
-        scoop install rustup-msvc
-        Refresh-Path
-    }
-    if (Get-Command rustup -ErrorAction SilentlyContinue) {
-        $raInstalled = rustup component list 2>$null | Select-String "rust-analyzer.*installed"
-        if (-not $raInstalled) {
-            Write-Host "  Adding rust-analyzer component..."
-            rustup default stable 2>&1 | Out-Null
-            rustup component add rust-analyzer 2>&1 | Out-Null
-        } else {
-            Write-Host "  rust-analyzer already installed"
-        }
-    }
-} catch { Write-Host "  Skipped Rust toolchain: $_" -ForegroundColor Yellow }
-
-try {
-    # Scala: install coursier + metals
-    if (-not (Get-Command metals -ErrorAction SilentlyContinue)) {
-        if (-not (Get-Command cs -ErrorAction SilentlyContinue)) {
-            Write-Host "  Installing Coursier..."
-            scoop install coursier
+if ($wantFull) {
+    try {
+        # Rust: install rustup + rust-analyzer (rustup reports progress on stderr)
+        if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+            Write-Host "  Installing Rust via rustup..."
+            scoop install rustup-msvc
             Refresh-Path
         }
-        if (Get-Command cs -ErrorAction SilentlyContinue) {
-            Write-Host "  Installing Metals LSP..."
-            cs install metals 2>&1 | Out-Null
-        } else {
-            Write-Host "  Skipped Metals: coursier (cs) is not on PATH yet; run 'cs install metals' in a new terminal" -ForegroundColor Yellow
+        if (Get-Command rustup -ErrorAction SilentlyContinue) {
+            $raInstalled = rustup component list 2>$null | Select-String "rust-analyzer.*installed"
+            if (-not $raInstalled) {
+                Write-Host "  Adding rust-analyzer component..."
+                rustup default stable 2>&1 | Out-Null
+                rustup component add rust-analyzer 2>&1 | Out-Null
+            } else {
+                Write-Host "  rust-analyzer already installed"
+            }
         }
-    } else {
-        Write-Host "  metals already installed"
-    }
-} catch { Write-Host "  Skipped Scala toolchain: $_" -ForegroundColor Yellow }
+    } catch { Write-Host "  Skipped Rust toolchain: $_" -ForegroundColor Yellow }
 
-# ─── Docker Desktop ─────────────────────────────────────
-Write-Host ""
-Write-Host "Checking Docker..."
-if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    $freeGB = Get-FreeGB
-    if ($null -ne $freeGB -and $freeGB -lt 10) {
-        Write-Host "  Skipped Docker Desktop: $freeGB GB free, its installer and images need about 10 GB (install later with: winget install Docker.DockerDesktop)" -ForegroundColor Yellow
-    } else {
-        Write-Host "  Installing Docker Desktop via winget..."
-        winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --source winget
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
+    try {
+        # Scala: install coursier + metals
+        if (-not (Get-Command metals -ErrorAction SilentlyContinue)) {
+            if (-not (Get-Command cs -ErrorAction SilentlyContinue)) {
+                Write-Host "  Installing Coursier..."
+                scoop install coursier
+                Refresh-Path
+            }
+            if (Get-Command cs -ErrorAction SilentlyContinue) {
+                Write-Host "  Installing Metals LSP..."
+                cs install metals 2>&1 | Out-Null
+            } else {
+                Write-Host "  Skipped Metals: coursier (cs) is not on PATH yet; run 'cs install metals' in a new terminal" -ForegroundColor Yellow
+            }
         } else {
-            # winget refuses an installer whose hash changed upstream when elevated.
-            Write-Host "  Docker Desktop not installed (winget exit $LASTEXITCODE, see above); download it from docker.com/products/docker-desktop" -ForegroundColor Yellow
+            Write-Host "  metals already installed"
         }
+    } catch { Write-Host "  Skipped Scala toolchain: $_" -ForegroundColor Yellow }
+
+    # ─── Docker Desktop ─────────────────────────────────────
+    Write-Host ""
+    Write-Host "Checking Docker..."
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        $freeGB = Get-FreeGB
+        if ($null -ne $freeGB -and $freeGB -lt 10) {
+            Write-Host "  Skipped Docker Desktop: $freeGB GB free, its installer and images need about 10 GB (install later with: winget install Docker.DockerDesktop)" -ForegroundColor Yellow
+        } else {
+            Write-Host "  Installing Docker Desktop via winget..."
+            winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --source winget
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
+            } else {
+                # winget refuses an installer whose hash changed upstream when elevated.
+                Write-Host "  Docker Desktop not installed (winget exit $LASTEXITCODE, see above); download it from docker.com/products/docker-desktop" -ForegroundColor Yellow
+            }
+        }
+    } else {
+        Write-Host "  Docker already installed"
     }
 } else {
-    Write-Host "  Docker already installed"
+    Write-Host "  Toolchains (Rust, Scala, Node, Go, Java) and Docker Desktop: run again with `$env:INSTALL_FULL = `"1`""
 }
 
 # ─── Backup existing configs ─────────────────────────────
@@ -454,7 +461,7 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Restart your terminal"
 Write-Host "  2. Windows Terminal's default font is JetBrainsMono Nerd Font (set here unless it had one); other terminals: pick it in their settings"
-Write-Host "  3. Launch Docker Desktop"
+if ($wantFull) { Write-Host "  3. Launch Docker Desktop" }
 Write-Host "  4. Edit with hx (Helix, configured from this repo; hx --tutor teaches the keys)"
 if ($wantNvim) { Write-Host "     Or nvim (plugins + LSPs auto-install on first launch)" }
 Write-Host "  5. Run: lazygit, lazydocker, btop, fastfetch"
@@ -463,9 +470,10 @@ if (Get-Command herdr -ErrorAction SilentlyContinue) { Write-Host "  7. Run: her
 Write-Host ""
 Write-Host "What was installed:" -ForegroundColor Cyan
 Write-Host "  Editor:      Helix (hx) with this repo's review keys$(if ($wantNvim) { '; Neovim (LazyVim) too' })"
-Write-Host "  Dev tools:   Rust, Go, Python, Node.js, Java, Scala (Metals)"
+if ($wantFull) { Write-Host "  Dev tools:   Rust, Go, Python, Node.js, Java, Scala (Metals)" }
 Write-Host "  Git:         lazygit, gh (GitHub CLI)"
-Write-Host "  Containers:  Docker Desktop, lazydocker"
+Write-Host "  Containers:  $(if ($wantFull) { 'Docker Desktop, ' })lazydocker"
+if (-not $wantFull) { Write-Host "  Toolchains and Docker Desktop: `$env:INSTALL_FULL = `"1`" before the install command" }
 Write-Host "  CLI:         fzf, zoxide, bat, btop, fastfetch, oh-my-posh"
 Write-Host "  Fonts:       JetBrains Mono Nerd Font, MesloLGM Nerd Font"
 Write-Host ""

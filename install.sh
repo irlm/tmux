@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# ─── Dotfiles Installer (macOS / Linux) ──────────────────
-# Quick install:  curl -sL .../install.sh | bash
+# ─── Workbench installer (macOS / Linux) ─────────────────
+# Default:        curl -sL .../install.sh | bash
 # Full setup:     bash install.sh --full
 # Server (light): bash install.sh --server
 #
-# --full:   multi-distro, shell config, nerd font, zsh plugins, dev toolchain, Docker
+# default:  the workbench: Herdr, tmux, Helix, the tools, popups and agent
+#           keys, the shell integration, the font (--agent says the same)
+# --full:   also the dev toolchains (Rust, Go, Node, Java, Scala), Docker and
+#           the complete shell setup; multi-distro (setup.sh)
 # --server: minimal — tmux, Helix, fzf, bat, btop, ripgrep
 # Desktops get Herdr (herdr.dev) with this repo's keys, popups and plugin;
 # --no-herdr skips it, --herdr adds it to a server install. An already
@@ -20,6 +23,7 @@ WANT_NVIM=0
 for arg in "$@"; do
     case "$arg" in
         --full|-f)   MODE="full" ;;
+        --agent|-a)  MODE="default" ;;  # the default, named
         --server|-s) MODE="server" ;;
         --herdr)     WANT_HERDR=1 ;;   # install Herdr even on a server
         --no-herdr)  WANT_HERDR=0 ;;   # desktop without Herdr (tmux only)
@@ -281,17 +285,11 @@ if [ "$OS" = "Darwin" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv 2>/dev/null)"
     fi
     install_brew_tools desktop "$INSTALL_ASSETS"
-    for pkg in node go openjdk; do
-        if brew list "$pkg" &>/dev/null; then
-            echo "  $pkg already installed"
-        else
-            echo "  Installing $pkg..."
-            brew install "$pkg" || echo "    Failed to install $pkg (continuing)"
-        fi
-    done
 elif [ "$OS" = "Linux" ]; then
     sudo apt-get update
-    sudo apt-get install -y tmux nodejs npm golang-go default-jdk python3 build-essential w3m jq xz-utils
+    sudo apt-get install -y tmux python3 w3m jq xz-utils
+    # Neovim compiles its treesitter parsers here.
+    [ "$WANT_NVIM" != 1 ] || sudo apt-get install -y build-essential
     install_helix_linux || true
     # neovim via appimage (apt version is too old for LazyVim, needs 0.10+)
     install_nvim=false
@@ -382,83 +380,6 @@ echo ""
 echo "Installing tmux plugins..."
 install_tmux_plugins "$HOME/.config/tmux"
 
-# ─── Language toolchains ─────────────────────────────────
-# Helix and Neovim both find these language servers; the toolchains are
-# installed either way so the agents' code can be built and run here.
-echo ""
-echo "Setting up neovim language dependencies..."
-
-# Rust: install rustup + rust-analyzer if not present (non-fatal)
-if command -v rustup &>/dev/null; then
-    if ! rustup component list 2>/dev/null | grep 'rust-analyzer.*installed' >/dev/null; then
-        echo "Adding rust-analyzer component..."
-        rustup component add rust-analyzer || echo "  Skipped rust-analyzer (continuing)"
-    fi
-elif ! command -v rustc &>/dev/null; then
-    echo "Installing Rust via rustup..."
-    if curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path; then
-        [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-        rustup component add rust-analyzer || true
-    else
-        echo "  Skipped Rust install (continuing)"
-    fi
-fi
-
-# Keg-only openjdk and Coursier's bin directory are on no default PATH, so
-# without this the checks below (and metals itself) cannot see them.
-for _p in /opt/homebrew/opt/openjdk/bin /usr/local/opt/openjdk/bin \
-          "$HOME/Library/Application Support/Coursier/bin" "$HOME/.local/share/coursier/bin"; do
-    [ -d "$_p" ] && export PATH="$_p:$PATH"
-done
-unset _p
-
-# Scala: install coursier + metals if not present
-if ! command -v metals &>/dev/null; then
-    if [ "$OS" = "Darwin" ]; then
-        if ! command -v cs &>/dev/null; then
-            brew install coursier/formulas/coursier
-        fi
-        cs install metals 2>/dev/null || true
-    elif command -v cs &>/dev/null || command -v coursier &>/dev/null; then
-        $(command -v cs || command -v coursier) install metals 2>/dev/null || true
-    elif java -version &>/dev/null; then
-        echo "Installing Coursier + Metals..."
-        curl -fLo "$HOME/.local/bin/cs" "https://github.com/coursier/coursier/releases/latest/download/coursier" 2>/dev/null || true
-        if [ -f "$HOME/.local/bin/cs" ] && [ -s "$HOME/.local/bin/cs" ]; then
-            chmod +x "$HOME/.local/bin/cs"
-            "$HOME/.local/bin/cs" install metals 2>/dev/null || true
-        fi
-    fi
-fi
-
-# ─── Docker (optional — non-fatal) ───────────────────────
-# Cask install on macOS needs admin; non-admin secondary users will skip.
-echo ""
-echo "Setting up Docker..."
-
-if command -v docker &>/dev/null; then
-    echo "Docker already installed"
-else
-    if [ "$OS" = "Darwin" ]; then
-        if brew install --cask docker 2>/dev/null; then
-            open -a Docker 2>/dev/null || true
-            echo "Docker Desktop installed and starting..."
-        else
-            echo "  Skipped Docker (cask install failed — needs admin? install manually if needed)"
-        fi
-    elif [ "$OS" = "Linux" ]; then
-        echo "Installing Docker..."
-        if curl -fsSL https://get.docker.com | sh; then
-            sudo usermod -aG docker "$USER" 2>/dev/null || true
-            sudo systemctl enable docker 2>/dev/null || true
-            sudo systemctl start docker 2>/dev/null || true
-            echo "Docker installed (log out and back in for group changes)"
-        else
-            echo "  Skipped Docker (install failed — install manually if needed)"
-        fi
-    fi
-fi
-
 # ─── Nerd Font ───────────────────────────────────────────
 echo ""
 ensure_nerd_font || true
@@ -487,8 +408,5 @@ echo "  4. Edit with hx (Helix, configured from this repo; hx --tutor teaches th
 [ "$WANT_NVIM" != 1 ] || echo "     Or nvim (plugins + LSPs auto-install on first launch)"
 if command -v herdr >/dev/null 2>&1; then echo "  5. Run: herdr (the desktop multiplexer: same keys, agent sidebar; see docs/herdr.md)"; fi
 echo ""
-echo "Installed toolchains: Rust, Go, Python, Node.js, Java, Scala (Metals), Docker"
-echo ""
-echo "For the full setup (shell config, nerd font, multi-distro):"
-echo "  bash install.sh --full"
+echo "Toolchains (Rust, Go, Node, Java, Scala), Docker and the complete shell setup: bash install.sh --full"
 echo ""
