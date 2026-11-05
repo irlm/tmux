@@ -104,6 +104,7 @@ if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/
     trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT
     mkdir -p "$INSTALL_ASSETS/scripts"
     download "https://raw.githubusercontent.com/irlm/workbench/main/scripts/install-lib.sh" "$INSTALL_ASSETS/scripts/install-lib.sh"
+    download "https://raw.githubusercontent.com/irlm/workbench/main/scripts/lib.sh" "$INSTALL_ASSETS/scripts/lib.sh"
     download "https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv" "$INSTALL_ASSETS/tools.tsv"
 fi
 # shellcheck source=scripts/install-lib.sh
@@ -117,7 +118,7 @@ if [ "$MODE" = "full" ]; then
     ensure_curl
     TMPSCRIPT=$(mktemp)
     download "https://raw.githubusercontent.com/irlm/workbench/main/setup.sh" "$TMPSCRIPT"
-    TMUX_INSTALL_ASSETS="$INSTALL_ASSETS" bash "$TMPSCRIPT"
+    TMUX_INSTALL_ASSETS="$INSTALL_ASSETS" TMUX_WANT_NVIM="$WANT_NVIM" TMUX_WANT_HERDR="$WANT_HERDR" bash "$TMPSCRIPT"
     rm -f -- "$TMPSCRIPT"
     exit 0
 fi
@@ -223,6 +224,9 @@ if [ "$MODE" = "server" ]; then
     mkdir -p "$HOME/.local/share/tmux" "$HOME/.local/bin"
     export PATH="$HOME/.local/bin:$PATH"
 
+    # --herdr installs Herdr here too; an already installed one is configured.
+    install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || echo "  Herdr setup incomplete; rerun: bash install.sh --server --herdr"
+
     echo ""
     check_install_tools server "$INSTALL_ASSETS"
     echo "=== Server install complete! ==="
@@ -233,6 +237,7 @@ if [ "$MODE" = "server" ]; then
     echo "  1. Start tmux: tmux"
     echo "  2. Install tmux plugins: C-a I"
     echo "  3. Edit with hx (Helix: this repo's config, no plugins to install)"
+    if command -v herdr >/dev/null 2>&1; then echo "     Or herdr, configured with the same keys"; fi
     if [ "$WANT_NVIM" = 1 ]; then
         echo "  4. Open nvim (plugins auto-install on first launch)"
         echo "     Note: LSPs won't install without dev toolchains — that's expected on servers."

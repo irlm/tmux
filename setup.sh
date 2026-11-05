@@ -229,19 +229,28 @@ if [ ! -f "$INSTALL_ASSETS/scripts/install-lib.sh" ] || [ ! -f "$INSTALL_ASSETS/
   trap 'rm -rf -- "$INSTALL_ASSETS"' EXIT
   mkdir -p "$INSTALL_ASSETS/scripts"
   curl -fsSL https://raw.githubusercontent.com/irlm/workbench/main/scripts/install-lib.sh -o "$INSTALL_ASSETS/scripts/install-lib.sh"
+  curl -fsSL https://raw.githubusercontent.com/irlm/workbench/main/scripts/lib.sh -o "$INSTALL_ASSETS/scripts/lib.sh"
   curl -fsSL https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv -o "$INSTALL_ASSETS/tools.tsv"
 fi
 # shellcheck source=scripts/install-lib.sh
 source "$INSTALL_ASSETS/scripts/install-lib.sh"
 SHELL_TYPE=$(install_target_shell)
 
-# ─── Tmux config ──────────────────────────────────────
+# What install.sh --full was asked for: Neovim is the optional second editor
+# (also kept when its checkout exists), Herdr is on unless --no-herdr.
+WANT_NVIM="${TMUX_WANT_NVIM:-0}"
+[ ! -f "$HOME/.config/nvim/init.lua" ] || WANT_NVIM=1
+WANT_HERDR="${TMUX_WANT_HERDR:-1}"
+
+# ─── Workbench config ─────────────────────────────────
 # Done early — so configs land even if later optional installs (Docker
 # cask, nerd font cask, etc.) fail for non-admin users.
 TMUX_DIR="$HOME/.config/tmux"
 mkdir -p "$TMUX_DIR"
 
-clone_config tmux "$TMUX_DIR"
+clone_config workbench "$TMUX_DIR"
+install_helix_config "$TMUX_DIR/helix/config.toml"
+rm -f -- "$HOME/.config/tmux-user/profile"   # a desktop, not a server
 
 # Symlink ~/.tmux.conf for older tmux versions (< 3.1) that don't read ~/.config/tmux/
 if [ ! -e "$HOME/.tmux.conf" ]; then
@@ -254,8 +263,10 @@ fi
 # clone fresh. Previous versions silently skipped, leaving the user
 # with the default nvim experience.
 NVIM_DIR="$HOME/.config/nvim"
-clone_config nvim "$NVIM_DIR"
-rm -f -- "$NVIM_DIR/.server"
+if [ "$WANT_NVIM" = 1 ]; then
+  clone_config nvim "$NVIM_DIR"
+  rm -f -- "$NVIM_DIR/.server"
+fi
 
 # ─── Core Packages ─────────────────────────────────────
 install_core_packages() {
@@ -272,16 +283,16 @@ install_core_packages() {
   local COMMON_PKGS
   case "$PKG_MGR" in
     apt)
-      COMMON_PKGS="tmux jq w3m"
+      COMMON_PKGS="tmux jq w3m xz-utils"
       ;;
     dnf)
-      COMMON_PKGS="tmux jq w3m"
+      COMMON_PKGS="tmux jq w3m xz"
       ;;
     pacman)
-      COMMON_PKGS="tmux jq w3m"
+      COMMON_PKGS="tmux jq w3m xz"
       ;;
     zypper)
-      COMMON_PKGS="tmux jq w3m"
+      COMMON_PKGS="tmux jq w3m xz"
       ;;
   esac
 
@@ -295,7 +306,13 @@ install_core_packages() {
     fi
   done
 
+  # Helix, the managed editor (GitHub tarball to ~/.local/share/helix).
+  install_helix_linux || warn "Helix not installed — see https://helix-editor.com"
   # ── GitHub-first installs (latest versions, no repo lag) ──
+  install_from_github "dandavison/delta" "delta" \
+    "$(gh_arch x86_64 aarch64).*linux.*musl.*\\.tar\\.gz" || true
+  install_from_github "Wilfred/difftastic" "difft" \
+    "$(gh_arch x86_64 aarch64).*linux-gnu\\.tar\\.gz" || true
   install_from_github "junegunn/fzf" "fzf" \
     "linux_$(gh_arch amd64 arm64).*\\.tar\\.gz" || pkg_install fzf 2>/dev/null || true
   install_from_github "BurntSushi/ripgrep" "rg" \
@@ -497,7 +514,7 @@ install_neovim() {
   ok "neovim installed"
 }
 
-install_neovim
+[ "$WANT_NVIM" != 1 ] || install_neovim
 
 # ─── Neovim Language Toolchain ────────────────────────
 # These are required by the LazyVim language extras (rust, scala, typescript, python, etc.)
@@ -510,7 +527,7 @@ install_nvim_lang_deps() {
   done
   unset _p
 
-  info "Installing neovim language toolchain dependencies..."
+  info "Installing the language toolchains (Node, Rust, Scala, Go, Java, Python)..."
 
   # ── Node.js (required by Mason for prettier, typescript-language-server, etc.) ──
   if ! command -v node &>/dev/null; then
@@ -791,6 +808,7 @@ install_nerd_font() {
 }
 
 install_nerd_font
+configure_terminal_font
 
 # ─── WSL Clipboard ─────────────────────────────────────
 if $IS_WSL; then
@@ -847,6 +865,9 @@ install_shell_integration full
 # ─── Install tmux plugins ─────────────────────────────
 install_tmux_plugins "$TMUX_DIR"
 
+# ─── Herdr ────────────────────────────────────────────
+install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || warn "Herdr setup incomplete; rerun: bash install.sh --full"
+
 check_install_tools desktop "$INSTALL_ASSETS"
 
 # ─── Done ──────────────────────────────────────────────
@@ -855,21 +876,24 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo -e "${GREEN} Setup complete!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo "  Platform: $OS ${DISTRO:+($DISTRO)} ${IS_WSL:+(WSL)}"
+echo "  Platform: $OS ${DISTRO:+($DISTRO)}$($IS_WSL && echo ' (WSL)')"
 echo ""
 echo "  Next steps:"
 echo "  1. Set your terminal font to 'JetBrains Mono Nerd Font'"
 if $IS_WSL; then
   echo "     (Install the font on Windows, not inside WSL)"
 fi
-echo "  2. Open a new terminal or run: source $RCFILE"
-echo "  3. Start tmux: tmux"
+echo "  2. Open a new terminal or run: source $(shell_rc_file)"
+if command -v herdr &>/dev/null; then echo "  3. Start herdr (the desktop multiplexer; tmux is there too)"; else echo "  3. Start tmux: tmux"; fi
 echo "  4. Install tmux plugins: C-a I"
+echo "  5. Edit with hx (Helix, configured from this repo; hx --tutor teaches the keys)"
 echo ""
 echo "  What you got:"
 echo "    - Oh My Posh prompt with Nord theme + git status"
 echo "    - tmux with C-a prefix, popups, vim bindings"
-echo "    - neovim with LazyVim (LSPs for Rust, Go, Python, TS, Java, Scala, C/C++, SQL)"
+echo "    - Herdr with the agent sidebar, same keys as tmux; Helix with the review keys"
+[ "$WANT_NVIM" != 1 ] || echo "    - neovim with LazyVim (LSPs for Rust, Go, Python, TS, Java, Scala, C/C++, SQL)"
+echo "    - toolchains: Node, Rust, Scala (Metals), Go, Java, Python"
 echo "    - Docker + lazydocker"
 echo "    - fzf (C-r history, C-t files, Alt-c directories)"
 echo "    - lazygit, btop, gh popups inside tmux"

@@ -7,6 +7,7 @@ All notable changes to this tmux configuration will be documented in this file.
 ### Install modes
 
 - The default install is the workbench only: Herdr, tmux, Helix, the tools, popups and agent keys, the shell integration and the font. The language toolchains (Rust, Go, Node, Java, Scala) and Docker moved under `--full`, which already carried the complete shell setup; `--agent` names the default. On Windows, `$env:INSTALL_FULL = "1"` before the one-liner does the same. A default run says where the rest went. Nothing is removed from machines that already have them.
+- `--full` had fallen behind the default: it cloned the repository under its old name, installed no Helix config, no Herdr, no `delta`/`difftastic` on Linux, and always installed Neovim. It now does everything the default does and honours `--nvim` and `--no-herdr`. `--server --herdr` never reached the Herdr step; it does now. `tests/test_install_modes.py` pins what each mode must and must not do.
 
 ### Agents
 

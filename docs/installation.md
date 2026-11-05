@@ -33,7 +33,7 @@ The workbench itself: Herdr, tmux, Helix, the tools behind the popups, the agent
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 ```
 
-Everything the default installs, plus the toolchains (Rust with rust-analyzer, Go, Node, Java, Scala with Metals), Docker and the complete shell setup with the zsh plugins and the banner. It also covers more distributions:
+Everything the default installs (Herdr, Helix and its config, the tools, the font, the Claude Code skill), plus the toolchains (Rust with rust-analyzer, Go, Node, Java, Scala with Metals), Docker and the complete shell setup with the zsh plugins and the banner. `--nvim` and `--no-herdr` apply here too. It also covers more distributions:
 
 - macOS
 - Ubuntu / Debian family
@@ -124,6 +124,7 @@ The full installer is the most complete path. It adds:
 
 - the toolchains: Rust with rust-analyzer, Go, Node, Java, Scala with Metals
 - Docker (Docker Desktop on macOS)
+- the zsh plugins (autosuggestions, syntax highlighting, completions), the fzf key bindings and the banner
 - broader Linux distro support
 - more complete shell integration
 - additional CLI tooling and package-manager-specific handling

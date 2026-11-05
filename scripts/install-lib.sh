@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Shared installer behavior. Safe to source without installing anything.
+# lib.sh (runtime paths, the Herdr version gate) comes along when it is
+# beside this file; the curl bootstraps download both.
+if ! type wb_backend >/dev/null 2>&1 && [ -f "${BASH_SOURCE[0]%/*}/lib.sh" ]; then
+    # shellcheck source=scripts/lib.sh
+    source "${BASH_SOURCE[0]%/*}/lib.sh"
+fi
 install_target_shell() {
     local login_shell=${SHELL:-/bin/bash}
     case "${TMUX_TARGET_SHELL:-${login_shell##*/}}" in
