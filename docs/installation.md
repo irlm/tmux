@@ -1,4 +1,4 @@
-# Installation Guide
+﻿# Installation Guide
 
 ## Release source
 
@@ -87,6 +87,15 @@ Run PowerShell as Administrator:
 ```powershell
 irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 ```
+
+If `irm` hangs with no output, PowerShell is waiting on the Windows proxy settings (a corporate proxy or "automatically detect settings"), which `curl.exe` ignores. Download with it and run the file:
+
+```powershell
+curl.exe -sL https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 -o $env:TEMP\wb-install.ps1
+pwsh -ExecutionPolicy Bypass -File $env:TEMP\wb-install.ps1
+```
+
+The installer's own downloads (Scoop, the tool list, Herdr) retry without the proxy and then through `curl.exe`, so they get through where the first `irm` did not.
 
 The Windows installer uses Scoop plus winget to set up:
 

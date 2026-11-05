@@ -1,4 +1,4 @@
-# Workbench
+﻿# Workbench
 
 One terminal setup for working beside coding agents, on macOS, Linux and Windows: [Herdr](https://herdr.dev) on the desktop, tmux on servers, Helix as the editor, and one set of keys, popups and pickers across all of them.
 
@@ -42,6 +42,13 @@ irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 ```
 
 Windows gets Herdr, Helix and the tools; `$env:INSTALL_FULL = "1"` first adds the toolchains and Docker Desktop, `INSTALL_HERDR=0` skips Herdr. For tmux itself on Windows, use WSL: `wsl --install`.
+
+If `irm` sits there with no output, PowerShell is waiting on the Windows proxy settings (corporate proxy, "automatically detect settings"); `curl.exe` does not use them:
+
+```powershell
+curl.exe -sL https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 -o $env:TEMP\wb-install.ps1
+pwsh -ExecutionPolicy Bypass -File $env:TEMP\wb-install.ps1
+```
 
 Do not paste the macOS / Linux one-liner into PowerShell: `bash` there is the WSL launcher, so it installs the Linux workbench inside WSL (fine if that is what you want; the script says so on its first lines).
 

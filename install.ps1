@@ -21,6 +21,23 @@ if ($null -ne $freeGB -and $freeGB -lt 2) {
     return
 }
 
+# ─── Downloads ───────────────────────────────────────────
+# Invoke-RestMethod follows the Windows proxy settings and can wait forever
+# behind a corporate proxy or "automatically detect settings"; curl.exe does
+# not. Try plain, then without the proxy, then curl.exe.
+function Fetch-Text($url) {
+    try { return (Invoke-RestMethod -Uri $url -TimeoutSec 30) } catch {}
+    try { return (Invoke-RestMethod -Uri $url -TimeoutSec 30 -NoProxy) } catch {}
+    if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+        $text = & curl.exe -sSL --max-time 60 $url 2>$null
+        if ($LASTEXITCODE -eq 0 -and $text) { return ($text -join "`n") }
+    }
+    throw "Could not download $url (proxy or network); see the README's Windows notes."
+}
+function Fetch-File($url, $path) {
+    Set-Content -Path $path -Value (Fetch-Text $url) -NoNewline
+}
+
 # ─── Ensure git is available ─────────────────────────────
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git not found. Installing via winget..."
@@ -51,7 +68,7 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     # and this script is normally run as Administrator.
     $elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     $scoopInstaller = Join-Path $env:TEMP "scoop-install.ps1"
-    Invoke-RestMethod -Uri https://get.scoop.sh -OutFile $scoopInstaller
+    Fetch-File "https://get.scoop.sh" $scoopInstaller
     if ($elevated) { & $scoopInstaller -RunAsAdmin } else { & $scoopInstaller }
     Remove-Item $scoopInstaller -ErrorAction SilentlyContinue
     $env:PATH = "$env:USERPROFILE\scoop\shims;$env:PATH"
@@ -72,7 +89,7 @@ $manifestPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot "tools.tsv" } else 
 if ($manifestPath -and (Test-Path $manifestPath)) {
     $toolManifest = Import-Csv $manifestPath -Delimiter "`t"
 } else {
-    $toolManifest = (Invoke-RestMethod "https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
+    $toolManifest = (Fetch-Text "https://raw.githubusercontent.com/irlm/workbench/main/tools.tsv") | ConvertFrom-Csv -Delimiter "`t"
 }
 # Neovim is the optional second editor (Helix is the managed one): set
 # INSTALL_NVIM=1, or keep an existing %LOCALAPPDATA%\nvim checkout, to get it.
@@ -409,7 +426,7 @@ if ($profileContent -notmatch 'env:EDITOR') {
 Write-Host ""
 if (-not (Get-Command herdr -ErrorAction SilentlyContinue) -and $env:INSTALL_HERDR -ne "0") {
     Write-Host "Installing Herdr..."
-    try { Invoke-Expression (Invoke-RestMethod https://herdr.dev/install.ps1) } catch { Write-Host "  Herdr install failed: $_" -ForegroundColor Yellow }
+    try { Invoke-Expression (Fetch-Text "https://herdr.dev/install.ps1") } catch { Write-Host "  Herdr install failed: $_" -ForegroundColor Yellow }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + $env:Path
 }
 if (Get-Command herdr -ErrorAction SilentlyContinue) {
