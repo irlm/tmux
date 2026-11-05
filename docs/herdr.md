@@ -240,6 +240,7 @@ Bash, and `ctrl+hjkl` navigation.
 
 ```bash
 python3 -m unittest tests.test_herdr -v    # fake herdr on PATH; real one only validates
+bash tests/herdr-live-check.sh             # the agent features against a throwaway session, PASS/FAIL lines (Git Bash on Windows)
 scripts/herdr-config.sh --check            # render and validate without installing
 herdr --session wbtest server              # a throwaway headless session for experiments
 ```
