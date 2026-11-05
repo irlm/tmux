@@ -37,7 +37,7 @@ class InstallModeTests(unittest.TestCase):
             'install_helix_config', 'rm -f -- "$HOME/.config/tmux-user/profile"', 'install_tmux_plugins',
             'ensure_nerd_font', 'configure_terminal_font', 'install_shell_integration desktop',
             'install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR"', 'check_install_tools desktop',
-            'gh extension install dlvhdr/gh-dash', 'install.sh --full'], label='default')
+            'gh extension install dlvhdr/gh-dash', 'install_quota_axi', 'install.sh --full'], label='default')
         self.assert_each(self.default, ['rustup', 'get.docker.com', '--cask docker', 'openjdk', 'golang', 'coursier', 'nodejs', 'metals'],
                          present=False, label='default')
         self.assertIn('--agent|-a)  MODE="default"', self.install)

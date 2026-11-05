@@ -144,6 +144,18 @@ if (Get-Command gh -ErrorAction SilentlyContinue) {
     }
 }
 
+# quota-axi (npm): the live LLM limits C-a $ shows. Node comes with
+# INSTALL_FULL=1; without npm the popup says what to install.
+if (-not (Get-Command quota-axi -ErrorAction SilentlyContinue)) {
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Host "  Installing quota-axi (live LLM limits for C-a `$)..."
+        npm install -g quota-axi 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Write-Host "  Skipped quota-axi (npm install -g quota-axi failed)" -ForegroundColor Yellow }
+    } else {
+        Write-Host "  Live LLM limits (C-a `$) need Node: scoop install nodejs, then npm install -g quota-axi"
+    }
+}
+
 # Install Nerd Fonts
 Write-Host "  Installing Nerd Fonts..."
 foreach ($font in @("JetBrainsMono-NF", "Meslo-NF")) {

@@ -397,7 +397,7 @@ def gather(days, limits=True):
         if key == 'codex':
             rows = rows or codex_windows(totals.get('limits'))
         if key == 'claude' and not rows and not note and not shutil.which('quota-axi'):
-            note = 'quota-axi not installed'
+            note = 'live limits need quota-axi: npm install -g quota-axi (needs Node)'
         if not parser and not rows:
             note = note or 'no transcripts to read on this machine'
         totals['plan'] = PLANS.get(key, '')

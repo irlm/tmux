@@ -147,7 +147,9 @@ Claude Code, Codex and Antigravity from their transcripts of the last week
 `quota-axi` reports them set up, with their live windows only. Each tab shows
 the limit windows with their reset time, tokens by day and tokens by model.
 Tab, the arrows or the digits switch tabs, `r` refreshes, `q` closes. Live rate-limit windows come from
-`quota-axi` when it is installed;
+[`quota-axi`](https://github.com/kunchenguid/quota-axi) when it is installed
+(`npm install -g quota-axi`; the installers do it where `npm` exists, and
+Node itself comes with `--full` / `INSTALL_FULL=1`);
 the first Claude reading needs `quota-axi --allow-keychain-prompt` once so it
 may read the credential from the Keychain. Nothing runs until the popup opens.
 

@@ -261,6 +261,21 @@ install_herdr_workbench() {
     install_herdr_skill
 }
 
+# quota-axi (npm) reads the live rate-limit windows that C-a $ shows beside
+# the transcript totals. Node is a --full toolchain, so this only installs
+# where npm already exists; the popup says what is missing otherwise.
+install_quota_axi() {
+    command -v quota-axi >/dev/null 2>&1 && return 0
+    if command -v npm >/dev/null 2>&1; then
+        echo "  Installing quota-axi (live LLM limits for C-a \$)..."
+        npm install -g quota-axi >/dev/null 2>&1 && return 0
+        echo "  Skipped quota-axi (npm install -g quota-axi failed)"
+    else
+        echo "  Live LLM limits (C-a \$) need Node: install it, then npm install -g quota-axi"
+    fi
+    return 0
+}
+
 # Herdr's own skill file for Claude Code: with it, a Claude running in a
 # Herdr pane can split panes, start a helper agent beside itself, prompt it
 # and wait for it. Only Herdr's copy is written or refreshed; a file the

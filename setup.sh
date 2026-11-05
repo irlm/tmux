@@ -480,6 +480,7 @@ install_gh_extensions() {
 }
 
 install_gh_extensions
+install_quota_axi   # after the toolchains below Node exists; rerun picks it up
 
 # ─── Neovim ───────────────────────────────────────────
 install_neovim() {

@@ -374,6 +374,8 @@ if command -v gh &>/dev/null; then
     fi
 fi
 
+install_quota_axi
+
 # ─── Clone configs ────────────────────────────────────────
 # Done early — so configs land even if later optional installs fail
 # (Docker cask, rust-analyzer, etc. often fail for non-admin users).
