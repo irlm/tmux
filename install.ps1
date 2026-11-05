@@ -1,5 +1,7 @@
-﻿# dotfiles installer for Windows (PowerShell)
+# dotfiles installer for Windows (PowerShell)
 # Run as Administrator:  irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
+# ASCII only, no byte-order mark: irm hands a BOM to iex as the first
+# character of the first command, and the script never starts.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Continue"
@@ -7,7 +9,7 @@ $ErrorActionPreference = "Continue"
 Write-Host "=== dotfiles installer (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
 
-# ─── Free space ──────────────────────────────────────────
+# --- Free space ------------------------------------------
 # Everything below lands on the profile drive (Scoop, the checkout, Docker
 # Desktop's 500 MB installer). A full drive fails half-way with misleading
 # errors, so stop early instead.
@@ -21,7 +23,7 @@ if ($null -ne $freeGB -and $freeGB -lt 2) {
     return
 }
 
-# ─── Downloads ───────────────────────────────────────────
+# --- Downloads -------------------------------------------
 # Invoke-RestMethod follows the Windows proxy settings and can wait forever
 # behind a corporate proxy or "automatically detect settings"; curl.exe does
 # not. Try plain, then without the proxy, then curl.exe.
@@ -38,7 +40,7 @@ function Fetch-File($url, $path) {
     Set-Content -Path $path -Value (Fetch-Text $url) -NoNewline
 }
 
-# ─── Ensure git is available ─────────────────────────────
+# --- Ensure git is available -----------------------------
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git not found. Installing via winget..."
     winget install Git.Git --accept-package-agreements --accept-source-agreements --source winget
@@ -59,7 +61,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 Write-Host "Git: $(git --version)"
 
-# ─── Install Scoop if missing ─────────────────────────────
+# --- Install Scoop if missing -----------------------------
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Write-Host "Installing Scoop..."
     # A process- or machine-level policy may already override this; that is fine.
@@ -75,13 +77,13 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) { throw "Scoop did not install; see the messages above." }
 }
 
-# ─── Add buckets ──────────────────────────────────────────
+# --- Add buckets ------------------------------------------
 Write-Host "Adding scoop buckets..."
 scoop bucket add extras 2>$null
 scoop bucket add nerd-fonts 2>$null
 scoop bucket add java 2>$null       # openjdk lives here, not in main
 
-# ─── Install dependencies ────────────────────────────────
+# --- Install dependencies --------------------------------
 Write-Host ""
 Write-Host "Installing dependencies..."
 
@@ -122,7 +124,7 @@ foreach ($pkg in $required + $extras) {
     }
 }
 
-# ─── gh extensions ────────────────────────────────────────
+# --- gh extensions ----------------------------------------
 # `gh dash` (Alt+Shift+G / tmux C-a G) is a gh extension, not part of gh itself.
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     $ghDash = gh extension list 2>$null | Select-String "dlvhdr/gh-dash"
@@ -176,7 +178,7 @@ foreach ($wt in @("$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d
     break
 }
 
-# ─── Language toolchains ─────────────────────────────────
+# --- Language toolchains ---------------------------------
 # Wanted for the editors' language servers, not required for the terminal
 # setup: a failure here is reported and skipped.
 Write-Host ""
@@ -238,7 +240,7 @@ if ($wantFull) {
         }
     } catch { Write-Host "  Skipped Scala toolchain: $_" -ForegroundColor Yellow }
 
-    # ─── Docker Desktop ─────────────────────────────────────
+    # --- Docker Desktop -------------------------------------
     Write-Host ""
     Write-Host "Checking Docker..."
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -249,7 +251,7 @@ if ($wantFull) {
             Write-Host "  Installing Docker Desktop via winget..."
             winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --source winget
             if ($LASTEXITCODE -eq 0) {
-                Write-Host "  Docker Desktop installed — restart may be required" -ForegroundColor Yellow
+                Write-Host "  Docker Desktop installed - restart may be required" -ForegroundColor Yellow
             } else {
                 # winget refuses an installer whose hash changed upstream when elevated.
                 Write-Host "  Docker Desktop not installed (winget exit $LASTEXITCODE, see above); download it from docker.com/products/docker-desktop" -ForegroundColor Yellow
@@ -262,7 +264,7 @@ if ($wantFull) {
     Write-Host "  Toolchains (Rust, Scala, Node, Go, Java) and Docker Desktop: run again with `$env:INSTALL_FULL = `"1`""
 }
 
-# ─── Backup existing configs ─────────────────────────────
+# --- Backup existing configs -----------------------------
 Write-Host ""
 $backupDir = "$env:USERPROFILE\.config\dotfiles-backup\$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
@@ -279,7 +281,7 @@ if (Test-Path $PROFILE) {
     Write-Host "Backed up PowerShell profile to $backupDir\profile.ps1"
 }
 
-# ─── Clone configs ────────────────────────────────────────
+# --- Clone configs ----------------------------------------
 Write-Host ""
 Write-Host "Setting up configs..."
 
@@ -324,7 +326,7 @@ if ($wantNvim) { Clone-OrPull -Repo "nvim.git" -Dest $nvimPath -Name "nvim" }
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.config" -Force | Out-Null
 Clone-OrPull -Repo "workbench.git" -Dest $tmuxPath -Name "workbench"
 
-# ─── Helix config ────────────────────────────────────────
+# --- Helix config ----------------------------------------
 # The repo's Helix config, with its commands handed to Git Bash so the review
 # keys run the same scripts as on macOS and Linux.
 $helixDir = Join-Path $env:APPDATA "helix"
@@ -351,7 +353,7 @@ if (Test-Path $helixSource) {
     Write-Host "  Helix config written to $helixConfig"
 }
 
-# ─── PowerShell profile ──────────────────────────────────
+# --- PowerShell profile ----------------------------------
 Write-Host ""
 Write-Host "Configuring PowerShell profile..."
 
@@ -369,14 +371,14 @@ if ($null -eq $profileContent) { $profileContent = "" }
 # oh-my-posh
 if ($profileContent -notmatch "oh-my-posh") {
     Write-Host "  Adding oh-my-posh..."
-    Add-Content $PROFILE "`n# ─── oh-my-posh prompt ─────────────────────────────────"
+    Add-Content $PROFILE "`n# --- oh-my-posh prompt ---------------------------------"
     Add-Content $PROFILE "oh-my-posh init pwsh --config `"$tmuxPath\nord.omp.json`" | Invoke-Expression"
 }
 
 # zoxide
 if ($profileContent -notmatch "zoxide") {
     Write-Host "  Adding zoxide..."
-    Add-Content $PROFILE "`n# ─── zoxide (smart cd) ─────────────────────────────────"
+    Add-Content $PROFILE "`n# --- zoxide (smart cd) ---------------------------------"
     Add-Content $PROFILE "Invoke-Expression (& { (zoxide init powershell | Out-String) })"
 }
 
@@ -408,18 +410,18 @@ if ((Get-Command fzf -ErrorAction SilentlyContinue) -and (Get-Module -ListAvaila
 # aliases
 if ($profileContent -notmatch "lazygit") {
     Write-Host "  Adding aliases..."
-    Add-Content $PROFILE "`n# ─── aliases ──────────────────────────────────────────"
+    Add-Content $PROFILE "`n# --- aliases ------------------------------------------"
     Add-Content $PROFILE "Set-Alias -Name lg -Value lazygit"
     Add-Content $PROFILE "Set-Alias -Name ld -Value lazydocker"
     Add-Content $PROFILE "Set-Alias -Name g -Value git"
     Add-Content $PROFILE "Set-Alias -Name vim -Value hx"
 }
 if ($profileContent -notmatch 'env:EDITOR') {
-    Add-Content $PROFILE "`n# ─── editor (Helix; nvim when installed with INSTALL_NVIM=1) ───"
+    Add-Content $PROFILE "`n# --- editor (Helix; nvim when installed with INSTALL_NVIM=1) ---"
     Add-Content $PROFILE 'if (-not $env:EDITOR) { $env:EDITOR = "hx" }'
 }
 
-# ─── Herdr ───────────────────────────────────────────────
+# --- Herdr -----------------------------------------------
 # Herdr (herdr.dev) is the desktop multiplexer: installed unless INSTALL_HERDR=0,
 # then configured from this repo: same prefix and keys as tmux, the popups
 # through Git Bash, the Claude and Codex integrations.
@@ -471,7 +473,7 @@ if (Get-Command herdr -ErrorAction SilentlyContinue) {
     Write-Host "Herdr not installed (INSTALL_HERDR=0, or its installer failed). Rerun without it, or see https://herdr.dev"
 }
 
-# ─── Done ─────────────────────────────────────────────────
+# --- Done -------------------------------------------------
 Write-Host ""
 Write-Host "=== Install complete! ===" -ForegroundColor Green
 Write-Host ""

@@ -6,6 +6,12 @@ foreach ($file in @('install.ps1', 'setup-windows.ps1', 'scripts\herdr-config.ps
     if ($errors.Count) { throw ($errors | Out-String) }
     Write-Output "$file syntax passed"
 }
+# install.ps1 is run as `irm ... | iex`: a byte-order mark would reach iex as
+# the first character of the first command and the script would never start.
+$bytes = [System.IO.File]::ReadAllBytes((Join-Path $RepoRoot 'install.ps1'))
+if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) { throw 'install.ps1 must not start with a byte-order mark (irm | iex breaks on it)' }
+if ($bytes | Where-Object { $_ -gt 127 } | Select-Object -First 1) { throw 'install.ps1 must be ASCII only (no BOM, so no encoding hint for Windows PowerShell)' }
+Write-Output 'install.ps1 is ASCII without a byte-order mark'
 # Execute only the clone helper against temporary configs and a fake Git command.
 $tokens = $null; $errors = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $RepoRoot 'install.ps1'), [ref]$tokens, [ref]$errors)
