@@ -274,7 +274,16 @@ def launch_lazygit(arguments):
             forwarded.append(argument)
     env = git_color_environment(theme)
     env['LG_CONFIG_FILE'] = lazygit_config_files(base=base)
-    os.execvpe('lazygit', ['lazygit', *forwarded], env)
+    run_in_place('lazygit', ['lazygit', *forwarded], env)
+
+
+def run_in_place(program, argv, env):
+    """Hand the terminal to the program for good. On Windows os.exec* only
+    starts the program and exits, so the popup running this script would
+    close at once with lazygit orphaned behind it: wait for it there."""
+    if os.name == 'nt':
+        sys.exit(subprocess.run(argv, env=env).returncode)
+    os.execvpe(program, argv, env)
 
 
 def preview(identifier):

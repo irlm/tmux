@@ -154,3 +154,23 @@ class AppearanceTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LazygitLaunchTests(unittest.TestCase):
+    def test_windows_waits_for_lazygit_instead_of_exec(self):
+        calls = {}
+        original_name, original_run, original_exec = appearance.os.name, appearance.subprocess.run, appearance.os.execvpe
+        try:
+            appearance.os.name = 'nt'
+            appearance.subprocess.run = lambda argv, env=None: calls.setdefault('run', (argv, env)) or type('R', (), {'returncode': 7})()
+            appearance.os.execvpe = lambda *a: calls.setdefault('exec', a)
+            with self.assertRaises(SystemExit) as stop:
+                appearance.run_in_place('lazygit', ['lazygit', '-p', 'x'], {'A': '1'})
+            self.assertEqual(stop.exception.code, 7)
+            self.assertEqual(calls['run'], (['lazygit', '-p', 'x'], {'A': '1'}))
+            self.assertNotIn('exec', calls)
+            appearance.os.name = 'posix'
+            appearance.run_in_place('lazygit', ['lazygit'], {})
+            self.assertEqual(calls['exec'], ('lazygit', ['lazygit'], {}))
+        finally:
+            appearance.os.name, appearance.subprocess.run, appearance.os.execvpe = original_name, original_run, original_exec
