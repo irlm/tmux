@@ -1,5 +1,7 @@
 # dotfiles installer for Windows (PowerShell)
-# Run as Administrator:  irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
+# In PowerShell:  irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
+# Administrator is optional: only the system-wide font registration and
+# Docker Desktop (INSTALL_FULL=1) need it; everything else is per user.
 # ASCII only, no byte-order mark: irm hands a BOM to iex as the first
 # character of the first command, and the script never starts.
 
@@ -8,6 +10,8 @@ $ErrorActionPreference = "Continue"
 
 Write-Host "=== dotfiles installer (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
+$elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $elevated) { Write-Host "Not running as Administrator: per-user install (fonts through Scoop; Docker Desktop would need an elevated PowerShell)." }
 
 # --- Free space ------------------------------------------
 # Everything below lands on the profile drive (Scoop, the checkout, Docker
@@ -66,9 +70,7 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Write-Host "Installing Scoop..."
     # A process- or machine-level policy may already override this; that is fine.
     try { Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop } catch {}
-    # Scoop's installer refuses an elevated shell unless told it is intended,
-    # and this script is normally run as Administrator.
-    $elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    # Scoop's installer refuses an elevated shell unless told it is intended.
     $scoopInstaller = Join-Path $env:TEMP "scoop-install.ps1"
     Fetch-File "https://get.scoop.sh" $scoopInstaller
     if ($elevated) { & $scoopInstaller -RunAsAdmin } else { & $scoopInstaller }
@@ -147,14 +149,18 @@ Write-Host "  Installing Nerd Fonts..."
 foreach ($font in @("JetBrainsMono-NF", "Meslo-NF")) {
     try { scoop install "nerd-fonts/$font" 2>$null } catch {}
 }
-# Also install via winget (registers system-wide, shows in Windows Terminal)
-try {
-    winget list --name "JetBrainsMono" 2>$null | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  Registering JetBrains Mono Nerd Font system-wide..."
-        winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements --source winget 2>$null
-    }
-} catch {}
+# Scoop registers the font for this user, which Windows Terminal sees. The
+# system-wide registration through winget needs Administrator; skip it quietly
+# otherwise instead of letting winget complain.
+if ($elevated) {
+    try {
+        winget list --name "JetBrainsMono" 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  Registering JetBrains Mono Nerd Font system-wide..."
+            winget install DEVCOM.JetBrainsMonoNerdFont --accept-package-agreements --accept-source-agreements --source winget 2>$null
+        }
+    } catch {}
+}
 
 # Point Windows Terminal at the font when it has none of its own yet.
 foreach ($wt in @("$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json", "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json")) {
