@@ -162,7 +162,10 @@ class LazygitLaunchTests(unittest.TestCase):
         original_name, original_run, original_exec = appearance.os.name, appearance.subprocess.run, appearance.os.execvpe
         try:
             appearance.os.name = 'nt'
-            appearance.subprocess.run = lambda argv, env=None: calls.setdefault('run', (argv, env)) or type('R', (), {'returncode': 7})()
+            def fake_run(argv, env=None):
+                calls['run'] = (argv, env)
+                return type('R', (), {'returncode': 7})()
+            appearance.subprocess.run = fake_run
             appearance.os.execvpe = lambda *a: calls.setdefault('exec', a)
             with self.assertRaises(SystemExit) as stop:
                 appearance.run_in_place('lazygit', ['lazygit', '-p', 'x'], {'A': '1'})
