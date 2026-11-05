@@ -348,6 +348,32 @@ else exec /bin/date "$@"; fi''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('Halloween', result.stdout)
 
+    def test_cpu_reading_is_measured_here_and_names_the_busy_process(self):
+        self.env.update(TEST_STATUS_TIME='1000', TEST_STATUS_DAY='2026-11-05', TEST_SPECIAL_DAYS='off')
+        self.executable('date', '''if [ "$1" = '+%s %F' ]; then
+    printf '%s %s\\n' "$TEST_STATUS_TIME" "$TEST_STATUS_DAY"
+else exec /bin/date "$@"; fi''')
+        self.executable('tmux', 'printf "off|nord||||||%s\\n" "$TEST_SPECIAL_DAYS"')
+        self.executable('vm_stat', "printf 'Mach Virtual Memory Statistics: (page size of 16384 bytes)\\nPages wired down: 10.\\nPages purgeable: 0.\\nAnonymous pages: 90.\\nPages occupied by compressor: 0.\\n'")
+        self.executable('pmset', "echo 'No battery'")
+        # macOS path: no /proc/stat, the processes' %cpu over the core count
+        self.executable('sysctl', 'case "$*" in *hw.ncpu*) echo 4 ;; *) echo 17179869184 ;; esac')
+        self.executable('ps', 'case "$*" in *pcpu=,comm=*) echo " 150.0 /usr/bin/busy-worker" ;; *) printf "150.0\\n10.0\\n" ;; esac')
+        self.env['WB_PROC_STAT'] = str(self.root / 'no-proc-stat')
+        result = self.run_script('scripts/status_right.sh', '--plain', '160')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('40% busy-worker', result.stdout)      # (150 + 10) / 4, above the 30% threshold
+        # Linux path: the busy share between two samples of /proc/stat
+        stat = self.root / 'proc-stat'; self.env['WB_PROC_STAT'] = str(stat)
+        stat.write_text('cpu  100 0 100 800 0 0 0 0 0 0\n')
+        self.env['TEST_STATUS_TIME'] = '1010'
+        first = self.run_script('scripts/status_right.sh', '--plain', '160')
+        self.assertNotIn('busy-worker', first.stdout)         # first sample: no reading yet
+        stat.write_text('cpu  150 0 150 900 0 0 0 0 0 0\n')    # +200 total, +100 busy
+        self.env['TEST_STATUS_TIME'] = '1020'
+        second = self.run_script('scripts/status_right.sh', '--plain', '160')
+        self.assertIn('50% busy-worker', second.stdout)
+
     def test_special_day_auto_can_opt_out_and_retry_failed_popups(self):
         self.env.update(TEST_SPECIAL_DAYS='off', TEST_POPUP_FAIL='0')
         self.executable('tmux', '''case "$1" in

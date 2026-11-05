@@ -4,7 +4,6 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
-CPU_DIR="$TMUX_CONFIG_DIR/plugins/tmux-cpu/scripts"
 # --plain: no tmux colour directives, for hosts that strip escapes (Herdr's
 # tab bar shows the last line of output as plain text).
 # --part net|cpu|ram|battery|holiday: only that reading, for a host that
@@ -77,15 +76,34 @@ if [ -x "$SCRIPT_DIR/net_speed.sh" ]; then
     [ -n "$net" ] && out=$(paint "$magenta" "$net")
 fi
 
-# CPU
-if [ -x "$CPU_DIR/cpu_percentage.sh" ]; then
-    cpu=$("$CPU_DIR/cpu_percentage.sh")
-    # When the CPU is busy, name the process behind it. One ps per sample, only
+# CPU: measured here (the tmux-cpu plugin this once called is gone). Linux:
+# the busy share of /proc/stat since the previous sample, kept in the cache
+# directory, so nothing sleeps and the first sample has no reading yet.
+# macOS: every process's %cpu summed over the core count, one ps.
+cpu_percentage() {
+    local stat="${WB_PROC_STAT:-/proc/stat}" state="$TMUX_CACHE_DIR/cpu-stat"
+    local user nice system idle iowait irq softirq steal total busy prev_total prev_busy
+    if [ -r "$stat" ]; then
+        read -r _ user nice system idle iowait irq softirq steal _ < "$stat"
+        total=$((user + nice + system + idle + ${iowait:-0} + ${irq:-0} + ${softirq:-0} + ${steal:-0}))
+        busy=$((total - idle - ${iowait:-0}))
+        if [ -f "$state" ] && read -r prev_total prev_busy < "$state" && [ "$total" -gt "${prev_total:-0}" ] 2>/dev/null; then
+            printf '%d%%' $(( (100 * (busy - prev_busy) + (total - prev_total) / 2) / (total - prev_total) ))
+        fi
+        printf '%s %s\n' "$total" "$busy" > "$state.$$" && mv -f "$state.$$" "$state"
+    else
+        ps -A -o %cpu= 2>/dev/null | awk -v cores="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)" '
+            { sum += $1 }
+            END { if (NR && cores > 0) { load = sum / cores; if (load > 100) load = 100; printf "%.0f%%", load } }'
+    fi
+}
+cpu=$(cpu_percentage)
+# When the CPU is busy, name the process behind it. One ps per sample, only
 # above the threshold (@cpu_process_threshold, percent; 0 shows it always,
 # off never), so a quiet machine costs nothing extra.
 cpu_threshold=$(tmux_option @cpu_process_threshold 30)
 case "$cpu_threshold" in off) cpu_threshold="" ;; ''|*[!0-9]*) cpu_threshold=30 ;; esac
-if [ -n "$cpu" ] && [ -n "$cpu_threshold" ] && [ "${cpu%%.*}" -ge "$cpu_threshold" ] 2>/dev/null; then
+if [ -n "$cpu" ] && [ -n "$cpu_threshold" ] && [ "${cpu%%[.%]*}" -ge "$cpu_threshold" ] 2>/dev/null; then
     if [ "$(uname -s)" = Darwin ]; then
         top_process=$(ps -Aro pcpu=,comm= 2>/dev/null | head -1)
     else
@@ -102,7 +120,6 @@ if [ "$paint" -eq 0 ] && [ -n "$cpu" ]; then
     if [ "$ascii" = on ]; then cpu="CPU $cpu"; else cpu="$cpu_icon $cpu"; fi
 fi
 [ -n "$cpu" ] && out="${out}${sep}$(paint "$accent" "$cpu")"
-fi
 
 # RAM (actual usage, not file cache — matches btop/Activity Monitor)
 ram=""

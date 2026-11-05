@@ -34,6 +34,7 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Plugins
 
+- The CPU reading in the status line is measured by `scripts/status_right.sh` itself (the busy share of `/proc/stat` between samples on Linux, the processes' `%cpu` over the core count on macOS). It had kept calling the removed tmux-cpu plugin and silently vanished once the plugin folder was cleaned; the busy-process name beside it never appeared either, because the threshold compared against `39%` instead of `39`.
 - Seven tmux plugins are gone, replaced by this repo's own lines: copy mode copies through `scripts/clipboard.sh` (tmux-yank), `ctrl+hjkl` navigation is in `tmux.conf` and still hands the key to Neovim (vim-tmux-navigator), `C-a Space` and `C-a u` run `scripts/pick.sh` under tmux as well as Herdr (tmux-thumbs, which needed a Rust build, and the URL binding that had no plugin behind it), and the unused tmux-sensible, tmux-cpu, tmux-fzf and nord-tmux. Only tpm, tmux-resurrect and tmux-continuum remain; `dotup` removes the rest.
 
 ### Editor
