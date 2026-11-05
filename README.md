@@ -43,6 +43,8 @@ irm https://raw.githubusercontent.com/irlm/workbench/main/install.ps1 | iex
 
 Windows gets Herdr, Helix and the tools; `$env:INSTALL_FULL = "1"` first adds the toolchains and Docker Desktop, `INSTALL_HERDR=0` skips Herdr. For tmux itself on Windows, use WSL: `wsl --install`.
 
+Do not paste the macOS / Linux one-liner into PowerShell: `bash` there is the WSL launcher, so it installs the Linux workbench inside WSL (fine if that is what you want; the script says so on its first lines).
+
 ## First Run
 
 1. The installer installs `JetBrainsMono Nerd Font` and points Ghostty or Windows Terminal at it; any other terminal, pick that font in its settings.

@@ -103,6 +103,8 @@ tmux does not run natively as part of this Windows flow. For tmux usage, install
 wsl --install
 ```
 
+Inside WSL, the macOS / Linux one-liner installs the Linux workbench in that distribution. Typing that one-liner into PowerShell does the same thing, because `bash` on Windows is the WSL launcher: the script prints a notice when that happens. The two installs do not interfere with each other.
+
 ## What Gets Installed
 
 ### Default
