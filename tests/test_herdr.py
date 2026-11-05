@@ -446,3 +446,15 @@ esac''')
         self.assertIn('herdr update', result.stderr)
         self.fake_herdr('case "$1 $2" in "--version ") echo "herdr 0.9.12" ;; "config check") echo "config: ok" ;; esac')
         self.assertEqual(self.run_script('scripts/herdr-config.sh', '--check').returncode, 0)
+
+    def test_editor_key_splits_beside_the_pane_and_starts_helix_there(self):
+        self.fake_herdr('''case "$1 $2" in
+  "pane split") echo '{"result":{"pane":{"pane_id":"w1:p9"}}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        (self.bin / 'hx').write_text('#!/bin/bash\n'); (self.bin / 'hx').chmod(0o755)
+        env = dict(self.env, HERDR_ACTIVE_PANE_ID='w1:p2', EDITOR='hx')
+        result = self.run_script('scripts/actions.sh', 'run', 'editor', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('pane split w1:p2 --direction right --focus', self.calls())
+        self.assertIn('pane run w1:p9 hx .', self.calls())

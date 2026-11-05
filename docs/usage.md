@@ -171,7 +171,9 @@ from this repo. Inside Helix, `-` (minus) is the review leader:
 | `- r` | reload every file an agent changed |
 | `] c` `[ c` | next / previous change; `] e` `[ e` next / previous diagnostic |
 
-`hx --tutor` teaches the editing model; `C-a !` shows the cheatsheet. From a
+`C-a v` opens Helix in the pane's folder, in a new pane beside it (`$EDITOR`
+when set), with the file picker a `Space f` away; `C-a C-f` opens a
+`file:line` the pane mentions. `hx --tutor` teaches the editing model; `C-a !` shows the cheatsheet. From a
 shell, `git diff | ~/.config/tmux/scripts/agent-send.sh` sends text the same
 way. Neovim is the optional second editor (`install.sh --nvim`).
 

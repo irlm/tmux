@@ -88,6 +88,7 @@ Do not paste the macOS / Linux one-liner into PowerShell: `bash` there is the WS
 | `C-a C-u` | update everything in a popup |
 | `C-a $` | LLM usage and limits for Claude Code, Codex and the others |
 | `C-a C-f` | open a `file:line` the pane mentions in Helix |
+| `C-a v` | Helix in this folder, in a pane beside the current one |
 | `C-a w` | every agent on the machine: state, task, time in that state; Enter jumps, `C-s` prompts |
 | `C-a C-d` | review what changed: file list with the diff beside, Enter opens at the change, `C-a` sends it to the agent |
 | `C-a C-g` | a worktree per task: pick one or type a branch, in its own workspace or session |

@@ -43,6 +43,17 @@ run_action() {
               else { uname -a; uptime; df -h /; } | less -R; fi ;;
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
         open-file) "$SCRIPT_DIR/pick.sh" files ;;
+        editor)
+            # Helix (or $EDITOR) in this folder, in a pane beside this one:
+            # under tmux `open` already made the split and runs this inside it.
+            editor=${EDITOR:-hx}; command -v "$editor" >/dev/null 2>&1 || editor=hx
+            if [ "$backend" = herdr ]; then
+                output=$(herdr pane split "$(herdr_active_pane)" --direction right --focus) || { pause_close; return 1; }
+                output=$(printf '%s' "$output" | python3 -c 'import json,sys; print(json.load(sys.stdin)["result"]["pane"]["pane_id"], end="")')
+                herdr pane run "$output" "$editor ." >/dev/null
+                return
+            fi
+            exec "$editor" . ;;
         agents) "$SCRIPT_DIR/agents.sh" ;;
         review) "$SCRIPT_DIR/review.sh" ;;
         worktree) "$SCRIPT_DIR/worktree.sh" ;;
@@ -51,7 +62,7 @@ run_action() {
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0
                  [ -n "$selected" ] || return 0
                  selected=${selected%%$'\t'*}
-                 case "$selected" in ssh|ssh-split) "$SCRIPT_DIR/actions.sh" open "$selected" ;;
+                 case "$selected" in ssh|ssh-split|editor) "$SCRIPT_DIR/actions.sh" open "$selected" ;;
                      *) "$SCRIPT_DIR/actions.sh" run "$selected" ;; esac ;;
         help)
             # F quits less with status 70 (ASCII F), then opens the palette.
@@ -178,7 +189,7 @@ case "${1:-palette}" in
         printf -v command 'TMUX_SOURCE_PANE=%q %q run %q' "$pane" "$SCRIPT_DIR/actions.sh" "$id"
         case "$id" in
             ssh) tmux new-window -n ssh -c "$cwd" "$command" ;;
-            ssh-split) tmux split-window -h -c "$cwd" "$command" ;;
+            ssh-split|editor) tmux split-window -h -c "$cwd" "$command" ;;
             *) size=$(tmux_option @popup_size 85%)
                case "$size" in *[!0-9%]*|'') size=85% ;; esac
                width=$size; height=$size

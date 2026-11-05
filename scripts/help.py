@@ -19,7 +19,7 @@ ORDER = ('Panes', 'Windows & sessions', 'Tools & projects', 'Search & reference'
          'Remote', 'Agents', 'Copy mode (no prefix)', 'Help & plugins', 'Shell (full setup)')
 REFERENCES = ('Helix (no prefix)', 'Lazygit (no prefix)', 'Btop (no prefix)', 'Git aliases (full setup)')
 ACTION_GROUPS = {
-    **dict.fromkeys(('git', 'github', 'docker', 'top', 'info', 'shell', 'notes', 'projects', 'llm', 'open-file'), 'Tools & projects'),
+    **dict.fromkeys(('git', 'github', 'docker', 'top', 'info', 'shell', 'notes', 'projects', 'llm', 'open-file', 'editor'), 'Tools & projects'),
     **dict.fromkeys(('history', 'search', 'scoped-search', 'ai', 'man', 'cheat', 'tldr'), 'Search & reference'),
     **dict.fromkeys(('palette', 'help', 'update', 'themes', 'special-days', 'pick', 'urls', 'editor-help'), 'Help & plugins'),
     **dict.fromkeys(('new-session', 'rename-session', 'rename-window'), 'Windows & sessions'),
