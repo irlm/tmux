@@ -57,7 +57,7 @@ Windows gets Herdr, Helix and the tools; set `INSTALL_HERDR=0` first to skip Her
 ~/.config/tmux/update.sh --quick  # update configs and plugins; skip package upgrades
 ```
 
-Use `dotup` or `~/.config/tmux/update.sh` for the full update, including managed Homebrew tools. The updater reloads running tmux; with managed shell integration, open a new shell for prompt changes. Your theme and personal settings in `~/.config/tmux-user/` persist across updates. See the [installation guide](docs/installation.md#updating) for older shell setups, repair options, and local Git changes.
+`dotup` is the alias for `~/.config/tmux/update.sh`: one run pulls this repo, refreshes Helix, the shell file, the tmux plugins, Herdr and its config, the `gh` extensions and the managed Homebrew tools, then runs the health check. Use it for the full update. The updater reloads running tmux; with managed shell integration, open a new shell for prompt changes. Your theme and personal settings in `~/.config/tmux-user/` persist across updates. See the [installation guide](docs/installation.md#updating) for older shell setups, repair options, and local Git changes.
 
 ## Basic Commands and Keys
 

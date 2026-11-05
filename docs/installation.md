@@ -158,6 +158,17 @@ Shell integration uses the selected Bash or Zsh shell and preserves personal rc 
 
 ## Updating
 
+`dotup` is the alias for `~/.config/tmux/update.sh`, the one command that brings a machine up to date. One run, in this order:
+
+1. pulls this repository into `~/.config/tmux` (and the irlm/nvim checkout when it exists), re-running itself if the updater changed
+2. relinks the Helix config and regenerates the managed shell file (new defaults such as `EDITOR`)
+3. installs, updates and cleans the tmux plugins, and reloads a running tmux
+4. updates Herdr when it is older than the configuration needs (always in a full run), re-renders and reloads its config and plugin, and refreshes the Claude Code skill
+5. updates the `gh` extensions and, in a full run, upgrades the managed Homebrew tools
+6. runs the health check (`dotcheck` on its own) and names anything missing or wrong
+
+It changes nothing in your personal rc files and keeps `~/.config/tmux-user/`. It runs fine from a pane inside Herdr or tmux; only a Herdr binary update needs you to detach (`C-a q`) and start `herdr` again, since a running session keeps the old binary.
+
 For an existing managed installation, use the updater; reinstalling is normally unnecessary:
 
 | Where you are | Command |
