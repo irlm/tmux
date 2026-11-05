@@ -67,7 +67,12 @@ if [ -f /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null; then
 fi
 
 # ─── Fastfetch on new shell (only interactive, non-tmux) ─
-if [[ $- == *i* ]] && [ -z "$TMUX" ] && command -v fastfetch &>/dev/null; then
+# Once per shell, and not while the rc file still carries the older inline
+# copy of this block (installs before Nov 2026 pasted it into the rc file;
+# doctor.sh says which lines to remove).
+if [[ $- == *i* ]] && [ -z "$TMUX" ] && [ -z "${__WB_BANNER_SHOWN:-}" ] && command -v fastfetch &>/dev/null \
+   && ! grep -qs 'fastfetch -l small' "$HOME/.bashrc"; then
+  __WB_BANNER_SHOWN=1
   fastfetch -l small --structure Title:OS:Host:Kernel:Shell:Terminal:CPU:Memory
 fi
 

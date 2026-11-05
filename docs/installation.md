@@ -210,7 +210,7 @@ The updater refreshes the repository and tmux, but does not rewrite personal she
 bash -c 'source "$HOME/.config/tmux/scripts/install-lib.sh"; install_shell_integration desktop'
 ```
 
-Use `desktop` for the default installer, `full` for a full install, or `server` for a lightweight server. This backs up the personal rc file before adding an include, writes the managed shell file under `~/.config/tmux-user/`, and installs no packages. Open a new terminal afterward. See [shell integration behavior](customization.md#installer-behavior) for Bash/Zsh selection and full-mode defaults.
+Use `desktop` for the default installer, `full` for a full install, or `server` for a lightweight server. This backs up the personal rc file before adding an include, writes the managed shell file under `~/.config/tmux-user/`, and installs no packages. Open a new terminal afterward. If the rc file still carries the older inline setup (the `fastfetch`, `oh-my-posh init` and `zoxide init` lines installs before November 2026 pasted in), the banner and the prompt load twice; `dotcheck` names the lines to remove. See [shell integration behavior](customization.md#installer-behavior) for Bash/Zsh selection and full-mode defaults.
 
 ## Related Repos
 

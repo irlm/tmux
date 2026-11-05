@@ -124,6 +124,19 @@ install_shell_integration() {
         append_shell_include "$login" bash
     fi
     printf 'Shell integration: %s (%s)\n' "$rc" "$target"
+    legacy_shell_lines "$rc" || true
+}
+
+# Installs before November 2026 pasted the full shell setup into the rc file
+# itself. With the managed include beside it, those lines run twice (two
+# fastfetch banners, two prompt inits). Print which lines to remove.
+legacy_shell_lines() {
+    local rc=$1 lines
+    [ -f "$rc" ] || return 0
+    lines=$(grep -nE 'fastfetch -l small|oh-my-posh init|zoxide init' "$rc" | cut -d: -f1 | tr '\n' ' ')
+    [ -n "$lines" ] || return 0
+    printf 'Note: %s still has the older inline setup on line(s) %s; the managed shell file now provides it. Remove those lines to stop the banner and prompt loading twice.\n' "$rc" "${lines% }"
+    return 1
 }
 
 # tools.tsv scopes: all, desktop (not on servers) and nvim (only when the

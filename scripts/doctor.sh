@@ -52,6 +52,15 @@ if [ "$profile" != server ]; then
            fi ;;
     esac
 fi
+# A managed shell file plus the older inline block in the rc file runs the
+# banner and the prompt twice.
+for _rc in "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc"; do
+    case "$_rc" in *.zshrc) _managed=shell.zsh ;; *) _managed=shell.bash ;; esac
+    [ -f "$HOME/.config/tmux-user/$_managed" ] && [ -f "$_rc" ] || continue
+    _lines=$(grep -nE 'fastfetch -l small|oh-my-posh init|zoxide init' "$_rc" | cut -d: -f1 | tr '\n' ' ')
+    [ -z "$_lines" ] || warn "$_rc line(s) ${_lines% }: older inline shell setup; the managed shell file provides it now, so remove those lines (banner and prompt load twice)."
+done
+unset _rc _lines _managed
 if command -v hx >/dev/null 2>&1 && [ -f "$TMUX_CONFIG_DIR/helix/config.toml" ]; then
     helix_config="${HELIX_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}/helix}/config.toml"
     if [ -L "$helix_config" ] && [ "$(readlink "$helix_config")" = "$TMUX_CONFIG_DIR/helix/config.toml" ]; then
