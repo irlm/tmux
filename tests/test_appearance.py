@@ -47,10 +47,20 @@ class AppearanceTests(unittest.TestCase):
         self.assertNotIn('git', appearance.lazygit_theme(nord))
 
     def test_lazygit_pages_diffs_through_delta_only_when_installed(self):
+        both = lambda name: f'/usr/bin/{name}' if name in ('delta', 'difft') else None
         with mock.patch.object(appearance.shutil, 'which', lambda name: '/usr/bin/delta' if name == 'delta' else None):
-            self.assertIn('delta --dark --paging=never', appearance.lazygit_pager()['git']['paging']['pager'])
+            self.assertIn('delta --dark --paging=never', appearance.lazygit_pager((0, 55))['git']['paging']['pager'])
+            self.assertEqual(appearance.lazygit_pager((0, 60))['git']['pagers'][0]['pager'], appearance.DELTA)
+            renderers = appearance.lazygit_pager((0, 66))['git']['diffRenderers']
+            self.assertEqual([r['name'] for r in renderers], ['delta'])
+        with mock.patch.object(appearance.shutil, 'which', both):
+            renderers = appearance.lazygit_pager((0, 66))['git']['diffRenderers']
+            self.assertEqual([r['name'] for r in renderers], ['delta', 'difftastic'])
+            self.assertEqual(renderers[1]['type'], 'extDiff')
+            self.assertEqual(appearance.lazygit_pager((0, 60))['git']['pagers'][1], {'externalDiffCommand': 'difft --color=always'})
+            self.assertIn('diffRenderers', appearance.lazygit_pager(None)['git'])   # unknown version: the current key
         with mock.patch.object(appearance.shutil, 'which', lambda name: None):
-            self.assertEqual(appearance.lazygit_pager(), {})
+            self.assertEqual(appearance.lazygit_pager((0, 66)), {})
 
     def test_selection_is_persisted_without_editing_repo_templates(self):
         original = (ROOT / 'catppuccin.omp.json').read_bytes()

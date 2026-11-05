@@ -64,12 +64,41 @@ def atomic_write(path, content):
             os.unlink(name)
 
 
-def lazygit_pager():
-    """delta gives lazygit's diff pane syntax colours and line numbers (git-delta);
-    without it lazygit keeps git's own colouring."""
-    if not shutil.which('delta'):
+def lazygit_version():
+    """(major, minor) of the lazygit on PATH, or None."""
+    if not shutil.which('lazygit'):
+        return None
+    try:
+        output = subprocess.run(['lazygit', '--version'], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    match = re.search(r'version=(\d+)\.(\d+)', output)
+    return (int(match.group(1)), int(match.group(2))) if match else None
+
+
+DELTA = 'delta --dark --paging=never --line-numbers --syntax-theme Nord'
+
+
+def lazygit_pager(version=None):
+    """delta gives lazygit's diff pane syntax colours and line numbers (git-delta),
+    and difftastic a syntax-aware alternative to cycle to with `|`; without them
+    lazygit keeps git's own colouring. The key changed twice: git.paging (an
+    object) until 0.55, git.pagers (a list) until 0.63, git.diffRenderers since
+    0.64. Lazygit migrates an old key on every launch, loudly, so write the one
+    the installed version speaks; unknown versions get the current one."""
+    delta, difft = shutil.which('delta'), shutil.which('difft')
+    if not delta and not difft:
         return {}
-    return {'git': {'paging': {'colorArg': 'always', 'pager': 'delta --dark --paging=never --line-numbers --syntax-theme Nord'}}}
+    version = lazygit_version() if version is None else version
+    if version and version < (0, 56):
+        return {'git': {'paging': {'colorArg': 'always', 'pager': DELTA}}} if delta else {}
+    if version and version < (0, 64):
+        pagers = ([{'pager': DELTA, 'colorArg': 'always'}] if delta else []) + \
+                 ([{'externalDiffCommand': 'difft --color=always'}] if difft else [])
+        return {'git': {'pagers': pagers}}
+    renderers = ([{'command': DELTA, 'colorArg': 'always', 'name': 'delta'}] if delta else []) + \
+                ([{'type': 'extDiff', 'command': 'difft --color=always --background={{colorScheme}} --context={{diffContext}}', 'name': 'difftastic'}] if difft else [])
+    return {'git': {'diffRenderers': renderers}}
 
 
 def lazygit_theme(theme):
