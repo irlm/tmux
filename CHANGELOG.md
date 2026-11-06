@@ -18,6 +18,7 @@ All notable changes to this tmux configuration will be documented in this file.
 
 - The Herdr sidebar shows, beside each Claude Code agent, the context its next turn re-reads (`ctx 240k`), read from the session's transcript by the event hook at no cost and painted past `ctx_warn_k` (default 100k tokens).
 - Fixed: on Windows that figure never appeared for most sessions. Python there decodes a pipe as cp1252, which has no character for some bytes of UTF-8 text (the end of a closing curly quote is enough), so the transcript reader stopped with an error the hook did not show. It reads bytes now, which also covers a tail that starts inside a character on any platform.
+- Fixed: the same hook lost the pane on Windows whenever Herdr's answer held a byte cp1252 has no character for, and the pane title is in that answer: the first frame of the spinner Claude Code shows there while it works is enough. The context figure was not updated for that state change, and the uncommitted-work line only when the event itself named the folder. Herdr's JSON is read as bytes now, and the path goes back to the shell as UTF-8.
 - `C-a` in the `C-a C-g` worktree picker opens the worktree and starts a fresh agent in it (`worktree_agent`, default `claude`): one session per task, in one step.
 - `install.sh --router` (Windows `INSTALL_ROUTER=1`) installs the [model-router](https://github.com/irlm/model-router) plugin for Claude Code. Opt-in.
 

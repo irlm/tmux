@@ -27,18 +27,23 @@ changes_in() {   # "N files +a -d", "clean", or "" outside a repository
 }
 
 # What the pane knows and the event may not carry: workspace, agent, the
-# agent's own session id, cwd (last, since it may hold spaces).
+# agent's own session id, cwd (last, since it may hold spaces). Herdr's JSON
+# is UTF-8 and holds the pane title; it is read and answered as bytes, since
+# Python on Windows would decode it as cp1252, which has no character for
+# some of its bytes (the spinner Claude Code puts in a title is enough), and
+# would write a path back in cp1252.
 resolve_pane() {
     local pane=$1 p_workspace p_agent p_session p_cwd
     read -r p_workspace p_agent p_session p_cwd <<< "$(herdr pane get "$pane" 2>/dev/null | python3 -c '
 import json, sys
 try:
-    pane = json.load(sys.stdin)["result"]["pane"]
+    pane = json.load(sys.stdin.buffer)["result"]["pane"]
 except Exception:
     sys.exit(0)
 native = pane.get("agent_session") or {}
-print(pane.get("workspace_id") or "-", pane.get("agent") or native.get("agent") or "-", native.get("value") or "-",
-      pane.get("foreground_cwd") or pane.get("cwd") or "")')"
+fields = (pane.get("workspace_id") or "-", pane.get("agent") or native.get("agent") or "-", native.get("value") or "-",
+          pane.get("foreground_cwd") or pane.get("cwd") or "")
+sys.stdout.buffer.write(" ".join(map(str, fields)).encode("utf-8"))')"
     [ -n "$workspace" ] || { [ "${p_workspace:--}" = - ] || workspace=$p_workspace; }
     [ -n "$agent" ] || { [ "${p_agent:--}" = - ] || agent=$p_agent; }
     [ "${p_session:--}" = - ] || session=$p_session
@@ -110,7 +115,7 @@ esac
 [ -n "${HERDR_PLUGIN_EVENT_JSON:-}" ] || exit 0
 read -r pane workspace status agent cwd <<< "$(printf '%s' "$HERDR_PLUGIN_EVENT_JSON" | python3 -c '
 import json, sys
-event = json.load(sys.stdin)
+event = json.load(sys.stdin.buffer)
 # The payload nests differently between versions; look at every level.
 def find(key):
     stack = [event]
@@ -121,8 +126,9 @@ def find(key):
                 return str(node[key])
             stack.extend(node.values())
     return ""
-print(find("pane_id") or "-", find("workspace_id") or "-", find("agent_status") or find("status") or "-",
-      find("agent") or "-", find("foreground_cwd") or find("cwd") or "-")')"
+fields = (find("pane_id") or "-", find("workspace_id") or "-", find("agent_status") or find("status") or "-",
+          find("agent") or "-", find("foreground_cwd") or find("cwd") or "-")
+sys.stdout.buffer.write(" ".join(fields).encode("utf-8"))')"
 [ -n "$pane" ] && [ "$pane" != - ] || exit 0
 for v in workspace status agent cwd; do [ "${!v}" != - ] || printf -v "$v" '%s' ''; done
 resolve_pane "$pane"

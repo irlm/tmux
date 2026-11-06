@@ -581,6 +581,27 @@ esac''')
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx=ctx 42k --clear-token ctx_big', self.calls())
 
+    def test_pane_lookup_survives_a_title_and_a_path_the_platform_cannot_decode(self):
+        # Herdr answers in UTF-8 with the pane title in it. The first frame of
+        # the spinner Claude Code puts there ends in byte 0x90, which cp1252
+        # (what Windows Python reads a pipe as) has no character for; and a
+        # path outside ASCII has to come back to the shell as UTF-8.
+        repo = self.git_repo('café')
+        session = 'cccccccc-1111-2222-3333-444444444444'
+        transcript = self.root / 'claude/projects/-x-y' / f'{session}.jsonl'; transcript.parent.mkdir(parents=True)
+        transcript.write_text(json.dumps({'type': 'assistant', 'message': {'usage': {'input_tokens': 4, 'cache_read_input_tokens': 41996}}}) + '\n')
+        self.fake_herdr('case "$1 $2" in "pane get") printf \'{"result":{"pane":{"workspace_id":"w1","agent":"claude","terminal_title":"◐ Port the report","agent_session":{"value":"%s"},"cwd":"%s"}}}\\n\' "$SESSION" "$REPO" ;; esac')
+        event = json.dumps({'type': 'pane.agent_status_changed', 'pane_id': 'w1:p2', 'agent_status': 'working', 'terminal_title': '◐ Port the report'}, ensure_ascii=False)
+        for encoding in ('cp1252', 'utf-8'):
+            with self.subTest(encoding=encoding):
+                self.log.unlink(missing_ok=True)
+                env = dict(self.env, HERDR_PLUGIN_EVENT_JSON=event, REPO=str(repo), SESSION=session,
+                           CLAUDE_CONFIG_DIR=str(self.root / 'claude'), PYTHONIOENCODING=encoding)
+                result = self.run_script('scripts/agent-events.sh', env=env)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('workspace report-metadata w1 --source workbench --token changes=2 files +2 -1', self.calls())
+                self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx=ctx 42k --clear-token ctx_big', self.calls())
+
     def test_router_plugin_install_is_opt_in_and_goes_through_the_claude_cli(self):
         log = self.root / 'claude-calls'
         (self.bin / 'claude').write_text('#!/bin/bash\nprintf "%s\\n" "$*" >> ' + str(log) + '\ncase "$*" in "plugin list") echo "none" ;; esac\n')
