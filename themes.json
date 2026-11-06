@@ -34,5 +34,109 @@
       "green": "#b6e7a1", "yellow": "#ffe1a1", "red": "#ffb4b4",
       "magenta": "#ddbbff"
     }
+  },
+  "tokyo-night": {
+    "name": "Tokyo Night",
+    "description": "Herdr's Tokyo Night colors as they are",
+    "prompt": "nord.omp.json",
+    "herdr": "tokyo-night",
+    "colors": {
+      "background": "#1a1b26", "selection": "#2d3650",
+      "foreground": "#c0caf5", "muted": "#a9b1d6",
+      "accent": "#7aa2f7", "blue": "#7aa2f7", "cyan": "#7dcfff",
+      "green": "#9ece6a", "yellow": "#e0af68", "red": "#f7768e",
+      "magenta": "#bb9af7"
+    }
+  },
+  "dracula": {
+    "name": "Dracula",
+    "description": "Herdr's Dracula with lighter purple, red and pink for selected rows",
+    "prompt": "nord.omp.json",
+    "herdr": "dracula",
+    "colors": {
+      "background": "#282a36", "selection": "#463f5d",
+      "foreground": "#f8f8f2", "muted": "#d2d2dc",
+      "accent": "#c49ffa", "blue": "#8be9fd", "cyan": "#8be9fd",
+      "green": "#50fa7b", "yellow": "#f1fa8c", "red": "#ff9090",
+      "magenta": "#ff88cd"
+    }
+  },
+  "gruvbox": {
+    "name": "Gruvbox",
+    "description": "Herdr's Gruvbox with lighter orange, blue, red and purple for selected rows",
+    "prompt": "nord.omp.json",
+    "herdr": "gruvbox",
+    "colors": {
+      "background": "#282828", "selection": "#4b3f27",
+      "foreground": "#ebdbb2", "muted": "#d5c4a1",
+      "accent": "#dfa12b", "blue": "#95b2a7", "cyan": "#8ec07c",
+      "green": "#b8bb26", "yellow": "#fabd2f", "red": "#fc8c7f",
+      "magenta": "#da9bac"
+    }
+  },
+  "one-dark": {
+    "name": "One Dark",
+    "description": "Herdr's One Dark with lighter blue, cyan, red and purple",
+    "prompt": "nord.omp.json",
+    "herdr": "one-dark",
+    "colors": {
+      "background": "#282c34", "selection": "#334659",
+      "foreground": "#abb2bf", "muted": "#abb2bf",
+      "accent": "#71b7f1", "blue": "#71b7f1", "cyan": "#69bec9",
+      "green": "#98c379", "yellow": "#e5c07b", "red": "#ea9ca2",
+      "magenta": "#d59de6"
+    }
+  },
+  "solarized": {
+    "name": "Solarized Dark",
+    "description": "Herdr's Solarized with every color lightened for selected rows",
+    "prompt": "nord.omp.json",
+    "herdr": "solarized",
+    "colors": {
+      "background": "#002b36", "selection": "#083e55",
+      "foreground": "#97a5a5", "muted": "#97a5a5",
+      "accent": "#5baae1", "blue": "#5baae1", "cyan": "#2fb5ab",
+      "green": "#97ad00", "yellow": "#cf9c00", "red": "#ea8684",
+      "magenta": "#e485b3"
+    }
+  },
+  "kanagawa": {
+    "name": "Kanagawa",
+    "description": "Herdr's Kanagawa with lighter blue, green, red and violet for selected rows",
+    "prompt": "nord.omp.json",
+    "herdr": "kanagawa",
+    "colors": {
+      "background": "#1f1f28", "selection": "#32384b",
+      "foreground": "#dcd7ba", "muted": "#c8c3aa",
+      "accent": "#86a2da", "blue": "#86a2da", "cyan": "#7fb4ca",
+      "green": "#90a886", "yellow": "#c0a36e", "red": "#db8c8d",
+      "magenta": "#ac9bc7"
+    }
+  },
+  "rose-pine": {
+    "name": "Rose Pine",
+    "description": "Herdr's Rose Pine with a lighter pine (its green and blue) and red",
+    "prompt": "nord.omp.json",
+    "herdr": "rose-pine",
+    "colors": {
+      "background": "#191724", "selection": "#3b344b",
+      "foreground": "#e0def4", "muted": "#c8c5dc",
+      "accent": "#c4a7e7", "blue": "#60abc9", "cyan": "#9ccfd8",
+      "green": "#60abc9", "yellow": "#f6c177", "red": "#ed7f9e",
+      "magenta": "#c4a7e7"
+    }
+  },
+  "vesper": {
+    "name": "Vesper",
+    "description": "Herdr's Vesper colors as they are: near-black, peach and mint",
+    "prompt": "nord.omp.json",
+    "herdr": "vesper",
+    "colors": {
+      "background": "#1a1a1a", "selection": "#232323",
+      "foreground": "#ffffff", "muted": "#a0a0a0",
+      "accent": "#ffc799", "blue": "#b0b0b0", "cyan": "#66ddcc",
+      "green": "#99ffe4", "yellow": "#ffc799", "red": "#ff8080",
+      "magenta": "#ffd1a8"
+    }
   }
 }

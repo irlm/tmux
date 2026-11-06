@@ -4,6 +4,11 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ## [Unreleased]
 
+### Themes
+
+- `C-a C-t` offers Herdr's eight other dark themes beside Nord, Catppuccin and High contrast: Tokyo Night, Dracula, Gruvbox, One Dark, Solarized Dark, Kanagawa, Rose Pine and Vesper, with the colours of Herdr 0.9.5. Under Herdr the pick selects Herdr's theme of that name as it ships; tmux, lazygit, fzf and the prompt get the same colours, the ones under 4.5:1 on a selected row lightened (none in Tokyo Night and Vesper, all in Solarized). Herdr's light themes and `terminal` remain in its own picker.
+- Fixed: under Herdr, a second `C-a C-t` pick kept the previous theme. The renderer took the theme it found installed (Catppuccin, after a switch to Nord) for one picked in Herdr's settings and recorded it as `herdr_theme`. Rendered files now carry the name they were written with, in a comment above `[theme]`, and only a different name counts as Herdr's pick; the picker also tells the renderer the pick is its own, which covers files rendered before this. Same change in `herdr-config.ps1`.
+
 ### Install modes
 
 - The default install is the workbench only: Herdr, tmux, Helix, the tools, popups and agent keys, the shell integration and the font. The language toolchains (Rust, Go, Node, Java, Scala) and Docker moved under `--full`, which already carried the complete shell setup; `--agent` names the default. On Windows, `$env:INSTALL_FULL = "1"` before the one-liner does the same. A default run says where the rest went. Nothing is removed from machines that already have them.

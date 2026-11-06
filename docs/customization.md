@@ -9,8 +9,9 @@ Press **`C-a C-t`** (Ctrl-a, then Ctrl-t), or find **Choose theme** in `C-a F`.
 - **Nord:** the existing palette with brighter red and secondary text.
 - **Catppuccin Macchiato:** based on the existing Catppuccin prompt theme.
 - **High contrast:** a Nord-based option with brighter text and status colors.
+- **Tokyo Night, Dracula, Gruvbox, One Dark, Solarized Dark, Kanagawa, Rose Pine, Vesper:** Herdr's dark themes (`tokyo-night`, `dracula`, `gruvbox`, `one-dark`, `solarized`, `kanagawa`, `rose-pine`, `vesper`). Under Herdr the pick selects Herdr's theme of that name as Herdr ships it; tmux, lazygit, fzf and the prompt get its colors, with the ones too dim on a selected row lightened until they pass the contrast test below (Tokyo Night and Vesper needed none; Solarized needed all of them). Herdr's light themes and its `terminal` theme stay in Herdr's own picker: lazygit and delta are set up for a dark background here.
 
-The picker previews normal, selected, added and removed text. Enter applies and saves; Esc leaves the choice unchanged. The choice persists in `~/.config/tmux-user/theme`, outside the Git checkout. Run `scripts/themes.sh apply nord`, `scripts/themes.sh apply catppuccin`, or `scripts/themes.sh apply contrast` to select directly.
+The picker previews normal, selected, added and removed text. Enter applies and saves; Esc leaves the choice unchanged. The choice persists in `~/.config/tmux-user/theme`, outside the Git checkout. Run `scripts/themes.sh apply nord`, `scripts/themes.sh apply catppuccin`, or `scripts/themes.sh apply contrast` to select directly; `scripts/themes.sh list` prints every identifier.
 
 Tmux status, pane surfaces/borders, popups, help and fzf use the selected palette. On versions supporting `pane-colours`, the 16 ANSI colors also follow it. Older tmux versions retain their terminal ANSI palette while the explicit tmux/lazygit colors still apply. The terminal application's own configuration is preserved; apps with independent RGB themes may keep those colors.
 

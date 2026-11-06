@@ -80,6 +80,21 @@ try {
         if ($line -notmatch 'CPU \d+(\.\d+)?%' -or $line -notmatch 'RAM \d+%') { throw "Windows status line is incomplete: $line" }
         Write-Output 'Windows status line passed'
     }
+    # A palette taken from a Herdr theme selects that theme as Herdr ships it,
+    # and the next pick replaces it: the installed name is the previous pick.
+    Set-Content $env:HERDR_CONFIG_PATH $rendered -NoNewline
+    Set-Content (Join-Path $Scratch 'theme') 'tokyo-night'
+    $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
+    $block = ($rendered -split '\[terminal\]')[0]
+    foreach ($expected in @('name = "tokyo-night"', 'overlay1 = "#c0caf5"', '# Theme written by the renderer: tokyo-night')) {
+        if ($block -notmatch [regex]::Escape($expected)) { throw "Windows Herdr theme is missing: $expected" }
+    }
+    if ($block -match '(?m)^text = ') { throw 'A Herdr theme picked by name must keep its own colours.' }
+    if ((Get-Content (Join-Path $Scratch 'options.env') -Raw) -match 'herdr_theme') { throw 'The previous pick was read as one made in Herdr.' }
+    # A name Herdr's own settings wrote since is kept.
+    Set-Content $env:HERDR_CONFIG_PATH ($rendered -replace 'name = "tokyo-night"', 'name = "dracula"') -NoNewline
+    $rendered = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -Print | Out-String
+    if ($rendered -notmatch 'name = "dracula"' -or (Get-Content (Join-Path $Scratch 'options.env') -Raw) -notmatch 'herdr_theme=dracula') { throw 'A theme picked in Herdr was not kept.' }
     $plugin = & pwsh -NoProfile -NonInteractive -File (Join-Path $RepoRoot 'scripts\herdr-config.ps1') -PrintPlugin | Out-String
     if ($plugin -notmatch 'id = "palette"' -or $plugin -notmatch '"windows"') { throw 'Windows Herdr plugin manifest is incomplete.' }
     Write-Output 'Windows Herdr render passed'

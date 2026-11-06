@@ -29,6 +29,9 @@ def catalog(root=ROOT):
             raise ValueError(f'Invalid colors in {identifier}')
         if theme['prompt'] not in ('nord.omp.json', 'catppuccin.omp.json'):
             raise ValueError('Invalid prompt source')
+        # Optional: the built-in Herdr theme this palette was taken from.
+        if not re.fullmatch(r'[a-z][a-z0-9-]*', theme.get('herdr', 'nord')):
+            raise ValueError(f'Invalid Herdr theme in {identifier}')
     return themes
 
 
@@ -249,7 +252,10 @@ def apply_herdr(directory, root=ROOT):
             return False
     except OSError:
         return False
-    return subprocess.run(['bash', str(renderer)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    # The pick was made here: the renderer must not read the theme it finds
+    # installed (the previous pick) as one chosen in Herdr's settings.
+    return subprocess.run(['bash', str(renderer)], env=dict(os.environ, WORKBENCH_THEME_PICK='1'),
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
 def git_color_environment(theme, environment=None):
