@@ -102,3 +102,11 @@ try {
     Remove-Item Env:TMUX_THEME_DIR, Env:HERDR_CONFIG_PATH, Env:HERDR_BASH -ErrorAction SilentlyContinue
     Remove-Item $Scratch -Recurse -Force
 }
+
+# The popups' Python, through Git Bash: UTF-8 in and out of a pipe, where
+# Windows Python defaults to cp1252.
+$gitBash = 'C:\Program Files\Git\bin\bash.exe'
+if (Test-Path $gitBash) {
+    & $gitBash (Join-Path $RepoRoot 'tests/windows-python-utf8.sh')
+    if ($LASTEXITCODE -ne 0) { throw 'Python under Git Bash does not read or write UTF-8 through a pipe.' }
+} else { Write-Output 'Git Bash not found: Python pipe check skipped' }

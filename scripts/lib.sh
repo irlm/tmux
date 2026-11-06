@@ -11,6 +11,10 @@ TMUX_USER_DIR="${TMUX_THEME_DIR:-$HOME/.config/tmux-user}"
 if ! command -v python3 >/dev/null 2>&1 && command -v python >/dev/null 2>&1; then
     python3() { python "$@"; }
 fi
+# Python reads and writes UTF-8 in every script. On Windows a pipe or a file
+# is cp1252 by default: Herdr's JSON (UTF-8, with pane titles in it) does not
+# always decode, and a state icon cannot be written to a picker at all.
+export PYTHONUTF8=1
 
 # Which multiplexer started this script. Herdr strips the TMUX marker from
 # its panes and sets HERDR_ENV, so the two never look alike. "none" covers a

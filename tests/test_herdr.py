@@ -8,6 +8,7 @@ import csv
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -44,6 +45,17 @@ class HerdrFixture(unittest.TestCase):
 
     def calls(self):
         return self.log.read_text().splitlines() if self.log.exists() else []
+
+    def legacy_python(self):
+        # A python3 whose pipes and files default to a legacy encoding, as on
+        # Windows (cp1252 there). Shift JIS stands in where the system has
+        # it: like cp1252, it has no character for the bytes of "◐".
+        wrapper = self.bin / 'python3'
+        wrapper.write_text(f'#!/bin/bash\nLC_ALL=ja_JP.SJIS exec {shlex.quote(sys.executable)} "$@"\n'); wrapper.chmod(0o755)
+        bare = {key: value for key, value in self.env.items() if key not in ('PYTHONUTF8', 'PYTHONIOENCODING')}
+        probe = subprocess.run([str(wrapper), '-c', 'import sys; print(sys.stdin.encoding)'], env=bare, input='', text=True, capture_output=True)
+        if 'utf' in probe.stdout.lower() or probe.returncode != 0:
+            self.skipTest('this system has no legacy locale to stand in for Windows')
 
     def run_script(self, name, *args, input='', env=None):
         return subprocess.run([BASH, str(REPO / name), *args], env=env or self.env, input=input,
@@ -451,6 +463,45 @@ esac''')
         result = self.run_script('scripts/agents.sh', env=env)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('agent focus w2:p3', self.calls())
+
+    def test_scripts_run_python_in_utf8_mode(self):
+        # scripts/lib.sh for every script that sources it; the theme picker
+        # does not, and sets it itself.
+        env = {key: value for key, value in self.env.items() if key != 'PYTHONUTF8'}
+        result = subprocess.run([BASH, '-c', 'source "$1"; python3 -c "import sys; print(sys.flags.utf8_mode)"', '_', str(REPO / 'scripts/lib.sh')],
+                                env=env, text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.stdout.strip(), '1', result.stderr)
+        (self.bin / 'python3').write_text('#!/bin/bash\necho "utf8=${PYTHONUTF8:-}"\n'); (self.bin / 'python3').chmod(0o755)
+        self.assertEqual(self.run_script('scripts/themes.sh', 'list', env=env).stdout.strip(), 'utf8=1')
+
+    def test_pickers_read_and_write_utf8_where_python_defaults_to_a_legacy_encoding(self):
+        # On Windows the agents picker could not print a state icon, and no
+        # reader got past a pane title with Claude Code's spinner in it.
+        self.legacy_python()
+        project = self.root / 'projects/api'; (project / '.git').mkdir(parents=True)
+        self.fake_herdr('''case "$1 $2" in
+  "agent list") echo '{"result":{"agents":[{"pane_id":"w1:p3","workspace_id":"w1","tab_id":"w1:t1","agent":"claude","agent_status":"working","cwd":"/x","terminal_title":"◐ Port the report"}]}}' ;;
+  "workspace list") echo '{"result":{"workspaces":[{"workspace_id":"w1","label":"café"}]}}' ;;
+  "api snapshot") printf '{"result":{"snapshot":{"workspaces":[{"workspace_id":"w1","label":"café"}],"panes":[{"workspace_id":"w1","cwd":"%s","terminal_title":"◐ Port the report"}]}}}\\n' "$PROJECT" ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        env = dict(self.env, HERDR_WORKSPACE_ID='w1', PROJECT=str(project.resolve()),
+                   TMUX_PROJECT_ROOTS=str(self.root / 'projects'), PICK=str(project.resolve()))
+        listed = self.run_script('scripts/agents.sh', '--list', env=env)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertIn('w1:p3\t◐ working', listed.stdout)
+        self.assertIn('café/t1\tclaude', listed.stdout)
+        self.assertIn('◐ Port the report', listed.stdout)
+        sent = self.run_script('scripts/agent-send.sh', input='review this hunk\n', env=env)
+        self.assertEqual(sent.returncode, 0, sent.stderr)
+        self.assertIn('pane send-text w1:p3 \x1b[200~review this hunk\x1b[201~', self.calls())
+        (self.bin / 'fzf').write_text('#!/bin/bash\ngrep -F "$PICK" | head -1\n'); (self.bin / 'fzf').chmod(0o755)
+        picked = self.run_script('scripts/sessionizer.sh', env=env)
+        self.assertEqual(picked.returncode, 0, picked.stderr)
+        self.assertIn('workspace focus w1', self.calls())
+        probe = self.run_script('tests/windows-python-utf8.sh', env=env)
+        self.assertEqual(probe.returncode, 0, probe.stdout + probe.stderr)
+        self.assertIn('passed', probe.stdout)
 
     def test_review_opens_the_picked_file_at_its_first_changed_line(self):
         repo = self.git_repo()
