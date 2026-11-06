@@ -47,7 +47,10 @@ print(pane.get("workspace_id") or "-", pane.get("agent") or native.get("agent") 
 
 # Context size of a Claude Code session after its last turn, in thousands of
 # tokens: what the next turn re-reads before it does anything. Read from the
-# tail of the transcript, so it costs a file read and no model.
+# tail of the transcript, so it costs a file read and no model. Read as
+# bytes: Python on Windows decodes a pipe as cp1252, which has no character
+# for some bytes of UTF-8 text (a closing curly quote is enough), and the
+# tail may start in the middle of a character anywhere.
 context_k() {
     local id=$1 dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" file found=""
     case "$id" in ''|*[!A-Za-z0-9-]*) return 0 ;; esac
@@ -56,7 +59,7 @@ context_k() {
     tail -c 600000 "$found" | python3 -c '
 import json, sys
 tokens = None
-for line in sys.stdin:
+for line in sys.stdin.buffer:
     try:
         entry = json.loads(line)
     except ValueError:

@@ -560,6 +560,27 @@ esac''')
         self.run_script('scripts/agent-events.sh', env=env)
         self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx=ctx 240k --clear-token ctx_big', self.calls())
 
+    def test_context_size_survives_text_the_platform_cannot_decode(self):
+        # Windows Python reads a pipe as cp1252, which has no character for
+        # byte 0x9d (the end of a closing curly quote in UTF-8); and the tail
+        # of a transcript can start inside a character on any platform.
+        repo = self.git_repo()
+        session = 'bbbbbbbb-1111-2222-3333-444444444444'
+        transcript = self.root / 'claude/projects/-x-y' / f'{session}.jsonl'; transcript.parent.mkdir(parents=True)
+        turn = json.dumps({'type': 'assistant', 'message': {'content': 'a “quoted” word', 'usage': {
+            'input_tokens': 4, 'cache_read_input_tokens': 41000, 'cache_creation_input_tokens': 996}}}, ensure_ascii=False)
+        transcript.write_bytes(b'\x9d the end of a cut character"}\n' + turn.encode('utf-8') + b'\n')
+        self.fake_herdr('case "$1 $2" in "pane get") printf \'{"result":{"pane":{"workspace_id":"w1","agent":"claude","agent_session":{"value":"%s"},"cwd":"%s"}}}\\n\' "$SESSION" "$REPO" ;; esac')
+        event = json.dumps({'type': 'pane.agent_status_changed', 'pane_id': 'w1:p2', 'agent_status': 'done'})
+        for encoding in ('cp1252', 'utf-8'):
+            with self.subTest(encoding=encoding):
+                self.log.unlink(missing_ok=True)
+                env = dict(self.env, HERDR_PLUGIN_EVENT_JSON=event, REPO=str(repo), SESSION=session,
+                           CLAUDE_CONFIG_DIR=str(self.root / 'claude'), PYTHONIOENCODING=encoding)
+                result = self.run_script('scripts/agent-events.sh', env=env)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx=ctx 42k --clear-token ctx_big', self.calls())
+
     def test_router_plugin_install_is_opt_in_and_goes_through_the_claude_cli(self):
         log = self.root / 'claude-calls'
         (self.bin / 'claude').write_text('#!/bin/bash\nprintf "%s\\n" "$*" >> ' + str(log) + '\ncase "$*" in "plugin list") echo "none" ;; esac\n')

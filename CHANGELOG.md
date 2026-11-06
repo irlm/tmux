@@ -17,6 +17,7 @@ All notable changes to this tmux configuration will be documented in this file.
 ### Agents
 
 - The Herdr sidebar shows, beside each Claude Code agent, the context its next turn re-reads (`ctx 240k`), read from the session's transcript by the event hook at no cost and painted past `ctx_warn_k` (default 100k tokens).
+- Fixed: on Windows that figure never appeared for most sessions. Python there decodes a pipe as cp1252, which has no character for some bytes of UTF-8 text (the end of a closing curly quote is enough), so the transcript reader stopped with an error the hook did not show. It reads bytes now, which also covers a tail that starts inside a character on any platform.
 - `C-a` in the `C-a C-g` worktree picker opens the worktree and starts a fresh agent in it (`worktree_agent`, default `claude`): one session per task, in one step.
 - `install.sh --router` (Windows `INSTALL_ROUTER=1`) installs the [model-router](https://github.com/irlm/model-router) plugin for Claude Code. Opt-in.
 
