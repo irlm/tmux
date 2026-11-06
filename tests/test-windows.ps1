@@ -110,3 +110,16 @@ if (Test-Path $gitBash) {
     & $gitBash (Join-Path $RepoRoot 'tests/windows-python-utf8.sh')
     if ($LASTEXITCODE -ne 0) { throw 'Python under Git Bash does not read or write UTF-8 through a pipe.' }
 } else { Write-Output 'Git Bash not found: Python pipe check skipped' }
+
+# The LLM usage card is drawn with curses, which Windows Python gets from the
+# windows-curses package (install.ps1 installs it): every name the card uses
+# has to be in it. No build for this Python is a notice, not a failure.
+if ($IsWindows -and (Get-Command python -ErrorAction SilentlyContinue)) {
+    python -m pip install --quiet --disable-pip-version-check windows-curses
+    if ($LASTEXITCODE -ne 0) { Write-Output 'windows-curses has no build for this Python: usage card check skipped' }
+    else {
+        python -c "import curses; names = 'wrapper use_default_colors start_color init_pair init_color color_pair can_change_color curs_set error KEY_RIGHT KEY_LEFT KEY_BTAB KEY_RESIZE COLOR_WHITE COLOR_YELLOW COLOR_RED COLOR_GREEN COLOR_CYAN COLOR_BLUE A_BOLD'.split(); missing = [name for name in names if not hasattr(curses, name)]; assert not missing, missing"
+        if ($LASTEXITCODE -ne 0) { throw 'windows-curses lacks a name the LLM usage card uses.' }
+        Write-Output 'windows-curses has what the usage card uses: passed'
+    }
+}

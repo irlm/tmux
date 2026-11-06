@@ -402,6 +402,19 @@ if __name__ == '__main__':
     unittest.main()
 
 
+class UsageCardTests(unittest.TestCase):
+    def test_a_terminal_curses_cannot_draw_on_is_reported_not_raised(self):
+        # The popup then shows the plain report (scripts/actions.sh, status 3).
+        import curses
+        from unittest import mock
+        with mock.patch.object(llm_usage, 'gather', return_value=([], {})):
+            with mock.patch('curses.wrapper', side_effect=curses.error('no colours here')):
+                self.assertFalse(llm_usage.interactive(30, {}))
+            with mock.patch('curses.wrapper', return_value=None):
+                self.assertTrue(llm_usage.interactive(30, {}))
+        self.assertEqual(llm_usage.SCREEN_FAILED, 3)
+
+
 class AgentWorkbenchTests(HerdrFixture):
     """C-a w, C-a C-d, C-a C-g and the event hook behind the sidebar token."""
 

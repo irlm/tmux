@@ -476,8 +476,11 @@ class Screen:
             if custom and role in palette:
                 value = palette[role]
                 number = 200 + index
-                curses.init_color(number, *(int(value[i:i + 2], 16) * 1000 // 255 for i in (1, 3, 5)))
-                numbers[role] = number
+                try:
+                    curses.init_color(number, *(int(value[i:i + 2], 16) * 1000 // 255 for i in (1, 3, 5)))
+                    numbers[role] = number
+                except curses.error:   # a console that reports more than it can redefine
+                    numbers[role] = basic[role]
             else:
                 numbers[role] = basic[role]
         pairs = [('text', 'foreground', -1), ('muted', 'muted', -1), ('accent', 'accent', -1), ('icon', 'red', -1),
@@ -619,11 +622,19 @@ class Screen:
                 continue
 
 
+SCREEN_FAILED = 3   # exit status: curses is there and could not draw; the caller shows the plain report
+
+
 def interactive(days, palette):
+    """The card on this terminal; False when curses cannot draw on it."""
     import curses
     providers, _ = gather(days, limits=False)   # transcripts only: instant
     refresh = lambda: gather(days)[0]  # noqa: E731
-    curses.wrapper(lambda stdscr: Screen(stdscr, providers, days, palette, refresh).run())
+    try:
+        curses.wrapper(lambda stdscr: Screen(stdscr, providers, days, palette, refresh).run())
+    except curses.error:
+        return False
+    return True
 
 
 def main(argv=None):
@@ -638,7 +649,8 @@ def main(argv=None):
         providers, windows = gather(args.days, limits=not args.no_limits)
         print(json.dumps({title: totals for title, totals, _, _ in providers} | {'windows': windows}, default=str, indent=1))
         return 0
-    # Windows Python ships without curses: the plain report, paged, instead.
+    # Windows Python ships without curses (the windows-curses package adds
+    # it; install.ps1 installs that): the plain report instead.
     try:
         import curses  # noqa: F401
         has_curses = True
@@ -651,8 +663,10 @@ def main(argv=None):
         from appearance import current_theme
         palette = current_theme()[1]['colors']
     if interactive_terminal:
-        interactive(args.days, palette)
-        return 0
+        if interactive(args.days, palette):
+            return 0
+        print('The usage card could not be drawn on this terminal; --plain prints the report.', file=sys.stderr)
+        return SCREEN_FAILED
     providers, windows = gather(args.days, limits=not args.no_limits)
     width = args.width or shutil.get_terminal_size((100, 40)).columns
     sys.stdout.write(render(providers, windows, args.days, min(width - 2, 110), Painter(not args.plain and sys.stdin.isatty(), palette)))

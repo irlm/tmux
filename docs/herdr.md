@@ -233,6 +233,12 @@ popups being Bash scripts:
 - `ctrl+hjkl` navigation works the same way through Git Bash.
 - Tools the popups call (fzf, lazygit, bat, fastfetch, python) come from Scoop
   through `install.ps1`; `python3` resolves to Scoop's `python`.
+- The LLM usage card (`C-a $`) is drawn with `curses`, which Windows Python
+  lacks: `install.ps1` adds the `windows-curses` package
+  (`python -m pip install windows-curses`). Where that package has no build
+  for the installed Python (ARM64, or a Python newer than the package), the
+  popup shows the plain report instead: any key closes it when it fits the
+  popup, and it opens in `less` (`q` closes) when it does not.
 
 Rerunning `install.ps1` updates the checkout and re-renders the Herdr config,
 the way `dotup` does on Unix; `C-a C-u` runs it from Herdr. The installer

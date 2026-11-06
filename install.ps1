@@ -156,6 +156,18 @@ if (-not (Get-Command quota-axi -ErrorAction SilentlyContinue)) {
     }
 }
 
+# windows-curses (pip): Windows Python has no curses module, and the LLM
+# usage card (C-a $) is drawn with it. Without it the popup shows the plain
+# report. The package has no build for every Python (none for ARM64).
+if (Get-Command python -ErrorAction SilentlyContinue) {
+    python -c "import curses" 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Installing windows-curses (the LLM usage card for C-a `$)..."
+        python -m pip install --quiet --disable-pip-version-check windows-curses 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Write-Host "  Skipped windows-curses (no build for this Python: C-a `$ shows the plain report)" -ForegroundColor Yellow }
+    }
+}
+
 # Install Nerd Fonts
 Write-Host "  Installing Nerd Fonts..."
 foreach ($font in @("JetBrainsMono-NF", "Meslo-NF")) {

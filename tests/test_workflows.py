@@ -296,6 +296,38 @@ case "$1" in list-sessions) exit 0 ;; has-session) exit 1 ;; new-session) printf
         self.assertIn('july-4\tHappy 4th of July!', listing.read_text())
         self.assertFalse((self.root / 'data/special-days').exists())
 
+    def test_llm_popup_falls_back_to_a_plain_report_a_key_closes(self):
+        # Windows Python has curses only with the windows-curses package, and
+        # status 3 means curses could not draw: then the plain report, closed
+        # by any key when it fits the popup and paged when it does not.
+        calls = self.root / 'python-calls'
+        self.env['PY_CALLS'] = str(calls)
+        self.executable('python3', '''printf '%s\\n' "$*" >> "$PY_CALLS"
+case "$*" in
+  *"import curses"*) exit "${HAS_CURSES:-1}" ;;
+  *--plain*) i=0; while [ "$i" -lt "${REPORT_LINES:-5}" ]; do i=$((i + 1)); echo "report line $i"; done ;;
+  *llm_usage.py) exit "${CARD_STATUS:-0}" ;;
+esac''')
+        self.executable('less', 'echo "paged $(wc -l | tr -d " ") lines"')
+        self.executable('tput', 'echo 40')
+        cases = (('no curses, short report', {'HAS_CURSES': '1'}, 'report line 5\n\nPress any key to close...', False),
+                 ('no curses, tall report', {'HAS_CURSES': '1', 'REPORT_LINES': '60'}, 'paged 60 lines', False),
+                 ('curses cannot draw', {'HAS_CURSES': '0', 'CARD_STATUS': '3'}, 'Press any key to close...', True),
+                 ('the card ran', {'HAS_CURSES': '0', 'CARD_STATUS': '0'}, '', True))
+        for name, extra, expected, card in cases:
+            with self.subTest(name):
+                calls.unlink(missing_ok=True)
+                self.env.update({'HAS_CURSES': '1', 'REPORT_LINES': '5', 'CARD_STATUS': '0'}, **extra)
+                result = self.run_script('scripts/actions.sh', 'run', 'llm', input='\x1b')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if expected:
+                    self.assertIn(expected, result.stdout)
+                else:
+                    self.assertEqual(result.stdout, '')
+                ran = calls.read_text().splitlines()
+                self.assertEqual(any(line.endswith('llm_usage.py') for line in ran), card, ran)
+                self.assertEqual(any(line.endswith('--plain') for line in ran), bool(expected), ran)
+
     def test_canceling_special_day_picker_is_quiet(self):
         self.executable('fzf', 'cat >/dev/null; exit 130')
         result = self.run_script('scripts/actions.sh', 'run', 'special-days')

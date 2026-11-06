@@ -32,7 +32,7 @@ list_actions() {
     done < "$registry"
 }
 run_action() {
-    local id=$1 query output rc
+    local id=$1 query output rc rows
     case "$id" in
         git) "$SCRIPT_DIR/lazygit.sh" ;;
         github) "$SCRIPT_DIR/popup.sh" --gh-ext gh-dash -- 'gh dash' ;;
@@ -55,8 +55,22 @@ run_action() {
         agents) "$SCRIPT_DIR/agents.sh" ;;
         review) "$SCRIPT_DIR/review.sh" ;;
         worktree) "$SCRIPT_DIR/worktree.sh" ;;
-        llm) if python3 -c 'import curses' 2>/dev/null; then python3 "$SCRIPT_DIR/llm_usage.py"
-             else python3 "$SCRIPT_DIR/llm_usage.py" --plain | less -R; fi ;;
+        llm)
+            # The card is drawn with curses. Windows Python has it only with
+            # the windows-curses package (install.ps1 adds it); status 3 means
+            # curses is there and could not draw on this terminal. Without the
+            # card: the plain report, closed by any key when it fits the popup
+            # (Esc and q included, as on the card) and paged when it does not.
+            if python3 -c 'import curses' 2>/dev/null; then
+                python3 "$SCRIPT_DIR/llm_usage.py"; rc=$?
+                [ "$rc" -eq 3 ] || return "$rc"
+            fi
+            output=$(python3 "$SCRIPT_DIR/llm_usage.py" --plain) || return 1
+            rows=$(tput lines 2>/dev/null) || rows=""
+            case "$rows" in ''|*[!0-9]*) rows=$(stty size 2>/dev/null | cut -d' ' -f1) ;; esac
+            case "$rows" in ''|*[!0-9]*) rows=24 ;; esac
+            if [ "$(( $(printf '%s\n' "$output" | wc -l) + 3 ))" -le "$rows" ]; then printf '%s\n' "$output"; pause_close
+            else printf '%s\n' "$output" | less -R; fi ;;
         palette) selected=$(list_actions | fzf --delimiter=$'\t' --with-nth=2.. --prompt='Command > ') || return 0
                  [ -n "$selected" ] || return 0
                  selected=${selected%%$'\t'*}
