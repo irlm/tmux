@@ -871,6 +871,7 @@ install_tmux_plugins "$TMUX_DIR"
 
 # ─── Herdr ────────────────────────────────────────────
 install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || warn "Herdr setup incomplete; rerun: bash install.sh --full"
+[ "${TMUX_WANT_ROUTER:-0}" != 1 ] || install_model_router
 
 check_install_tools desktop "$INSTALL_ASSETS"
 

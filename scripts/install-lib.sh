@@ -276,6 +276,25 @@ install_quota_axi() {
     return 0
 }
 
+# model-router (github.com/irlm/model-router): a Claude Code plugin that
+# routes agent calls to the model each kind of work needs and shows what a
+# session's context costs. Opt-in (--router): it changes how Claude Code
+# behaves, so nothing installs it by default.
+install_model_router() {
+    command -v claude >/dev/null 2>&1 || { echo "  model-router skipped: the claude CLI is not installed"; return 0; }
+    if claude plugin list 2>/dev/null | grep -q 'model-router@'; then
+        echo "  model-router already installed (update: claude plugin update model-router@model-router)"; return 0
+    fi
+    echo "  Installing the model-router plugin for Claude Code..."
+    claude plugin marketplace add irlm/model-router >/dev/null 2>&1 || true   # already added is fine
+    if claude plugin install model-router@model-router --yes >/dev/null 2>&1; then
+        echo "  model-router installed: restart Claude Code, then /router"
+    else
+        echo "  model-router not installed; in a Claude Code session run: /plugin install model-router --marketplace irlm/model-router"
+    fi
+    return 0
+}
+
 # Herdr's own skill file for Claude Code: with it, a Claude running in a
 # Herdr pane can split panes, start a helper agent beside itself, prompt it
 # and wait for it. Only Herdr's copy is written or refreshed; a file the

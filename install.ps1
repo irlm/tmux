@@ -501,6 +501,22 @@ if (Get-Command herdr -ErrorAction SilentlyContinue) {
     Write-Host "Herdr not installed (INSTALL_HERDR=0, or its installer failed). Rerun without it, or see https://herdr.dev"
 }
 
+# --- model-router (opt-in) -------------------------------
+# INSTALL_ROUTER=1: the model-router plugin for Claude Code (github.com/irlm/model-router).
+if ($env:INSTALL_ROUTER -eq "1") {
+    if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+        Write-Host "model-router skipped: the claude CLI is not installed"
+    } elseif ((claude plugin list 2>$null) -match 'model-router@') {
+        Write-Host "model-router already installed (update: claude plugin update model-router@model-router)"
+    } else {
+        Write-Host "Installing the model-router plugin for Claude Code..."
+        claude plugin marketplace add irlm/model-router *> $null
+        claude plugin install model-router@model-router --yes *> $null
+        if ($LASTEXITCODE -eq 0) { Write-Host "  model-router installed: restart Claude Code, then /router" }
+        else { Write-Host "  model-router not installed; in a Claude Code session run: /plugin install model-router --marketplace irlm/model-router" -ForegroundColor Yellow }
+    }
+}
+
 # --- Done -------------------------------------------------
 Write-Host ""
 Write-Host "=== Install complete! ===" -ForegroundColor Green

@@ -104,12 +104,12 @@ the next instruction.
 
 | Key | What it does |
 |-----|--------------|
-| sidebar | agents queued by urgency (blocked, done, working); under each Claude Code or Codex row the task it is on; under each workspace its branch and `3 files +40 -12`, the uncommitted work |
+| sidebar | agents queued by urgency (blocked, done, working); under each Claude Code or Codex row the task it is on; beside a Claude Code agent `ctx 240k`, the context its next turn re-reads, painted once it passes 100k; under each workspace its branch and `3 files +40 -12`, the uncommitted work |
 | `C-a C-o` | jump to the agent that just notified |
 | `C-a C-n` `C-a C-p` | next / previous agent |
 | `C-a w` | every agent on this machine in a popup: state, workspace, task, how long in that state, directory; the pane shown beside. Enter jumps, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes |
 | `C-a C-d` | what changed in the repository behind the pane: one row per file with the diff beside it. Enter opens the file in Helix at its first changed line and comes back to the list; `C-a` sends that file's diff into the agent's input with "About your change in ..."; `C-w` the whole diff; `C-d` switches the diff between `delta` and `difftastic` (syntax-aware); `C-y` copies the path; `C-g` lazygit |
-| `C-a C-g` | a worktree per task: pick an existing worktree of this repository or type a branch name. Herdr opens it as a workspace grouped under this one; checkouts live in `~/.herdr/worktrees/<repo>/<branch>` (`worktree_dir` in `options.env`) |
+| `C-a C-g` | a worktree per task: pick an existing worktree of this repository or type a branch name. Herdr opens it as a workspace grouped under this one; checkouts live in `~/.herdr/worktrees/<repo>/<branch>` (`worktree_dir` in `options.env`). `C-a` in the picker, instead of Enter, also starts a fresh agent there (`claude`, or `worktree_agent`) |
 | `- a` in Helix | send the selection, or the line, into the agent's input |
 
 The sidebar information comes from `scripts/agent-events.sh`, which the
@@ -120,6 +120,23 @@ repository as the workspace's `$changes` token. Nothing polls.
 
 `herdr_agent_sort=spaces` in `options.env` groups the sidebar by workspace
 instead of by urgency.
+
+### One session per task
+
+Every turn of an agent re-reads its whole conversation before doing
+anything. That is cheap per token and large in total: a session that has
+grown to 500k tokens pays for 500k on every prompt, whatever the prompt is.
+The `ctx` figure beside each Claude Code agent is that number, read from the
+session's transcript after each turn at no cost, and it changes colour past
+`ctx_warn_k` (thousands of tokens, default 100). When it does, the next
+unrelated task belongs in a new session: `C-a C-g`, a branch name, `C-a`
+gives it a worktree, a workspace and a fresh agent in one step.
+
+[model-router](https://github.com/irlm/model-router) measures the same
+thing with prices attached, routes agent calls to the model each kind of
+work needs, and shows what a change saved. `install.sh --router` (Windows:
+`INSTALL_ROUTER=1`) installs its Claude Code plugin; nothing installs it by
+default, since it changes how Claude Code behaves.
 
 The installers (`install.sh`, `dotup`, `install.ps1`) also put Herdr's own skill file in `~/.claude/skills/herdr`,
 so a Claude Code running in a Herdr pane can split panes, start a helper
@@ -184,7 +201,7 @@ anything is installed.
 
 | File | Purpose |
 |------|---------|
-| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days`, `herdr_agent_sort` (`priority` or `spaces`), `worktree_dir` |
+| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days`, `herdr_agent_sort` (`priority` or `spaces`), `worktree_dir`, `worktree_agent` (what `C-a` in the worktree picker starts, default `claude`), `ctx_warn_k` (context warning size in thousands of tokens, default 100) |
 | `~/.config/tmux-user/herdr.toml` | appended verbatim to the rendered config: `[theme.custom.light]`, more `[[keys.command]]`, anything the template does not define |
 | `~/.config/tmux-user/herdr-plugin/` | the generated plugin; linked, not copied |
 

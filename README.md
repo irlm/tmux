@@ -31,7 +31,7 @@ curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tm
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash -s -- --server
 ```
 
-Flags: `--no-herdr` for a tmux-only desktop, `--nvim` for Neovim as a second editor, `--agent` names the default. Nothing heavy arrives without `--full`.
+Flags: `--no-herdr` for a tmux-only desktop, `--nvim` for Neovim as a second editor, `--router` for the [model-router](https://github.com/irlm/model-router) plugin in Claude Code, `--agent` names the default. Nothing heavy arrives without `--full`.
 
 ### Windows (PowerShell)
 

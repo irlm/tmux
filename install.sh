@@ -19,6 +19,7 @@ set -euo pipefail
 MODE="default"
 WANT_HERDR=""
 WANT_NVIM=0
+WANT_ROUTER=0
 [ ! -f "${NVIM_CONFIG_DIR:-$HOME/.config/nvim}/init.lua" ] || WANT_NVIM=1
 for arg in "$@"; do
     case "$arg" in
@@ -28,6 +29,7 @@ for arg in "$@"; do
         --herdr)     WANT_HERDR=1 ;;   # install Herdr even on a server
         --no-herdr)  WANT_HERDR=0 ;;   # desktop without Herdr (tmux only)
         --nvim)      WANT_NVIM=1 ;;    # also install Neovim and its config
+        --router)    WANT_ROUTER=1 ;;  # also install the model-router plugin for Claude Code
     esac
 done
 # Herdr is the desktop multiplexer; servers keep tmux unless --herdr says otherwise.
@@ -119,7 +121,7 @@ if [ "$MODE" = "full" ]; then
     ensure_curl
     TMPSCRIPT=$(mktemp)
     download "https://raw.githubusercontent.com/irlm/workbench/main/setup.sh" "$TMPSCRIPT"
-    TMUX_INSTALL_ASSETS="$INSTALL_ASSETS" TMUX_WANT_NVIM="$WANT_NVIM" TMUX_WANT_HERDR="$WANT_HERDR" bash "$TMPSCRIPT"
+    TMUX_INSTALL_ASSETS="$INSTALL_ASSETS" TMUX_WANT_NVIM="$WANT_NVIM" TMUX_WANT_HERDR="$WANT_HERDR" TMUX_WANT_ROUTER="$WANT_ROUTER" bash "$TMPSCRIPT"
     rm -f -- "$TMPSCRIPT"
     exit 0
 fi
@@ -258,6 +260,7 @@ echo "    --full    multi-distro setup with shell config, nerd font, dev toolcha
 echo "    --server  lightweight server install (tmux, hx, fzf, bat, btop)"
 echo "    --no-herdr  tmux only; by default Herdr is installed and configured too"
 echo "    --nvim    also install Neovim with the irlm/nvim config"
+echo "    --router  also install the model-router plugin for Claude Code"
 echo ""
 
 # Detect OS
@@ -406,6 +409,7 @@ install_shell_integration desktop
 
 # ─── Herdr (optional) ────────────────────────────────────
 install_herdr_workbench "$INSTALL_ASSETS" "$WANT_HERDR" || echo "  Herdr setup incomplete; rerun: bash install.sh"
+[ "$WANT_ROUTER" != 1 ] || install_model_router
 
 # ─── Create data dirs ─────────────────────────────────────
 mkdir -p "$HOME/.local/share/tmux"

@@ -143,15 +143,21 @@ herdr_split_run() {   # <pane> <right|down> <command>
 try: print(json.load(sys.stdin)["result"]["pane"]["pane_id"], end="")
 except Exception: pass' 2>/dev/null)
     [ -n "$new" ] || { printf 'No pane id in the reply: %s\n' "$output" >&2; return 1; }
+    herdr_run_when_ready "$new" "$command" || return 1
+    printf '%s' "$new"
+}
+
+# Run a command in a pane once its shell is at the prompt.
+herdr_run_when_ready() {   # <pane> <command>
+    local pane=$1 command=$2 output
     for _ in $(seq 1 30); do
-        if herdr pane process-info --pane "$new" 2>/dev/null | python3 -c 'import json,sys,re
+        if herdr pane process-info --pane "$pane" 2>/dev/null | python3 -c 'import json,sys,re
 try: names = [p.get("name", "") for p in json.load(sys.stdin)["result"]["process_info"]["foreground_processes"]]
 except Exception: sys.exit(1)
 sys.exit(0 if names and all(re.match(r"^(-?)(zsh|bash|fish|sh|dash|nu|pwsh|powershell|cmd)(\.exe)?$", n) for n in names) else 1)'; then break; fi
         sleep 0.2
     done
-    output=$(herdr pane run "$new" "$command" 2>&1) || { printf 'Could not run "%s" in %s: %s\n' "$command" "$new" "$output" >&2; return 1; }
-    printf '%s' "$new"
+    output=$(herdr pane run "$pane" "$command" 2>&1) || { printf 'Could not run "%s" in %s: %s\n' "$command" "$pane" "$output" >&2; return 1; }
 }
 
 # Does a registry row with this hosts field apply to the running backend?

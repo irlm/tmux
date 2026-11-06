@@ -169,6 +169,12 @@ if [ "$profile" != server ] && command -v gh >/dev/null 2>&1; then
         run_logged gh-extensions gh extension upgrade --all
     else run_logged gh-dash gh extension install dlvhdr/gh-dash; fi
 fi
+# An installed model-router plugin follows its marketplace in a full update
+# (install.sh --router put it there); the new version loads when Claude Code restarts.
+if [ "$MODE" = full ] && command -v claude >/dev/null 2>&1 && claude plugin list 2>/dev/null | grep -q 'model-router@'; then
+    run_logged model-router-marketplace claude plugin marketplace update model-router
+    run_logged model-router-plugin claude plugin update model-router@model-router
+fi
 if [ "$MODE" = full ] && command -v brew >/dev/null 2>&1; then
     run_logged brew-update brew update --quiet
     outdated=$(brew outdated --quiet) || { failed 'brew outdated'; outdated=""; }

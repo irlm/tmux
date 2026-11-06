@@ -11,6 +11,10 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Agents
 
+- The Herdr sidebar shows, beside each Claude Code agent, the context its next turn re-reads (`ctx 240k`), read from the session's transcript by the event hook at no cost and painted past `ctx_warn_k` (default 100k tokens).
+- `C-a` in the `C-a C-g` worktree picker opens the worktree and starts a fresh agent in it (`worktree_agent`, default `claude`): one session per task, in one step.
+- `install.sh --router` (Windows `INSTALL_ROUTER=1`) installs the [model-router](https://github.com/irlm/model-router) plugin for Claude Code. Opt-in.
+
 - `C-a $` says how to get the live limits when `quota-axi` is missing (`npm install -g quota-axi`); the installers install it where `npm` exists.
 - Helix `-d` shows the diff of the file being edited in a split beside it, `-D` the whole repository's, both highlighted as diffs (`scripts/filediff.sh`).
 - `C-a v` opens Helix (`$EDITOR`) in the pane's folder, in a pane beside it, under tmux and Herdr.

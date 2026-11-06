@@ -41,6 +41,10 @@ class InstallModeTests(unittest.TestCase):
         self.assert_each(self.default, ['rustup', 'get.docker.com', '--cask docker', 'openjdk', 'golang', 'coursier', 'nodejs', 'metals'],
                          present=False, label='default')
         self.assertIn('--agent|-a)  MODE="default"', self.install)
+        # the model-router plugin only on request, in every installer
+        self.assertIn('[ "$WANT_ROUTER" != 1 ] || install_model_router', self.default)
+        self.assertIn('[ "${TMUX_WANT_ROUTER:-0}" != 1 ] || install_model_router', self.setup)
+        self.assertIn('if ($env:INSTALL_ROUTER -eq "1") {', self.windows)
 
     def test_server_stays_light_and_can_take_herdr(self):
         self.assert_each(self.server, [
@@ -53,7 +57,7 @@ class InstallModeTests(unittest.TestCase):
         self.assertIn('[ "$MODE" = server ] && WANT_HERDR=0 || WANT_HERDR=1', self.install)
 
     def test_full_hands_over_to_setup_with_everything(self):
-        self.assertIn('TMUX_WANT_NVIM="$WANT_NVIM" TMUX_WANT_HERDR="$WANT_HERDR" bash "$TMPSCRIPT"', self.install)
+        self.assertIn('TMUX_WANT_NVIM="$WANT_NVIM" TMUX_WANT_HERDR="$WANT_HERDR" TMUX_WANT_ROUTER="$WANT_ROUTER" bash "$TMPSCRIPT"', self.install)
         self.assert_each(self.setup, [
             'clone_config workbench', 'install_helix_config', 'install_helix_linux', 'install_brew_tools desktop',
             'rm -f -- "$HOME/.config/tmux-user/profile"', '"dandavison/delta"', '"Wilfred/difftastic"',

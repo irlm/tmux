@@ -361,7 +361,8 @@ class AgentWorkbenchTests(HerdrFixture):
         self.assertIn('agent_panel_sort = "priority"', rendered)
         self.assertIn('show_agent_labels_on_pane_borders = true', rendered)
         self.assertIn('["$changes"]', rendered)
-        self.assertIn('claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]', rendered)
+        self.assertIn('["agent", "$ctx", { token = "$ctx_big", fg = "#ebcb8b", bold = true }]', rendered)
+        self.assertIn('claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent", "$ctx", {', rendered)
         self.assertIn('directory = "~/Projects/worktrees"', rendered)
         self.assertIn('key = "prefix+ctrl+d"', rendered)
         (self.user / 'options.env').write_text('herdr_agent_sort=spaces\n')
@@ -430,11 +431,11 @@ esac''')
     def test_worktree_popup_creates_a_branch_worktree_under_herdr(self):
         repo = self.git_repo()
         self.fake_herdr()
-        self.fake_fzf('cat >/dev/null; printf "feature-x\\n"; exit 1')   # a typed name, nothing picked
+        self.fake_fzf('cat >/dev/null; printf "feature-x\\n\\n"; exit 1')   # a typed name, Enter, nothing picked
         result = self.run_script('scripts/worktree.sh', str(repo))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(f'worktree create --cwd {repo.resolve()} --branch feature-x --focus', self.calls())
-        self.fake_fzf(f'cat >/dev/null; printf "\\n{repo.resolve()}\\tmain x\\n"')   # the main checkout picked
+        self.fake_fzf(f'cat >/dev/null; printf "\\n\\n{repo.resolve()}\\tmain x\\n"')   # the main checkout picked
         result = self.run_script('scripts/worktree.sh', str(repo), input='\n')
         self.assertIn('main checkout', result.stdout)
 
@@ -470,3 +471,53 @@ esac''')
         subprocess.run(['git', '-C', str(repo), 'checkout', '-q', 'f.txt'])
         subprocess.run([BASH, str(REPO / 'scripts/filediff.sh'), 'stage', 'f.txt'], cwd=repo, env=env)
         self.assertIn('no changes', subprocess.run([BASH, str(REPO / 'scripts/filediff.sh'), 'show'], cwd=repo, env=env, capture_output=True, text=True).stdout)
+
+    def test_worktree_picker_can_start_a_fresh_agent_in_the_new_workspace(self):
+        repo = self.git_repo()
+        self.fake_herdr('''case "$1 $2" in
+  "worktree create") echo '{"result":{"root_pane":{"pane_id":"w9:p1"},"workspace":{"workspace_id":"w9"}}}' ;;
+  "pane process-info") echo '{"result":{"process_info":{"foreground_processes":[{"name":"zsh"}]}}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        self.fake_fzf('cat >/dev/null; printf "feature-y\\nctrl-a\\n"; exit 1')   # a typed name, then C-a
+        result = self.run_script('scripts/worktree.sh', str(repo))
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn(f'worktree create --cwd {repo.resolve()} --branch feature-y --focus', self.calls())
+        self.assertIn('pane run w9:p1 claude', self.calls())
+        (self.user / 'options.env').write_text('worktree_agent=codex\n')
+        self.run_script('scripts/worktree.sh', str(repo))
+        self.assertIn('pane run w9:p1 codex', self.calls())
+
+    def test_agent_event_reports_the_context_size_of_a_claude_pane(self):
+        repo = self.git_repo()
+        session = 'aaaaaaaa-1111-2222-3333-444444444444'
+        transcript = self.root / 'claude/projects/-x-y' / f'{session}.jsonl'; transcript.parent.mkdir(parents=True)
+        def turn(read, side=False):
+            return json.dumps({'type': 'assistant', 'isSidechain': side, 'message': {'usage': {
+                'input_tokens': 4, 'cache_read_input_tokens': read, 'cache_creation_input_tokens': 996, 'output_tokens': 50}}}) + '\n'
+        transcript.write_text(turn(20000) + turn(999999, side=True) + turn(239000))   # a subagent's turn does not count
+        self.fake_herdr('case "$1 $2" in "pane get") printf \'{"result":{"pane":{"workspace_id":"w1","agent":"claude","agent_session":{"value":"%s"},"cwd":"%s"}}}\\n\' "$SESSION" "$REPO" ;; esac')
+        event = json.dumps({'type': 'pane.agent_status_changed', 'pane_id': 'w1:p2', 'agent_status': 'done'})
+        env = dict(self.env, HERDR_PLUGIN_EVENT_JSON=event, REPO=str(repo), SESSION=session, CLAUDE_CONFIG_DIR=str(self.root / 'claude'))
+        result = self.run_script('scripts/agent-events.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx_big=ctx 240k --clear-token ctx', self.calls())
+        self.assertEqual((self.root / 'data/agent-journal.tsv').read_text().splitlines()[-1].split('\t')[1:], ['w1', 'w1:p2', 'claude', 'done'])
+        (self.user / 'options.env').write_text('ctx_warn_k=500\n')
+        self.run_script('scripts/agent-events.sh', env=env)
+        self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx=ctx 240k --clear-token ctx_big', self.calls())
+
+    def test_router_plugin_install_is_opt_in_and_goes_through_the_claude_cli(self):
+        log = self.root / 'claude-calls'
+        (self.bin / 'claude').write_text('#!/bin/bash\nprintf "%s\\n" "$*" >> ' + str(log) + '\ncase "$*" in "plugin list") echo "none" ;; esac\n')
+        (self.bin / 'claude').chmod(0o755)
+        result = subprocess.run([BASH, '-c', f'source {REPO}/scripts/install-lib.sh; install_model_router'], env=self.env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = log.read_text().splitlines()
+        self.assertEqual(calls, ['plugin list', 'plugin marketplace add irlm/model-router', 'plugin install model-router@model-router --yes'])
+        self.assertIn('restart Claude Code', result.stdout)
+        (self.bin / 'claude').write_text('#!/bin/bash\nprintf "%s\\n" "$*" >> ' + str(log) + '\ncase "$*" in "plugin list") echo "  model-router@model-router" ;; esac\n')
+        log.unlink()
+        result = subprocess.run([BASH, '-c', f'source {REPO}/scripts/install-lib.sh; install_model_router'], env=self.env, capture_output=True, text=True)
+        self.assertEqual(log.read_text().splitlines(), ['plugin list'])
+        self.assertIn('already installed', result.stdout)

@@ -25,6 +25,8 @@ installed checkout clean and put personal settings in `~/.config/tmux-user/local
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh | bash
 ```
 
+`--router` adds the [model-router](https://github.com/irlm/model-router) plugin to Claude Code (Windows: `$env:INSTALL_ROUTER = "1"`): it routes agent calls to the model each kind of work needs and shows what a session's context costs. Opt-in, because it changes how Claude Code behaves.
+
 The workbench itself: Herdr, tmux, Helix, the tools behind the popups, the agent keys, the shell integration and the font. Nothing heavy: no language toolchains, no Docker. On macOS it uses Homebrew. On Linux it is aimed at apt-based systems. `--agent` is the same thing, named.
 
 ### Full install
@@ -33,7 +35,7 @@ The workbench itself: Herdr, tmux, Helix, the tools behind the popups, the agent
 curl -sL https://raw.githubusercontent.com/irlm/workbench/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh --full
 ```
 
-Everything the default installs (Herdr, Helix and its config, the tools, the font, the Claude Code skill), plus the toolchains (Rust with rust-analyzer, Go, Node, Java, Scala with Metals), Docker and the complete shell setup with the zsh plugins and the banner. `--nvim` and `--no-herdr` apply here too. It also covers more distributions:
+Everything the default installs (Herdr, Helix and its config, the tools, the font, the Claude Code skill), plus the toolchains (Rust with rust-analyzer, Go, Node, Java, Scala with Metals), Docker and the complete shell setup with the zsh plugins and the banner. `--nvim`, `--no-herdr` and `--router` apply here too. It also covers more distributions:
 
 - macOS
 - Ubuntu / Debian family
@@ -179,7 +181,8 @@ Shell integration uses the selected Bash or Zsh shell and preserves personal rc 
 3. installs, updates and cleans the tmux plugins, and reloads a running tmux
 4. updates Herdr when it is older than the configuration needs (always in a full run), re-renders and reloads its config and plugin, and refreshes the Claude Code skill
 5. updates the `gh` extensions and, in a full run, upgrades the managed Homebrew tools
-6. runs the health check (`dotcheck` on its own) and names anything missing or wrong
+6. in a full run, updates the model-router plugin when it is installed
+7. runs the health check (`dotcheck` on its own) and names anything missing or wrong
 
 It changes nothing in your personal rc files and keeps `~/.config/tmux-user/`. It runs fine from a pane inside Herdr or tmux; only a Herdr binary update needs you to detach (`C-a q`) and start `herdr` again, since a running session keeps the old binary.
 

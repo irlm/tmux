@@ -166,12 +166,15 @@ tab_bar_right = [
 tab_bar_right_separator = " | "
 
 # Agent rows: Claude Code and Codex put the task in the terminal title, so a
-# row shows what the agent is on, not only that it is working.
+# row shows what the agent is on, not only that it is working. Beside the
+# agent's name, the context its next turn re-reads ("ctx 240k", reported by
+# scripts/agent-events.sh from the transcript); past ctx_warn_k it is painted,
+# the sign that the next task belongs in a new session.
 [ui.sidebar.agents]
-rows = [["state_icon", "machine", "workspace", "tab"], ["agent"]]
+rows = [["state_icon", "machine", "workspace", "tab"], ["agent", "$ctx", { token = "$ctx_big", fg = "#ebcb8b", bold = true }]]
 
 [ui.sidebar.agents.rows_by_agent]
-claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent", "$ctx", { token = "$ctx_big", fg = "#ebcb8b", bold = true }]]
 codex = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
 
 # Workspace rows: branch, ahead/behind, and the size of the uncommitted work
