@@ -470,12 +470,36 @@ esac''')
         self.assertEqual(listed.returncode, 0, listed.stderr)
         rows = listed.stdout.splitlines()
         self.assertTrue(rows[0].startswith('herdr\tw2:p3\t▲ blocked'), rows)   # blocked first
-        self.assertIn('herdr web/t2\tcodex', rows[0])
+        self.assertIn('web/t2\tcodex', rows[0])
         self.assertIn('Fix tests', rows[1])
         self.fake_fzf('cat | head -1')
         result = self.run_script('scripts/agents.sh', env=env)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('agent focus w2:p3', self.calls())
+
+    def test_agents_picker_shows_only_the_multiplexer_it_was_opened_in(self):
+        # Both can run on one desktop. tmux's C-a w stays tmux's: its own panes,
+        # no call into Herdr, and the other way round; Enter never jumps to a
+        # window of the other multiplexer.
+        self.fake_herdr('''case "$1 $2" in
+  "agent list") echo '{"result":{"agents":[{"pane_id":"w1:p1","workspace_id":"w1","tab_id":"w1:t1","agent":"claude","agent_status":"working","cwd":"/x"}]}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        tmux = self.bin / 'tmux'
+        tmux.write_text('#!/bin/bash\nprintf "tmux %s\\n" "$*" >> ' + str(self.log) + '\n'
+                        'case "$1" in list-panes) printf "%%1\\tmain/0\\tclaude\\tFix tests\\t/x\\n" ;; esac\n')
+        tmux.chmod(0o755)
+        under_tmux = {key: value for key, value in self.env.items() if key != 'HERDR_ENV'}
+        under_tmux['TMUX'] = '/tmp/tmux-1/default,1,0'
+        listed = self.run_script('scripts/agents.sh', '--list', env=under_tmux)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(listed.stdout.splitlines(), ['tmux\t%1\t? running \tmain/0\tclaude\t\tFix tests\t/x'])
+        self.assertNotIn('agent list', self.calls())
+        self.log.unlink()
+        listed = self.run_script('scripts/agents.sh', '--list')   # under Herdr
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual([row.split('\t')[0] for row in listed.stdout.splitlines()], ['herdr'])
+        self.assertFalse([call for call in self.calls() if call.startswith('tmux ')], self.calls())
 
     def test_scripts_run_python_in_utf8_mode(self):
         # scripts/lib.sh for every script that sources it; the theme picker

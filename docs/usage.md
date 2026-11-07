@@ -185,7 +185,7 @@ The same three keys under tmux and Herdr:
 
 | Key | Action |
 |-----|--------|
-| `w` | every coding agent on this machine, in Herdr and in tmux alike: state, workspace, task, context size, time in that state. Enter jumps to it (an agent in the other multiplexer is focused in that window), `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes |
+| `w` | every coding agent of this multiplexer: state, workspace, task, time in that state (and under Herdr the context size). Enter jumps to it, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes. Under tmux the rows are the panes running `claude` or `codex`; the other multiplexer is never touched |
 | `C-d` | review the changes in the repository behind the pane: one row per changed file, the diff beside it (`delta`; `C-d` switches to `difftastic`). Enter opens the file in `$EDITOR` at its first changed line, `C-a` sends that diff to the agent, `C-w` shows the whole diff, `C-y` copies the path, `C-g` lazygit |
 | `C-g` | a worktree per task: pick an existing worktree or type a branch name. tmux opens it as a session, Herdr as a grouped workspace; both use `~/.herdr/worktrees/<repo>/<branch>` (`@worktree_dir`). `C-a` in the picker also starts a fresh agent there (`@worktree_agent`, default `claude`): one session per task keeps each one small |
 

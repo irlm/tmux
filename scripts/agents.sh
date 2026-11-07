@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Every coding agent on this machine in one list, whichever multiplexer you
-# press the key in: Herdr's agents (state, workspace, task, time in that
-# state) and the tmux panes running an agent. Enter jumps to it; a Herdr
-# agent reached from tmux is focused in the Herdr window, and the other way
-# round, since both run on this desktop.
+# Every coding agent of this multiplexer in one list: under Herdr its agents
+# (state, workspace, task, time in that state, context size), under tmux the
+# panes running an agent. Enter jumps to it. tmux and Herdr can run side by
+# side on one desktop; each key lists and acts on its own host only, so
+# C-a w in tmux never calls into Herdr or raises its window.
 #
 #   agents.sh          the picker (C-a w)
 #   agents.sh --list   the rows only, for scripts
@@ -19,7 +19,6 @@ backend=$(wb_backend)
 
 # Rows: host, pane id, then the columns shown.
 herdr_rows() {
-    command -v "${HERDR_BIN_PATH:-herdr}" >/dev/null 2>&1 || return 0
     { herdr agent list 2>/dev/null; echo; herdr workspace list 2>/dev/null; } | JOURNAL="$JOURNAL" python3 -c '
 import json, os, sys, time
 chunks = sys.stdin.read().split("\n\n", 1)
@@ -55,7 +54,7 @@ def age(pane, state):
 agents.sort(key=lambda a: (ORDER.get(a.get("agent_status"), 9), a.get("workspace_id", ""), a.get("pane_id", "")))
 for a in agents:
     state = a.get("agent_status", "unknown")
-    where = "herdr " + labels.get(a.get("workspace_id"), a.get("workspace_id", "")) + "/" + a.get("tab_id", "").split(":")[-1]
+    where = labels.get(a.get("workspace_id"), a.get("workspace_id", "")) + "/" + a.get("tab_id", "").split(":")[-1]
     cwd = (a.get("cwd") or "").replace(home, "~", 1)
     title = a.get("terminal_title_stripped") or a.get("terminal_title") or ""
     icon = ICON.get(state, "?")
@@ -65,20 +64,19 @@ for a in agents:
 }
 
 tmux_rows() {
-    command -v tmux >/dev/null 2>&1 || return 0
     tmux list-panes -a -F $'#{pane_id}\t#{session_name}/#{window_index}\t#{pane_current_command}\t#{pane_title}\t#{pane_current_path}' 2>/dev/null |
     awk -F '\t' '$3 ~ /^(claude|codex|node)$/ || $3 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ {
         cwd = $5; sub("^" ENVIRON["HOME"], "~", cwd)
-        printf "tmux\t%s\t%s\ttmux %s\t%s\t%s\t%s\t%s\n", $1, "? running ", $2, $3, "", $4, cwd }' || true   # no tmux server: no rows
+        printf "tmux\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", $1, "? running ", $2, $3, "", $4, cwd }' || true   # no tmux server: no rows
 }
 
-# This multiplexer's agents first, then the other one's.
+# Only this multiplexer's agents.
 rows() {
     case "$backend" in
-        tmux) tmux_rows; herdr_rows ;;
-        *) herdr_rows; tmux_rows ;;
+        herdr) herdr_rows ;;
+        tmux) tmux_rows ;;
+        *) return 1 ;;
     esac
-    return 0
 }
 
 preview() {   # <host> <pane>
@@ -97,14 +95,10 @@ read_pane() {
 
 focus() {
     case "$1" in
-        herdr)
-            herdr agent focus "$2" >/dev/null
-            [ "$backend" = herdr ] || { echo "Focused $2 in the Herdr window."; sleep 1; } ;;
-        tmux)
-            tmux switch-client -t "$(tmux display-message -p -t "$2" '#{session_name}')" 2>/dev/null
-            tmux select-window -t "$(tmux display-message -p -t "$2" '#{session_name}:#{window_index}')"
-            tmux select-pane -t "$2"
-            [ "$backend" = tmux ] || { echo "Selected $2 in the tmux window."; sleep 1; } ;;
+        herdr) herdr agent focus "$2" >/dev/null ;;
+        tmux) tmux switch-client -t "$(tmux display-message -p -t "$2" '#{session_name}')" 2>/dev/null
+              tmux select-window -t "$(tmux display-message -p -t "$2" '#{session_name}:#{window_index}')"
+              tmux select-pane -t "$2" ;;
     esac
 }
 
@@ -127,7 +121,7 @@ esac
 command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/popup.sh" fzf; exit $?; }
 while :; do
     list=$(rows)
-    if [ -z "$list" ]; then echo 'No coding agent is running on this machine, in Herdr or in tmux (Claude Code, Codex, ...).'; pause_close; exit 0; fi
+    if [ -z "$list" ]; then echo 'No coding agent is running here (Claude Code, Codex, ...).'; pause_close; exit 0; fi
     picked=$(printf '%s\n' "$list" | fzf --delimiter=$'\t' --with-nth=3.. --tabstop=1 --no-sort --ansi \
         --prompt='Agent > ' --expect=ctrl-r,ctrl-s,ctrl-d \
         --header='Enter jump · C-r read · C-s prompt · C-d review its changes' \
