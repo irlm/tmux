@@ -20,6 +20,7 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Agents
 
+- The Herdr sidebar lists agents under their workspace again, the order you work in, so the list is the map of where you were. Queuing by urgency (blocked, done, working) is the opt-in now: `herdr_agent_sort=priority` in `options.env`.
 - The agents picker is Herdr's `C-a w` only, with the context size beside each agent. Under tmux `C-a w` is tmux's own window tree again, as before the picker existed; the registry row is Herdr-only, so tmux neither binds the key nor lists the picker in its palette, and a running server gets the default back on reload.
 - The Herdr sidebar shows, beside each Claude Code agent, the context its next turn re-reads (`ctx 240k`), read from the session's transcript by the event hook at no cost and painted past `ctx_warn_k` (default 100k tokens).
 - Fixed: on Windows that figure never appeared for most sessions. Python there decodes a pipe as cp1252, which has no character for some bytes of UTF-8 text (the end of a closing curly quote is enough), so the transcript reader stopped with an error the hook did not show. It reads bytes now, which also covers a tail that starts inside a character on any platform.

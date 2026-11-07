@@ -436,15 +436,15 @@ class AgentWorkbenchTests(HerdrFixture):
         self.fake_herdr()
         (self.user / 'options.env').write_text('worktree_dir=~/Projects/worktrees\n')
         rendered = self.run_script('scripts/herdr-config.sh', '--print').stdout
-        self.assertIn('agent_panel_sort = "priority"', rendered)
+        self.assertIn('agent_panel_sort = "spaces"', rendered)
         self.assertIn('show_agent_labels_on_pane_borders = true', rendered)
         self.assertIn('["$changes"]', rendered)
         self.assertIn('["agent", "$ctx", { token = "$ctx_big", fg = "#ebcb8b", bold = true }]', rendered)
         self.assertIn('claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"], ["agent", "$ctx", {', rendered)
         self.assertIn('directory = "~/Projects/worktrees"', rendered)
         self.assertIn('key = "prefix+ctrl+d"', rendered)
-        (self.user / 'options.env').write_text('herdr_agent_sort=spaces\n')
-        self.assertIn('agent_panel_sort = "spaces"', self.run_script('scripts/herdr-config.sh', '--print').stdout)
+        (self.user / 'options.env').write_text('herdr_agent_sort=priority\n')
+        self.assertIn('agent_panel_sort = "priority"', self.run_script('scripts/herdr-config.sh', '--print').stdout)
         manifest = self.run_script('scripts/herdr-config.sh', '--print-plugin').stdout
         self.assertIn('[[events]]\non = "pane.agent_status_changed"\ncommand = ["bash", "' + str(REPO / 'scripts/agent-events.sh') + '"]', manifest)
 

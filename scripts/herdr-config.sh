@@ -173,8 +173,8 @@ render() {
     status="bash $(printf '%q' "$SCRIPT_DIR/status_right.sh") --plain 160"
     entries=$(render_status_entries "$status")
     local sort worktrees
-    sort=$(tmux_option @herdr_agent_sort priority)
-    case "$sort" in spaces|priority) ;; *) sort=priority ;; esac
+    sort=$(tmux_option @herdr_agent_sort spaces)
+    case "$sort" in spaces|priority) ;; *) sort=spaces ;; esac
     # shellcheck disable=SC2088  # Herdr expands the tilde itself
     worktrees=$(tmux_option @worktree_dir "~/.herdr/worktrees")
     printf '%s on %s. Do not edit: personal settings belong in %s\n\n' "$MARK" "$(date '+%F %T')" "$USER_TOML"

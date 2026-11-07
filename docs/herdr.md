@@ -104,7 +104,7 @@ the next instruction.
 
 | Key | What it does |
 |-----|--------------|
-| sidebar | agents queued by urgency (blocked, done, working); under each Claude Code or Codex row the task it is on; beside a Claude Code agent `ctx 240k`, the context its next turn re-reads, painted once it passes 100k; under each workspace its branch and `3 files +40 -12`, the uncommitted work |
+| sidebar | agents under their workspace (`herdr_agent_sort=priority` queues them by urgency instead); under each Claude Code or Codex row the task it is on; beside a Claude Code agent `ctx 240k`, the context its next turn re-reads, painted once it passes 100k; under each workspace its branch and `3 files +40 -12`, the uncommitted work |
 | `C-a C-o` | jump to the agent that just notified |
 | `C-a C-n` `C-a C-p` | next / previous agent |
 | `C-a w` | every Herdr agent in a popup: state, workspace, task, context size, how long in that state, directory; the pane shown beside. Enter jumps, `C-r` reads its last 400 lines, `C-s` sends it a prompt, `C-d` reviews its changes. Herdr only: under tmux `C-a w` stays tmux's window tree |
@@ -118,8 +118,9 @@ change (`~/.local/share/tmux/agent-journal.tsv`, what `C-a w` uses for the
 time in state) and reports the size of the uncommitted work in that pane's
 repository as the workspace's `$changes` token. Nothing polls.
 
-`herdr_agent_sort=spaces` in `options.env` groups the sidebar by workspace
-instead of by urgency.
+The sidebar keeps each agent under its workspace, so the list stays the map
+of where you were working. `herdr_agent_sort=priority` in `options.env`
+queues them by urgency instead: blocked first, then done, then working.
 
 ### One session per task
 
