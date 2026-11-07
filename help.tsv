@@ -15,6 +15,7 @@ Panes	q	Show pane numbers	tmux
 Panes	Y	Toggle synchronized typing	tmux
 Windows & sessions	c	New window	all
 Windows & sessions	X	Close window	all
+Windows & sessions	w	Window tree (tmux); under Herdr the agents picker	tmux
 Windows & sessions	W	Choose window	all
 Windows & sessions	S	Choose session	all
 Windows & sessions	Backspace	Previous session	all
