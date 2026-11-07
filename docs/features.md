@@ -117,6 +117,7 @@ and the theme from `scripts/appearance.py`. Nothing needs compiling.
 | `scripts/status_right.ps1` | the tab bar readings on Windows: network, CPU, memory, battery |
 | `scripts/herdr-navigate.sh` | `ctrl+hjkl` under Herdr: into Neovim when it runs in the pane, else focus the next pane |
 | `scripts/pick.sh` | pick text to copy or a URL to open from the pane behind the popup |
+| `scripts/editor.sh` | `C-a C-v`: choose Helix, Neovim or Vim, once or as the machine's default editor |
 | `scripts/agents.sh` | Herdr's `C-a w`: every agent with state, task and time in state; jump, read, prompt |
 | `scripts/review.sh` | `C-a C-d`: changed files with the diff beside; open at the change, send to the agent |
 | `scripts/worktree.sh` | `C-a C-g`: open or create a worktree per task, as a session (tmux) or grouped workspace (Herdr) |

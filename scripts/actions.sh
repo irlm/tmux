@@ -44,14 +44,16 @@ run_action() {
         pick|urls) "$SCRIPT_DIR/pick.sh" "${id/pick/hints}" ;;
         open-file) "$SCRIPT_DIR/pick.sh" files ;;
         editor)
-            # Helix (or $EDITOR) in this folder, in a pane beside this one:
-            # under tmux `open` already made the split and runs this inside it.
-            editor=${EDITOR:-hx}; command -v "$editor" >/dev/null 2>&1 || editor=hx
+            # The default editor (wb_editor) in this folder, in a pane beside
+            # this one: under tmux `open` already made the split and runs this
+            # inside it. C-a C-v picks another one, once or as the default.
+            editor=$(wb_editor)
             if [ "$backend" = herdr ]; then
                 herdr_split_run "$(herdr_active_pane)" right "$editor ." >/dev/null || { pause_close; return 1; }
                 return
             fi
             exec "$editor" . ;;
+        editor-pick) "$SCRIPT_DIR/editor.sh" ;;
         agents) "$SCRIPT_DIR/agents.sh" ;;
         review) "$SCRIPT_DIR/review.sh" ;;
         worktree) "$SCRIPT_DIR/worktree.sh" ;;

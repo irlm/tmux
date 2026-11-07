@@ -207,7 +207,7 @@ anything is installed.
 
 | File | Purpose |
 |------|---------|
-| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days`, `herdr_agent_sort` (`priority` or `spaces`), `worktree_dir`, `worktree_agent` (what `C-a` in the worktree picker starts, default `claude`), `ctx_warn_k` (context warning size in thousands of tokens, default 100) |
+| `~/.config/tmux-user/options.env` | `name=value` lines for the options tmux reads as `@name`: `popup_size`, `ai_command`, `project_roots`, `project_depth`, `cpu_process_threshold`, `special_days`, `herdr_agent_sort` (`priority` or `spaces`), `worktree_dir`, `worktree_agent` (what `C-a` in the worktree picker starts, default `claude`), `ctx_warn_k` (context warning size in thousands of tokens, default 100), `editor` (what `C-a v` opens; `C-a C-v` writes it) |
 | `~/.config/tmux-user/herdr.toml` | appended verbatim to the rendered config: `[theme.custom.light]`, more `[[keys.command]]`, anything the template does not define |
 | `~/.config/tmux-user/herdr-plugin/` | the generated plugin; linked, not copied |
 

@@ -77,7 +77,8 @@ first_changed_line() {
 }
 
 open_in_editor() {
-    local root=$1 file=$2 line editor=${EDITOR:-hx}
+    local root=$1 file=$2 line editor
+    editor=$(wb_editor)
     line=$(first_changed_line "$root" "$file")
     case "$editor" in
         *hx*) (cd "$root" && "$editor" "$file:$line") ;;

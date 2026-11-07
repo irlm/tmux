@@ -87,8 +87,9 @@ Do not paste the macOS / Linux one-liner into PowerShell: `bash` there is the WS
 | `F12` | hand the keys to the remote tmux, or take them back |
 | `C-a C-u` | update everything in a popup |
 | `C-a $` | LLM usage and limits for Claude Code, Codex and the others |
-| `C-a C-f` | open a `file:line` the pane mentions in Helix |
-| `C-a v` | Helix in this folder, in a pane beside the current one |
+| `C-a C-f` | open a `file:line` the pane mentions in the default editor |
+| `C-a v` | the default editor in this folder, in a pane beside the current one |
+| `C-a C-v` | choose Helix, Neovim or Vim: Enter opens it this once, `C-a` makes it the machine's default |
 | `C-a w` | Herdr: every agent with state, task, time in that state; Enter jumps, `C-s` prompts. tmux keeps its window tree here |
 | `C-a C-d` | review what changed: file list with the diff beside, Enter opens at the change, `C-a` sends it to the agent |
 | `C-a C-g` | a worktree per task: pick one or type a branch, in its own workspace or session |

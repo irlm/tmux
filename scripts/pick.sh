@@ -85,11 +85,11 @@ case "$mode" in
         [ -n "$chosen" ] || exit 0
         open_url "$chosen" ;;
     files)
-        chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --prompt='Open > ' --header='Enter: open at that line in $EDITOR | Esc: quit') || exit 0
+        chosen=$(printf '%s\n' "$list" | fzf --tac --no-sort --prompt='Open > ' --header='Enter: open at that line in the editor | Esc: quit') || exit 0
         [ -n "$chosen" ] || exit 0
         file=${chosen%%:*}; line=${chosen#"$file"}; line=${line#:}
         case "$file" in -*) file=./$file; chosen=./$chosen ;; esac
-        editor=${EDITOR:-nvim}
+        editor=$(wb_editor)
         case "$editor" in
             *hx*) exec "$editor" "$chosen" ;;
             *) if [ -n "$line" ]; then exec "$editor" "+$line" "$file"; else exec "$editor" "$file"; fi ;;

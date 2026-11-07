@@ -39,6 +39,38 @@ tmux_option() {
     printf '%s' "${value:-${2:-}}"
 }
 
+# A line of ~/.config/tmux-user/options.env, on either host: the machine's
+# own settings, where tmux's @options live only in the running server.
+wb_user_option() {
+    [ -r "$TMUX_USER_DIR/options.env" ] || return 0
+    awk -F '=' -v key="$1" '$1 == key { sub(/^[^=]*=/, ""); print; exit }' "$TMUX_USER_DIR/options.env"
+}
+
+# Keep name=value in options.env (replacing the line) and, under tmux, set
+# the @option in the running server too so the next press sees it.
+wb_set_user_option() {
+    local name=$1 value=$2 file="$TMUX_USER_DIR/options.env" tmp
+    mkdir -p "$TMUX_USER_DIR" || return 1
+    tmp=$(mktemp "$file.XXXXXX") || return 1
+    if ! { [ ! -r "$file" ] || grep -v "^$name=" "$file"; printf '%s=%s\n' "$name" "$value"; } > "$tmp" || ! mv "$tmp" "$file"; then
+        rm -f "$tmp"; return 1
+    fi
+    [ "$(wb_backend)" != tmux ] || tmux set -g "@$name" "$value" 2>/dev/null || true
+}
+
+# The editor the keys open (C-a v, C-a C-f, C-a C-d, notes): @editor set by
+# C-a C-v (the running tmux, or options.env on either host), else $EDITOR,
+# else the first of Helix, Neovim, Vim, vi installed. A name that is not
+# installed is skipped.
+wb_editor() {
+    local candidate
+    for candidate in "$(tmux_option @editor "")" "$(wb_user_option editor)" "${EDITOR:-}" hx nvim vim vi; do
+        [ -n "$candidate" ] || continue
+        if command -v "${candidate%% *}" >/dev/null 2>&1; then printf '%s\n' "$candidate"; return 0; fi
+    done
+    printf 'hx\n'
+}
+
 private_dir() {
     [ ! -L "$1" ] || return 1
     if [ -e "$1" ]; then [ -d "$1" ] && [ -O "$1" ] || return 1; fi

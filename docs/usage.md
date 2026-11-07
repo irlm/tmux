@@ -173,9 +173,15 @@ from this repo. Inside Helix, `-` (minus) is the review leader:
 | `] f` `[ f`, `] t` `[ t` | next / previous function, type (tree-sitter, no language server needed) |
 | `] c` `[ c` | next / previous change; `] e` `[ e` next / previous diagnostic |
 
-`C-a v` opens Helix in the pane's folder, in a new pane beside it (`$EDITOR`
-when set), with the file picker a `Space f` away; `C-a C-f` opens a
-`file:line` the pane mentions. `hx --tutor` teaches the editing model; `C-a !` shows the cheatsheet. From a
+`C-a v` opens the default editor in the pane's folder, in a new pane beside
+it, with Helix's file picker a `Space f` away; `C-a C-f` opens a `file:line`
+the pane mentions. `C-a C-v` lists the editors installed (Helix, Neovim, Vim)
+with the default marked: Enter opens the pick this once, `C-a` makes it the
+default for this machine, under tmux and Herdr alike, from the next press on.
+The default is `@editor` (`editor=` in `~/.config/tmux-user/options.env`,
+which the picker writes), else `$EDITOR`, else the first of Helix, Neovim
+and Vim installed; `C-a C-f`, the `C-a C-d` review and the notes open the
+same one. `hx --tutor` teaches the editing model; `C-a !` shows the cheatsheet. From a
 shell, `git diff | ~/.config/tmux/scripts/agent-send.sh` sends text the same
 way. Neovim is the optional second editor (`install.sh --nvim`).
 

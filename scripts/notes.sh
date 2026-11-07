@@ -60,6 +60,6 @@ while true; do
     else
         file="$NOTES_DIR/$name"
     fi
-    "${EDITOR:-vim}" "$file"
+    "$(wb_editor)" "$file"
     exit 0
 done

@@ -21,6 +21,7 @@ C-u	update	Update environment	-	all
 $	llm	LLM usage and limits	python3	all	
 C-f	open-file	Open a file:line from the pane	fzf	all	
 v	editor	Editor in this folder (split pane)	hx|nvim|vim	all	
+C-v	editor-pick	Choose editor, once or as default	fzf	all	60x12
 w	agents	Agents: state, jump, read, prompt	fzf	herdr	
 C-d	review	Review changes: diff, open, send	fzf&git	all	
 C-g	worktree	Worktree for a task	fzf&git	all	

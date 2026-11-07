@@ -76,6 +76,63 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.root / 'data/editor-args').read_text().splitlines(), [str(note)])
 
+    def fake_editors(self, *names):
+        for name in names:
+            self.executable(name, 'printf "%s\\n" "$@" > "$TMUX_DATA_DIR/' + name + '-args"')
+
+    def test_default_editor_is_the_machine_option_then_EDITOR_then_helix(self):
+        self.fake_editors('hx', 'nvim')
+        self.executable('tmux', 'printf "%s\\n" "$*" >> "$TMUX_DATA_DIR/tmux-calls"; exit 0')
+        (self.root / 'data').mkdir(exist_ok=True)
+        self.env['EDITOR'] = 'nvim'
+        self.assertEqual(self.run_script('scripts/editor.sh', '--default').stdout.strip(), 'nvim')
+        theme = self.root / 'theme'; theme.mkdir(exist_ok=True)
+        (theme / 'options.env').write_text('popup_size=70%\neditor=hx\n')
+        self.assertEqual(self.run_script('scripts/editor.sh', '--default').stdout.strip(), 'hx')
+        (theme / 'options.env').write_text('editor=emacs\n')   # not installed: fall through
+        self.assertEqual(self.run_script('scripts/editor.sh', '--default').stdout.strip(), 'nvim')
+        del self.env['EDITOR']
+        self.assertEqual(self.run_script('scripts/editor.sh', '--default').stdout.strip(), 'hx')
+
+    def test_editor_picker_opens_once_or_makes_the_pick_the_default(self):
+        self.fake_editors('hx', 'nvim')
+        (self.root / 'data').mkdir(exist_ok=True)
+        self.executable('tmux', 'printf "%s\\n" "$*" >> "$TMUX_DATA_DIR/tmux-calls"; exit 0')
+        self.env['EDITOR'] = 'hx'; self.env['TMUX_SOURCE_PANE'] = '%1'
+        listed = self.run_script('scripts/editor.sh', '--list').stdout.splitlines()
+        self.assertEqual([row.split('\t')[0] for row in listed][:2], ['hx', 'nvim'])   # then whatever vim/vi the machine has
+        self.assertTrue(listed[0].split('\t')[1].startswith('● Helix'), listed)
+        self.assertTrue(listed[1].split('\t')[1].startswith('  Neovim'), listed)
+        self.executable('fzf', "cat >/dev/null; printf 'ctrl-a\\nnvim\\t  Neovim (nvim)\\n'")
+        result = self.run_script('scripts/editor.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'theme/options.env').read_text(), 'editor=nvim\n')
+        calls = (self.root / 'data/tmux-calls').read_text()
+        self.assertIn('set -g @editor nvim', calls)
+        self.assertIn('split-window -h -t %1 -c ', calls)
+        self.assertIn(' nvim .', calls)
+        self.assertEqual(self.run_script('scripts/editor.sh', '--default').stdout.strip(), 'nvim')
+        (self.root / 'data/tmux-calls').unlink()
+        self.executable('fzf', "cat >/dev/null; printf '\\nhx\\t  Helix (hx)\\n'")   # Enter: once
+        result = self.run_script('scripts/editor.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'theme/options.env').read_text(), 'editor=nvim\n')
+        calls = (self.root / 'data/tmux-calls').read_text()
+        self.assertNotIn('set -g @editor', calls)
+        self.assertIn(' hx .', calls)
+
+    def test_notes_and_review_open_the_default_editor(self):
+        notes = self.root / 'data/notes'; notes.mkdir(parents=True)
+        note = notes / 'a.md'; note.write_text('text\n')
+        self.executable('fzf', "cat >/dev/null; printf '\\na.md\\ta | text\\n'")
+        self.fake_editors('nvim')
+        self.env['EDITOR'] = str(self.executable('editor', 'exit 0'))
+        theme = self.root / 'theme'; theme.mkdir(exist_ok=True)
+        (theme / 'options.env').write_text('editor=nvim\n')
+        result = self.run_script('scripts/notes.sh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'data/nvim-args').read_text().splitlines(), [str(note)])
+
     def clone(self, dest, fail=False):
         self.env['CLONE_FAIL'] = '1' if fail else '0'
         self.executable('git', '''if [ "$1" = clone ]; then

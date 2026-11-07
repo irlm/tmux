@@ -36,6 +36,9 @@ set -g @popup_size 90%
 set -g @project_roots "/home/me/projects\n/home/me/work repos"
 set -g @project_depth 6
 
+# The editor C-a v, C-a C-f, C-a C-d and the notes open (C-a C-v picks it).
+set -g @editor nvim
+
 # Optional executable wrapper receiving one literal question argument.
 set -g @ai_command my-ai-wrapper
 

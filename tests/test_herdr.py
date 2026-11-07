@@ -623,6 +623,31 @@ esac''')
         self.assertIn('pane split w1:p2 --direction right --focus', self.calls())
         self.assertIn('pane run w1:p9 hx .', self.calls())
 
+    def test_editor_key_follows_the_machine_default_and_the_picker_sets_it(self):
+        self.fake_herdr('''case "$1 $2" in
+  "pane split") echo '{"result":{"pane":{"pane_id":"w1:p9"}}}' ;;
+  "pane process-info") echo '{"result":{"process_info":{"foreground_processes":[{"name":"zsh"}]}}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        for name in ('hx', 'nvim'):
+            (self.bin / name).write_text('#!/bin/bash\n'); (self.bin / name).chmod(0o755)
+        (self.user / 'options.env').write_text('editor=nvim\n')
+        env = dict(self.env, HERDR_ACTIVE_PANE_ID='w1:p2', EDITOR='hx')
+        result = self.run_script('scripts/actions.sh', 'run', 'editor', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('pane run w1:p9 nvim .', self.calls())
+        self.assertIn('key = "prefix+ctrl+v"', self.run_script('scripts/herdr-config.sh', '--print').stdout)
+        self.fake_fzf("cat >/dev/null; printf '\\nhx\\t  Helix (hx)\\n'")   # Enter: this once
+        result = self.run_script('scripts/editor.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('pane run w1:p9 hx .', self.calls())
+        self.assertEqual((self.user / 'options.env').read_text(), 'editor=nvim\n')
+        self.fake_fzf("cat >/dev/null; printf 'ctrl-a\\nhx\\t  Helix (hx)\\n'")   # C-a: the default
+        result = self.run_script('scripts/editor.sh', env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.user / 'options.env').read_text(), 'editor=hx\n')
+        self.assertEqual(self.run_script('scripts/editor.sh', '--default', env=env).stdout.strip(), 'hx')
+
     def test_filediff_stages_the_diff_of_a_tracked_or_new_file(self):
         repo = self.git_repo()
         env = dict(self.env, TMPDIR=str(self.root))

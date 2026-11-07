@@ -14,6 +14,10 @@ All notable changes to this tmux configuration will be documented in this file.
 - The default install is the workbench only: Herdr, tmux, Helix, the tools, popups and agent keys, the shell integration and the font. The language toolchains (Rust, Go, Node, Java, Scala) and Docker moved under `--full`, which already carried the complete shell setup; `--agent` names the default. On Windows, `$env:INSTALL_FULL = "1"` before the one-liner does the same. A default run says where the rest went. Nothing is removed from machines that already have them.
 - `--full` had fallen behind the default: it cloned the repository under its old name, installed no Helix config, no Herdr, no `delta`/`difftastic` on Linux, and always installed Neovim. It now does everything the default does and honours `--nvim` and `--no-herdr`. `--server --herdr` never reached the Herdr step; it does now. `tests/test_install_modes.py` pins what each mode must and must not do.
 
+### Editor
+
+- `C-a C-v` chooses the editor: Helix, Neovim or Vim, whichever are installed, with the default marked. Enter opens the pick in the pane's folder this once, `C-a` makes it the default for this machine on both hosts (`@editor`, kept as `editor=` in `options.env`) and opens it. `C-a v`, `C-a C-f`, the `C-a C-d` review and the notes all open that editor; before, each read `$EDITOR` with a different fallback and a change needed a tmux restart.
+
 ### Agents
 
 - The agents picker is Herdr's `C-a w` only, with the context size beside each agent. Under tmux `C-a w` is tmux's own window tree again, as before the picker existed; the registry row is Herdr-only, so tmux neither binds the key nor lists the picker in its palette, and a running server gets the default back on reload.
