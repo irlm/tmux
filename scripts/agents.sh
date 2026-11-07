@@ -69,7 +69,7 @@ tmux_rows() {
     tmux list-panes -a -F $'#{pane_id}\t#{session_name}/#{window_index}\t#{pane_current_command}\t#{pane_title}\t#{pane_current_path}' 2>/dev/null |
     awk -F '\t' '$3 ~ /^(claude|codex|node)$/ || $3 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ {
         cwd = $5; sub("^" ENVIRON["HOME"], "~", cwd)
-        printf "tmux\t%s\t%s\ttmux %s\t%s\t%s\t%s\t%s\n", $1, "? running ", $2, $3, "", $4, cwd }'
+        printf "tmux\t%s\t%s\ttmux %s\t%s\t%s\t%s\t%s\n", $1, "? running ", $2, $3, "", $4, cwd }' || true   # no tmux server: no rows
 }
 
 # This multiplexer's agents first, then the other one's.
@@ -78,6 +78,7 @@ rows() {
         tmux) tmux_rows; herdr_rows ;;
         *) herdr_rows; tmux_rows ;;
     esac
+    return 0
 }
 
 preview() {   # <host> <pane>
@@ -119,7 +120,7 @@ send_prompt() {
 }
 
 case "${1:-}" in
-    --list) rows; exit ;;
+    --list) rows; exit 0 ;;
     --preview) preview "$2" "$3"; exit ;;
 esac
 [ "$backend" != none ] || { echo 'Not inside Herdr or tmux.' >&2; exit 1; }
