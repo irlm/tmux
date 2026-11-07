@@ -91,6 +91,7 @@ Do not paste the macOS / Linux one-liner into PowerShell: `bash` there is the WS
 | `C-a v` | the default editor in this folder, in a pane beside the current one |
 | `C-a C-v` | choose Helix, Neovim or Vim: Enter opens it this once, `C-a` makes it the machine's default |
 | `C-a w` | Herdr: every agent with state, task, time in that state; Enter jumps, `C-s` prompts. tmux keeps its window tree here |
+| `C-a C-b` | back to the agent you last prompted |
 | `C-a C-d` | review what changed: file list with the diff beside, Enter opens at the change, `C-a` sends it to the agent |
 | `C-a C-g` | a worktree per task: pick one or type a branch, in its own workspace or session |
 | `C-a C-n` / `C-a C-o` | Herdr: next agent, jump to the agent that just notified |

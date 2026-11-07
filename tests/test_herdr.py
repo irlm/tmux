@@ -469,6 +469,12 @@ esac''')
         listed = self.run_script('scripts/agents.sh', '--list', env=env)
         self.assertEqual(listed.returncode, 0, listed.stderr)
         rows = listed.stdout.splitlines()
+        # The sidebar's order by default: under each workspace, as Herdr lists them.
+        self.assertTrue(rows[0].startswith('herdr\tw1:p1\t◐ working'), rows)
+        self.assertIn('Fix tests', rows[0])
+        self.assertTrue(rows[1].startswith('herdr\tw2:p3\t▲ blocked'), rows)
+        (self.user / 'options.env').write_text('herdr_agent_sort=priority\n')
+        rows = self.run_script('scripts/agents.sh', '--list', env=env).stdout.splitlines()
         self.assertTrue(rows[0].startswith('herdr\tw2:p3\t▲ blocked'), rows)   # blocked first
         self.assertIn('web/t2\tcodex', rows[0])
         self.assertIn('Fix tests', rows[1])
@@ -497,6 +503,47 @@ esac''')
         palette = self.run_script('scripts/actions.sh', 'list', env=under_tmux)
         self.assertNotIn('agents', palette.stdout)
         self.assertIn('agents', self.run_script('scripts/actions.sh', 'list').stdout)
+
+    def test_agent_preview_shows_how_the_context_grew(self):
+        import time
+        now = int(time.time())
+        (self.root / 'data').mkdir(exist_ok=True)
+        (self.root / 'data/agent-journal.tsv').write_text(
+            f'{now - 7200}\tw1\tw1:p1\tclaude\tworking\t60\n{now - 5000}\tw1\tw1:p1\tclaude\tdone\n'
+            f'{now - 3000}\tw1\tw1:p1\tclaude\tworking\t150\n{now - 60}\tw1\tw1:p1\tclaude\tdone\t197\n'
+            f'{now - 30}\tw1\tw1:p9\tclaude\tdone\t900\n')
+        self.fake_herdr('case "$1 $2" in "pane read") echo "PANE TEXT" ;; *) echo \'{"result":{}}\' ;; esac')
+        shown = self.run_script('scripts/agents.sh', '--preview', 'herdr', 'w1:p1').stdout
+        self.assertIn('Context 197k', shown)
+        self.assertIn('+47k in the last hour', shown)
+        self.assertIn('from 60k', shown)
+        self.assertIn('PANE TEXT', shown)
+        self.assertNotIn('900', shown)
+        shown = self.run_script('scripts/agents.sh', '--preview', 'herdr', 'w1:p5').stdout   # never journaled
+        self.assertNotIn('Context', shown)
+        self.assertIn('PANE TEXT', shown)
+
+    def test_last_prompted_agent_is_remembered_and_a_key_goes_back_to_it(self):
+        self.fake_herdr('''case "$*" in
+  *"agent list"*) echo '{"result":{"agents":[{"pane_id":"w2:p1","workspace_id":"w2"},{"pane_id":"w1:p3","workspace_id":"w1"}]}}' ;;
+  *) echo '{"result":{}}' ;;
+esac''')
+        gone = self.run_script('scripts/agents.sh', '--last')
+        self.assertEqual(gone.returncode, 0, gone.stderr)
+        self.assertIn('No agent prompted yet', gone.stdout)
+        env = dict(self.env, HERDR_WORKSPACE_ID='w1')
+        self.run_script('scripts/agent-send.sh', input='look at this\n', env=env)
+        self.assertEqual((self.root / 'data/last-agent').read_text(), 'herdr\tw1:p3\n')
+        back = self.run_script('scripts/agents.sh', '--last')
+        self.assertEqual(back.returncode, 0, back.stderr)
+        self.assertIn('agent focus w1:p3', self.calls())
+        (self.root / 'data/last-agent').write_text('herdr\tw7:p7\n')   # closed since
+        back = self.run_script('scripts/agents.sh', '--last')
+        self.assertNotIn('agent focus w7:p7', self.calls())
+        self.assertIn('no longer running', back.stdout)
+        rendered = self.run_script('scripts/herdr-config.sh', '--print').stdout
+        self.assertIn('key = "prefix+ctrl+b"', rendered)
+        self.assertIn('actions.sh run last-agent', rendered)
 
     def test_agents_picker_shows_only_the_multiplexer_it_was_opened_in(self):
         # Both can run on one desktop. tmux's C-a w stays tmux's: its own panes,
@@ -585,7 +632,7 @@ esac''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('workspace report-metadata w1 --source workbench --token changes=2 files +2 -1', self.calls())
         journal = (self.root / 'data/agent-journal.tsv').read_text().splitlines()
-        self.assertEqual(journal[-1].split('\t')[1:], ['w1', 'w1:p2', 'claude', 'done'])
+        self.assertEqual(journal[-1].split('\t')[1:], ['w1', 'w1:p2', 'claude', 'done', ''])   # no transcript: no context size
         subprocess.run(['git', '-C', str(repo), 'checkout', '-q', 'f.txt']); (repo / 'g.txt').unlink()
         self.run_script('scripts/agent-events.sh', env=env)
         self.assertIn('workspace report-metadata w1 --source workbench --token changes=clean', self.calls())
@@ -689,7 +736,7 @@ esac''')
         result = self.run_script('scripts/agent-events.sh', env=env)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx_big=ctx 240k --clear-token ctx', self.calls())
-        self.assertEqual((self.root / 'data/agent-journal.tsv').read_text().splitlines()[-1].split('\t')[1:], ['w1', 'w1:p2', 'claude', 'done'])
+        self.assertEqual((self.root / 'data/agent-journal.tsv').read_text().splitlines()[-1].split('\t')[1:], ['w1', 'w1:p2', 'claude', 'done', '240'])
         (self.user / 'options.env').write_text('ctx_warn_k=500\n')
         self.run_script('scripts/agent-events.sh', env=env)
         self.assertIn('pane report-metadata w1:p2 --source workbench --token ctx=ctx 240k --clear-token ctx_big', self.calls())

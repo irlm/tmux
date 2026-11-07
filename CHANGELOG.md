@@ -20,6 +20,8 @@ All notable changes to this tmux configuration will be documented in this file.
 
 ### Agents
 
+- `C-a C-b` goes back to the agent you last prompted or jumped to: from `C-a w`, Helix `- a` or the `C-a C-d` review, under Herdr and tmux. It says so when that agent is no longer running.
+- `C-a w` under Herdr follows the sidebar's order (each agent under its workspace, or by urgency with `herdr_agent_sort=priority`) instead of always queuing by urgency, and its preview opens with how the agent's context grew (`Context 197k · +47k in the last hour · from 60k at 20:10`). The event hook journals the context size with every state change for that.
 - The Herdr sidebar lists agents under their workspace again, the order you work in, so the list is the map of where you were. Queuing by urgency (blocked, done, working) is the opt-in now: `herdr_agent_sort=priority` in `options.env`.
 - The agents picker is Herdr's `C-a w` only, with the context size beside each agent. Under tmux `C-a w` is tmux's own window tree again, as before the picker existed; the registry row is Herdr-only, so tmux neither binds the key nor lists the picker in its palette, and a running server gets the default back on reload.
 - The Herdr sidebar shows, beside each Claude Code agent, the context its next turn re-reads (`ctx 240k`), read from the session's transcript by the event hook at no cost and painted past `ctx_warn_k` (default 100k tokens).

@@ -86,7 +86,7 @@ if tokens:
 report_context() {
     local pane=$1 size warn
     [ "$agent" = claude ] || return 0
-    size=$(context_k "$session"); [ -n "$size" ] || return 0
+    size=${ctx:-$(context_k "$session")}; [ -n "$size" ] || return 0
     warn=$(tmux_option @ctx_warn_k 100); case "$warn" in ''|*[!0-9]*) warn=100 ;; esac
     if [ "$size" -ge "$warn" ]; then
         herdr pane report-metadata "$pane" --source workbench --token "ctx_big=ctx ${size}k" --clear-token ctx >/dev/null 2>&1
@@ -108,7 +108,7 @@ report() {   # pane -> workspace token
     report_context "$pane"
 }
 
-workspace=""; cwd=""; agent=""; session=""
+workspace=""; cwd=""; agent=""; session=""; ctx=""
 case "${1:-}" in
     --refresh) report "${2:?pane id}"; exit ;;
 esac
@@ -132,8 +132,11 @@ sys.stdout.buffer.write(" ".join(fields).encode("utf-8"))')"
 [ -n "$pane" ] && [ "$pane" != - ] || exit 0
 for v in workspace status agent cwd; do [ "${!v}" != - ] || printf -v "$v" '%s' ''; done
 resolve_pane "$pane"
+[ "$agent" != claude ] || ctx=$(context_k "$session")
 if private_dir "$TMUX_DATA_DIR" 2>/dev/null; then
-    printf '%s\t%s\t%s\t%s\t%s\n' "$(date +%s)" "$workspace" "$pane" "$agent" "$status" >> "$JOURNAL"
+    # ..., state, context size in thousands of tokens ("" when unknown): the
+    # time in state and the context trend shown by C-a w.
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date +%s)" "$workspace" "$pane" "$agent" "$status" "$ctx" >> "$JOURNAL"
     # Keep the journal short: the last 2000 changes are more than a week.
     if [ "$(wc -l < "$JOURNAL")" -gt 3000 ]; then tail -2000 "$JOURNAL" > "$JOURNAL.tmp" && mv "$JOURNAL.tmp" "$JOURNAL"; fi
 fi

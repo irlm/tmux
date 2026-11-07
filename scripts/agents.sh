@@ -8,6 +8,12 @@
 #
 #   agents.sh          the picker (Herdr's C-a w)
 #   agents.sh --list   the rows only, for scripts
+#   agents.sh --last   back to the agent you last prompted or jumped to (C-a C-b)
+#
+# Under Herdr the rows follow the sidebar: under each workspace as Herdr
+# lists them, or, with herdr_agent_sort=priority, blocked first, then done,
+# then working. The preview opens with how the agent's context grew, from
+# the sizes agent-events.sh journals.
 #
 # In the picker: Enter focus · C-r read the last 400 lines · C-s send a
 # prompt · C-d review the changes in that agent's directory · Esc close.
@@ -20,17 +26,18 @@ backend=$(wb_backend)
 
 # Rows: host, pane id, then the columns shown.
 herdr_rows() {
-    { herdr agent list 2>/dev/null; echo; herdr workspace list 2>/dev/null; } | JOURNAL="$JOURNAL" python3 -c '
+    { herdr agent list 2>/dev/null; echo; herdr workspace list 2>/dev/null; } | JOURNAL="$JOURNAL" SORT="$(tmux_option @herdr_agent_sort spaces)" python3 -c '
 import json, os, sys, time
 chunks = sys.stdin.read().split("\n\n", 1)
 try:
     agents = json.loads(chunks[0])["result"]["agents"]
 except Exception:
     agents = []
-labels = {}
+labels, position = {}, {}
 try:
-    for ws in json.loads(chunks[1])["result"]["workspaces"]:
+    for index, ws in enumerate(json.loads(chunks[1])["result"]["workspaces"]):
         labels[ws["workspace_id"]] = ws.get("label") or ws["workspace_id"]
+        position[ws["workspace_id"]] = index
 except Exception:
     pass
 last = {}
@@ -52,7 +59,10 @@ def age(pane, state):
     if seconds < 60: return f"{seconds}s"
     if seconds < 3600: return f"{seconds // 60}m"
     return f"{seconds // 3600}h{(seconds % 3600) // 60:02d}m"
-agents.sort(key=lambda a: (ORDER.get(a.get("agent_status"), 9), a.get("workspace_id", ""), a.get("pane_id", "")))
+if os.environ.get("SORT") == "priority":
+    agents.sort(key=lambda a: (ORDER.get(a.get("agent_status"), 9), a.get("workspace_id", ""), a.get("pane_id", "")))
+else:   # the sidebar order: each agent under its workspace
+    agents.sort(key=lambda a: (position.get(a.get("workspace_id"), 999), a.get("tab_id", ""), a.get("pane_id", "")))
 for a in agents:
     state = a.get("agent_status", "unknown")
     where = labels.get(a.get("workspace_id"), a.get("workspace_id", "")) + "/" + a.get("tab_id", "").split(":")[-1]
@@ -80,9 +90,29 @@ rows() {
     esac
 }
 
+# "Context 197k · +47k in the last hour · from 60k at 20:10", from the sizes
+# the event hook journals with each state change of a Claude Code pane.
+context_trend() {   # <pane>
+    [ -r "$JOURNAL" ] || return 0
+    PANE="$1" python3 - "$JOURNAL" <<'PY'
+import os, sys, time
+pane, sizes = os.environ["PANE"], []
+for line in open(sys.argv[1], encoding="utf-8"):
+    parts = line.rstrip("\n").split("\t")
+    if len(parts) >= 6 and parts[2] == pane and parts[5].isdigit():
+        sizes.append((int(float(parts[0])), int(parts[5])))
+if sizes:
+    latest_at, latest = sizes[-1]
+    hour = [k for at, k in sizes if at >= latest_at - 3600]
+    first_at, first = sizes[0]
+    print(f"Context {latest}k · {latest - hour[0]:+d}k in the last hour · from {first}k at {time.strftime('%H:%M', time.localtime(first_at))}")
+    print()
+PY
+}
+
 preview() {   # <host> <pane>
     case "$1" in
-        herdr) herdr pane read "$2" --source visible 2>/dev/null ;;
+        herdr) context_trend "$2"; herdr pane read "$2" --source visible 2>/dev/null ;;
         tmux) tmux capture-pane -p -t "$2" 2>/dev/null ;;
     esac
 }
@@ -95,6 +125,7 @@ read_pane() {
 }
 
 focus() {
+    wb_remember_agent "$1" "$2"
     case "$1" in
         herdr) herdr agent focus "$2" >/dev/null ;;
         tmux) tmux switch-client -t "$(tmux display-message -p -t "$2" '#{session_name}')" 2>/dev/null
@@ -108,15 +139,28 @@ send_prompt() {
     printf 'Prompt for %s (Enter sends, empty cancels): ' "$pane"; IFS= read -r text || return 0
     [ -n "$text" ] || return 0
     case "$host" in
-        herdr) herdr agent prompt "$pane" "$text" >/dev/null && echo 'Sent.' ;;
-        tmux) printf '%s' "$text" | tmux load-buffer -b wb-agent-prompt - && tmux paste-buffer -p -d -b wb-agent-prompt -t "$pane" && tmux send-keys -t "$pane" Enter && echo 'Sent.' ;;
+        herdr) herdr agent prompt "$pane" "$text" >/dev/null && { wb_remember_agent herdr "$pane"; echo 'Sent.'; } ;;
+        tmux) printf '%s' "$text" | tmux load-buffer -b wb-agent-prompt - && tmux paste-buffer -p -d -b wb-agent-prompt -t "$pane" && tmux send-keys -t "$pane" Enter && { wb_remember_agent tmux "$pane"; echo 'Sent.'; } ;;
     esac
     sleep 0.6
+}
+
+# Back to the last agent, if it is still running on its host.
+last_agent() {
+    local host pane
+    IFS=$'\t' read -r host pane < "$TMUX_DATA_DIR/last-agent" 2>/dev/null || host=""
+    [ -n "$host" ] && [ -n "$pane" ] || { echo 'No agent prompted yet: C-a w, Helix - a, or the C-a C-d review send one.'; pause_close; return 0; }
+    case "$host" in
+        herdr) herdr agent list 2>/dev/null | grep -Fq "\"pane_id\": \"$pane\"" || herdr agent list 2>/dev/null | grep -Fq "\"pane_id\":\"$pane\"" || { echo "The last agent, $pane in Herdr, is no longer running."; pause_close; return 0; } ;;
+        tmux) [ -n "$(tmux display-message -p -t "$pane" '#{pane_id}' 2>/dev/null)" ] || { echo "The last agent, $pane in tmux, is no longer running."; pause_close; return 0; } ;;
+    esac
+    focus "$host" "$pane"
 }
 
 case "${1:-}" in
     --list) rows; exit 0 ;;
     --preview) preview "$2" "$3"; exit ;;
+    --last) last_agent; exit ;;
 esac
 [ "$backend" != none ] || { echo 'Not inside Herdr or tmux.' >&2; exit 1; }
 command -v fzf >/dev/null 2>&1 || { "$SCRIPT_DIR/popup.sh" fzf; exit $?; }

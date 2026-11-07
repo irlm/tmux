@@ -133,6 +133,20 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.root / 'data/nvim-args').read_text().splitlines(), [str(note)])
 
+    def test_last_prompted_agent_under_tmux(self):
+        (self.root / 'data').mkdir(exist_ok=True)
+        self.executable('tmux', '''printf "%s\\n" "$*" >> "$TMUX_DATA_DIR/tmux-calls"
+case "$1" in
+  list-panes) printf "%%3 claude\\n" ;;
+  display-message) printf "main:0\\n" ;;
+esac''')
+        sent = self.run_script('scripts/agent-send.sh', input='look\n')
+        self.assertEqual(sent.returncode, 0, sent.stderr)
+        self.assertEqual((self.root / 'data/last-agent').read_text(), 'tmux\t%3\n')
+        back = self.run_script('scripts/agents.sh', '--last')
+        self.assertEqual(back.returncode, 0, back.stderr)
+        self.assertIn('select-pane -t %3', (self.root / 'data/tmux-calls').read_text())
+
     def clone(self, dest, fail=False):
         self.env['CLONE_FAIL'] = '1' if fail else '0'
         self.executable('git', '''if [ "$1" = clone ]; then

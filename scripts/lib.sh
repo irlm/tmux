@@ -71,6 +71,13 @@ wb_editor() {
     printf 'hx\n'
 }
 
+# The agent you last prompted or jumped to (C-a C-b goes back to it):
+# "host<TAB>pane" in $TMUX_DATA_DIR/last-agent.
+wb_remember_agent() {   # <herdr|tmux> <pane>
+    private_dir "$TMUX_DATA_DIR" 2>/dev/null || return 0
+    printf '%s\t%s\n' "$1" "$2" > "$TMUX_DATA_DIR/last-agent"
+}
+
 private_dir() {
     [ ! -L "$1" ] || return 1
     if [ -e "$1" ]; then [ -d "$1" ] && [ -O "$1" ] || return 1; fi

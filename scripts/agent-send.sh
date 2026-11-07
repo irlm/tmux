@@ -19,10 +19,10 @@ here = os.environ.get("HERDR_WORKSPACE_ID") or os.environ.get("HERDR_ACTIVE_WORK
 agents.sort(key=lambda a: (a.get("workspace_id") != here, a.get("pane_id")))
 print(agents[0]["pane_id"] if agents else "", end="")')
         [ -n "$pane" ] || { echo 'No agent pane in Herdr.' >&2; exit 1; }
-        herdr pane send-text "$pane" "$(printf '\033[200~%s\033[201~' "$text")" >/dev/null && echo "Sent to $pane" ;;
+        herdr pane send-text "$pane" "$(printf '\033[200~%s\033[201~' "$text")" >/dev/null && { wb_remember_agent herdr "$pane"; echo "Sent to $pane"; } ;;
     tmux)
         pane=$(tmux list-panes -s -F '#{pane_id} #{pane_current_command}' 2>/dev/null | awk '$2 ~ /^(claude|codex|node)$/ || $2 ~ /^[0-9]+\.[0-9]+\.[0-9]+$/ {print $1; exit}')
         [ -n "$pane" ] || { echo 'No agent pane in this tmux session.' >&2; exit 1; }
-        printf '%s' "$text" | tmux load-buffer -b wb-agent-send - && tmux paste-buffer -p -d -b wb-agent-send -t "$pane" && echo "Sent to $pane" ;;
+        printf '%s' "$text" | tmux load-buffer -b wb-agent-send - && tmux paste-buffer -p -d -b wb-agent-send -t "$pane" && { wb_remember_agent tmux "$pane"; echo "Sent to $pane"; } ;;
     *) echo 'Not inside Herdr or tmux.' >&2; exit 1 ;;
 esac

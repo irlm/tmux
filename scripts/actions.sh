@@ -55,6 +55,7 @@ run_action() {
             exec "$editor" . ;;
         editor-pick) "$SCRIPT_DIR/editor.sh" ;;
         agents) "$SCRIPT_DIR/agents.sh" ;;
+        last-agent) "$SCRIPT_DIR/agents.sh" --last ;;
         review) "$SCRIPT_DIR/review.sh" ;;
         worktree) "$SCRIPT_DIR/worktree.sh" ;;
         llm)
