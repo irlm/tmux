@@ -469,8 +469,8 @@ esac''')
         listed = self.run_script('scripts/agents.sh', '--list', env=env)
         self.assertEqual(listed.returncode, 0, listed.stderr)
         rows = listed.stdout.splitlines()
-        self.assertTrue(rows[0].startswith('w2:p3\t▲ blocked'), rows)   # blocked first
-        self.assertIn('web/t2\tcodex', rows[0])
+        self.assertTrue(rows[0].startswith('herdr\tw2:p3\t▲ blocked'), rows)   # blocked first
+        self.assertIn('herdr web/t2\tcodex', rows[0])
         self.assertIn('Fix tests', rows[1])
         self.fake_fzf('cat | head -1')
         result = self.run_script('scripts/agents.sh', env=env)
