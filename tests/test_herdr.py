@@ -477,6 +477,27 @@ esac''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('agent focus w2:p3', self.calls())
 
+    def test_tmux_keeps_its_own_w_and_the_agents_picker_is_bound_under_herdr_only(self):
+        # Both can run on one desktop. C-a w in tmux is tmux's window tree, as
+        # it was before the picker existed; the picker is Herdr's key.
+        self.fake_herdr()
+        tmux = self.bin / 'tmux'
+        tmux.write_text('#!/bin/bash\nprintf "tmux %s\\n" "$*" >> ' + str(self.log) + '\n'); tmux.chmod(0o755)
+        under_tmux = {key: value for key, value in self.env.items() if key != 'HERDR_ENV'}
+        under_tmux['TMUX'] = '/tmp/tmux-1/default,1,0'
+        bound = self.run_script('scripts/actions.sh', 'bind', env=under_tmux)
+        self.assertEqual(bound.returncode, 0, bound.stderr)
+        keys = [call.split()[2] for call in self.calls() if call.startswith('tmux bind-key ')]
+        self.assertIn('C-d', keys)
+        self.assertNotIn('w', keys)
+        self.assertIn('bind w choose-tree -Zw', (REPO / 'tmux.conf').read_text())   # heals a running server on reload
+        rendered = self.run_script('scripts/herdr-config.sh', '--print')
+        self.assertIn('key = "prefix+w"', rendered.stdout)
+        self.assertIn('actions.sh run agents', rendered.stdout)
+        palette = self.run_script('scripts/actions.sh', 'list', env=under_tmux)
+        self.assertNotIn('agents', palette.stdout)
+        self.assertIn('agents', self.run_script('scripts/actions.sh', 'list').stdout)
+
     def test_agents_picker_shows_only_the_multiplexer_it_was_opened_in(self):
         # Both can run on one desktop. tmux's C-a w stays tmux's: its own panes,
         # no call into Herdr, and the other way round; Enter never jumps to a

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Every coding agent of this multiplexer in one list: under Herdr its agents
 # (state, workspace, task, time in that state, context size), under tmux the
-# panes running an agent. Enter jumps to it. tmux and Herdr can run side by
-# side on one desktop; each key lists and acts on its own host only, so
-# C-a w in tmux never calls into Herdr or raises its window.
+# panes running an agent. Enter jumps to it. Only the host the script runs
+# in is listed and touched. C-a w opens it under Herdr; tmux keeps its own
+# C-a w (the window tree), so there the picker is reached from the palette
+# of a Herdr window, or by running the script.
 #
-#   agents.sh          the picker (C-a w)
+#   agents.sh          the picker (Herdr's C-a w)
 #   agents.sh --list   the rows only, for scripts
 #
 # In the picker: Enter focus · C-r read the last 400 lines · C-s send a

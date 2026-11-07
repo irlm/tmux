@@ -7,7 +7,7 @@ One terminal setup for working beside coding agents, on macOS, Linux and Windows
 - **Herdr on the desktop.** The multiplexer with an agent sidebar: it shows which Claude Code or Codex pane is working, blocked or done, and conversations come back after a restart. The installer sets it up with the `C-a` prefix, the popups and the theme; see the [Herdr guide](docs/herdr.md).
 - **tmux on servers.** The same prefix and popups where Herdr is not an option. `C-a s` installs the config over SSH and, while a remote tmux is in front, your keys act there. tmux is installed on desktops too, for those sessions.
 - **Helix as the editor**, configured for reviewing agent-written code: send a selection to the agent, open the `file:line` it mentions, lazygit a key away. The separate [irlm/nvim](https://github.com/irlm/nvim) Neovim config stays available with `--nvim`.
-- **Agent workflow.** `C-a w` lists every agent with its state and task, `C-a C-d` reviews what it changed with the diff beside each file and sends a hunk back, `C-a C-g` gives each task its own worktree. Under Herdr the sidebar queues agents by urgency, shows the task each is on, and the size of the uncommitted work per workspace.
+- **Agent workflow.** Under Herdr `C-a w` lists every agent with its state and task, `C-a C-d` reviews what it changed with the diff beside each file and sends a hunk back, `C-a C-g` gives each task its own worktree. Under Herdr the sidebar queues agents by urgency, shows the task each is on, and the size of the uncommitted work per workspace.
 - **Popups and pickers** for `lazygit`, `lazydocker`, notes, projects, search, LLM usage and limits, plus the shell prompt and CLI tooling bootstrap.
 
 The repository was `irlm/tmux` until November 2026; the old URLs redirect. The checkout lives in `~/.config/tmux` because tmux reads its config there.
@@ -89,7 +89,7 @@ Do not paste the macOS / Linux one-liner into PowerShell: `bash` there is the WS
 | `C-a $` | LLM usage and limits for Claude Code, Codex and the others |
 | `C-a C-f` | open a `file:line` the pane mentions in Helix |
 | `C-a v` | Helix in this folder, in a pane beside the current one |
-| `C-a w` | every agent on the machine: state, task, time in that state; Enter jumps, `C-s` prompts |
+| `C-a w` | Herdr: every agent with state, task, time in that state; Enter jumps, `C-s` prompts. tmux keeps its window tree here |
 | `C-a C-d` | review what changed: file list with the diff beside, Enter opens at the change, `C-a` sends it to the agent |
 | `C-a C-g` | a worktree per task: pick one or type a branch, in its own workspace or session |
 | `C-a C-n` / `C-a C-o` | Herdr: next agent, jump to the agent that just notified |

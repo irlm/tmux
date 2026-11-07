@@ -25,7 +25,7 @@ Helix is the managed editor (`helix/config.toml`); the optional Neovim configura
 
 - Helix with this repo's review keys: `-a` sends the selection to the agent pane, `-f` opens a `file:line` from the pane, `-d` the file's diff in a split, `-g` lazygit, `]c` next change
 - `C-a C-f` picks any `file:line` the pane mentions and opens it in `$EDITOR`
-- `C-a w` lists every agent with state and task, `C-a C-d` reviews the changed files with the diff beside each (delta or difftastic) and sends a diff back to the agent, `C-a C-g` opens a worktree per task
+- `C-a w` under Herdr lists every agent with state and task, `C-a C-d` reviews the changed files with the diff beside each (delta or difftastic) and sends a diff back to the agent, `C-a C-g` opens a worktree per task
 - under Herdr, `scripts/agent-events.sh` turns every agent state change into a journal line and the `$changes` sidebar token
 - lazygit diffs through `delta` when installed (syntax colours, line numbers)
 - optional Neovim (`--nvim`); `ctrl+hjkl` reach into it from tmux and Herdr alike
@@ -117,7 +117,7 @@ and the theme from `scripts/appearance.py`. Nothing needs compiling.
 | `scripts/status_right.ps1` | the tab bar readings on Windows: network, CPU, memory, battery |
 | `scripts/herdr-navigate.sh` | `ctrl+hjkl` under Herdr: into Neovim when it runs in the pane, else focus the next pane |
 | `scripts/pick.sh` | pick text to copy or a URL to open from the pane behind the popup |
-| `scripts/agents.sh` | `C-a w`: every agent with state, task and time in state; jump, read, prompt |
+| `scripts/agents.sh` | Herdr's `C-a w`: every agent with state, task and time in state; jump, read, prompt |
 | `scripts/review.sh` | `C-a C-d`: changed files with the diff beside; open at the change, send to the agent |
 | `scripts/worktree.sh` | `C-a C-g`: open or create a worktree per task, as a session (tmux) or grouped workspace (Herdr) |
 | `scripts/agent-events.sh` | Herdr plugin hook on every agent state change: journal plus the `$changes` workspace token |
